@@ -1,0 +1,18 @@
+{% extends "templates/tpl_base_mobile.html" %}
+{% block title %}Metric Reserve - Home{% endblock %}
+{% block content %}
+<div data-role="page" id="mob_home">
+	<div data-role="header" data-position="inline">
+		<h1>Home</h1>
+	</div>
+	<div data-role="content">
+
+		<p>This is the mobile site home page.</p>
+		<a href="#" data-theme="b" data-role="button">Log In</a>
+		<p><a href="#">The new templates</a></p>
+
+		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
+
+	</div>
+</div>
+{% endblock %}
