@@ -1,5 +1,0 @@
-{% if master.user.IS_LOGGED_IN %}
-<a href="{{ master.user.LOG_OUT_GAE_HREF }}" data-icon="minus">Logout</a>
-{% else %}
-<a href="{{ master.user.LOG_IN_GAE_HREF }}" data-icon="plus">Login</a>
-{% endif %}
