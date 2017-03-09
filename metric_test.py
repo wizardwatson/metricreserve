@@ -47,8 +47,8 @@ class ds_user(ndb.Model):
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	
 	@classmethod
-    	def get_by_google_id(self, user):
-        	return self.query().filter(self.user_id == user.user_id()).get()
+    	def get_by_google_id(cls, user):
+        	return cls.query().filter(cls.user_id == user.user_id()).get()
 
 ################################################################
 ###
