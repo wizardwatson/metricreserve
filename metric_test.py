@@ -177,13 +177,11 @@ class user(object):
 			# No google account retrieved, user is not logged in
 			self.entity = None
 		
-		'''
 		# GAE Authentication Variables
 		self.LOG_IN_GAE_HREF = users.create_login_url('/')
 		self.LOG_IN_GAE_LINKTEXT = 'Login'
 		self.LOG_OUT_GAE_HREF = users.create_logout_url('/')
 		self.LOG_OUT_GAE_LINKTEXT = 'Logout'
-		'''
 		
    	def _load_user(self, fobj_google_account):
    
@@ -253,14 +251,9 @@ class ph_home(webapp2.RequestHandler):
 			# render desktop homepage
 			pass
 
-# page handler class for "/" (web root/home page)
+# page handler class for "/mob_home" 
 class ph_mob_menu(webapp2.RequestHandler):
 
-	# There is a mobile and desktop version of this site. We direct them to
-	# the corresponding site based on CGI user agent variable. This only
-	# applies to the root domain as all internal pages are named and rendered
-	# separately so any bookmarking will always terminate on correct template.
-	
 	def get(self):
 		
 		# Instantiate the master object, do security and other app checks. If
@@ -269,18 +262,22 @@ class ph_mob_menu(webapp2.RequestHandler):
 		lobj_master = master(self,"get","unsecured")
 		if lobj_master.IS_INTERRUPTED:return
 		
-		# STUB - need user agent check after site complete, now just targeting mobile
-		# by using "True" in decision logic.
-		if True:
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
+		self.response.write(template.render(master=lobj_master))
 		
-			# render mobile homepage
-		        template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
-		        self.response.write(template.render(master=lobj_master))
+# page handler class for "/mob_menu" 
+class ph_mob_menu(webapp2.RequestHandler):
+
+	def get(self):
 		
-		else:
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
 		
-			# render desktop homepage
-			pass		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
+		self.response.write(template.render(master=lobj_master))
 		
 ################################################################
 ###
@@ -306,7 +303,7 @@ class ph_mob_menu(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
 	('/', ph_home),
-	('/menu',ph_mob_menu)
+	('/mob_menu',ph_mob_menu)
 	],debug=True)
 
 ##########################################################################
