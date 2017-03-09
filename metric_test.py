@@ -45,6 +45,10 @@ class ds_user(ndb.Model):
 	name_suffix = ndb.StringProperty()
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	
+	@classmethod
+    	def get_by_google_id(self, user):
+        	return self.query().filter(self.user_id == user.user_id()).get()
 
 ################################################################
 ###
@@ -186,7 +190,7 @@ class user(object):
    	def _load_user(self, fobj_google_account):
    
 		# this function loads a user entity from a key
-		ldata_user = ds_user.get_by_key_name(fobj_google_account.user_id())
+		ldata_user = ds_user.get_by_google_id(fobj_google_account.user_id())
 		
 		if ldata_user:
 
@@ -200,7 +204,6 @@ class user(object):
 			
 			# create a new user
 			ldata_user = ds_user(
-				key_name=fobj_google_account.user_id(),
 				user_id=fobj_google_account.user_id(),
 				status='VERIFIED')
 				
