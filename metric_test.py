@@ -31,7 +31,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 ###
 ################################################################
 
-class ds_user(ndb.Model):
+class ds_mr_user(ndb.Model):
 
 	user_id = ndb.StringProperty()
 	username = ndb.StringProperty()
@@ -190,7 +190,7 @@ class user(object):
    	def _load_user(self, fobj_google_account):
    
 		# this function loads a user entity from a key
-		ldata_user = ds_user.get_by_google_id(fobj_google_account)
+		ldata_user = ds_mr_user.get_by_google_id(fobj_google_account)
 		
 		if ldata_user:
 
@@ -203,7 +203,7 @@ class user(object):
 			self.PARENT.TRACE.append("user._load_user(): user object not loaded")
 			
 			# create a new user
-			ldata_user = ds_user(
+			ldata_user = ds_mr_user(
 				user_id=fobj_google_account.user_id(),
 				user_status='VERIFIED')
 				
