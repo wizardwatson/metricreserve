@@ -91,6 +91,8 @@ class master(object):
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
 		
+		# Start with what time it is:
+		self.TRACE.append("current time:%s" % str(datetime.now()))
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
 		
