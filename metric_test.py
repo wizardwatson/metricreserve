@@ -255,7 +255,7 @@ class ph_home(webapp2.RequestHandler):
 			pass
 
 # page handler class for "/mob_home" 
-class ph_mob_menu(webapp2.RequestHandler):
+class ph_mob_u_menu(webapp2.RequestHandler):
 
 	def get(self):
 		
@@ -269,14 +269,14 @@ class ph_mob_menu(webapp2.RequestHandler):
 		self.response.write(template.render(master=lobj_master))
 		
 # page handler class for "/mob_menu" 
-class ph_mob_menu(webapp2.RequestHandler):
+class ph_mob_s_menu(webapp2.RequestHandler):
 
 	def get(self):
 		
 		# Instantiate the master object, do security and other app checks. If
 		# there's an interruption return from this function without processing
 		# further.
-		lobj_master = master(self,"get","unsecured")
+		lobj_master = master(self,"get","secured")
 		if lobj_master.IS_INTERRUPTED:return
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
@@ -306,7 +306,8 @@ class ph_mob_menu(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
 	('/', ph_home),
-	('/mob_menu',ph_mob_menu)
+	('/mob_u_menu', ph_mob_u_menu),
+	('/mob_s_menu', ph_mob_s_menu)
 	],debug=True)
 
 ##########################################################################
