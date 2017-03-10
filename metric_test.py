@@ -335,7 +335,7 @@ class ph_mob_s_test_form1(webapp2.RequestHandler):
 application = webapp2.WSGIApplication([
 	('/', ph_home),
 	('/mob_u_menu', ph_mob_u_menu),
-	('/mob_s_menu', ph_mob_s_menu)
+	('/mob_s_menu', ph_mob_s_menu),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
