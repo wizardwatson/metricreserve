@@ -92,7 +92,7 @@ class master(object):
 		self.TRACE = []
 		
 		# Start with what time it is:
-		self.TRACE.append("current time:%s" % str(datetime.now()))
+		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
 		
