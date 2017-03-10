@@ -15,7 +15,7 @@
 			<thead>
 			<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
 			</thead>
-			{% for key, value in master.user.iteritems() %}
+			{% for key, value in master.user.entity.iteritems() %}
 			<tr>
 				<td>{{ key }}</td>
 				<td>{{ value }}</td>
