@@ -205,7 +205,7 @@ class user(object):
 			# create a new user
 			ldata_user = ds_user(
 				user_id=fobj_google_account.user_id(),
-				status='VERIFIED')
+				user_status='VERIFIED')
 				
 			ldata_user.put()
 
