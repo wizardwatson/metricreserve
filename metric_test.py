@@ -125,7 +125,7 @@ class master(object):
 			# Send back to this page after login.
 			pass
 		
-		elif not fstr_security_req == 'unsecured' and self.user.entity.status == 'VERIFIED':
+		elif not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED':
 		
 			# They have not yet registered with this application. Force them to the
 			# STUB: haven't built the page yet
