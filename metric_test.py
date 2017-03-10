@@ -265,7 +265,7 @@ class ph_mob_u_menu(webapp2.RequestHandler):
 		lobj_master = master(self,"get","unsecured")
 		if lobj_master.IS_INTERRUPTED:return
 		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_menu.html')
 		self.response.write(template.render(master=lobj_master))
 		
 # page handler class for "/mob_menu" 
@@ -279,7 +279,7 @@ class ph_mob_s_menu(webapp2.RequestHandler):
 		lobj_master = master(self,"get","secured")
 		if lobj_master.IS_INTERRUPTED:return
 		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_menu.html')
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_menu.html')
 		self.response.write(template.render(master=lobj_master))
 		
 ################################################################
