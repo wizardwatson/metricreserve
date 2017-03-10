@@ -281,6 +281,34 @@ class ph_mob_s_menu(webapp2.RequestHandler):
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_menu.html')
 		self.response.write(template.render(master=lobj_master))
+
+# page handler class
+class ph_mob_s_scaffold1(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_scaffold1.html')
+		self.response.write(template.render(master=lobj_master))
+		
+# page handler class
+class ph_mob_s_test_form1(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_test_form1.html')
+		self.response.write(template.render(master=lobj_master))
 		
 ################################################################
 ###
@@ -308,6 +336,8 @@ application = webapp2.WSGIApplication([
 	('/', ph_home),
 	('/mob_u_menu', ph_mob_u_menu),
 	('/mob_s_menu', ph_mob_s_menu)
+	('/mobile_scaffold1', ph_mob_s_scaffold1),
+	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
 
 ##########################################################################
