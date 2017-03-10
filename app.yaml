@@ -13,7 +13,7 @@ handlers:
   static_dir: static
   
 - url: /.*
-  script: metric_test.application
+  script: metric_reserve.application
 
 libraries:
 - name: webapp2
