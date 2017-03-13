@@ -8,6 +8,7 @@
 import os
 import urllib
 import datetime
+import re
 
 # these are standard GAE imports
 from google.appengine.api import users
@@ -98,6 +99,9 @@ class master(object):
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
 		
+		# instantiate the metric object
+		self.metric = metric(self)
+		
 		# sometimes our security or other app checks (like system being offline) 
 		# interrupt normal page processing and return other information like errors
 		# to the browser. So each page handler class will break out before processing
@@ -130,8 +134,7 @@ class master(object):
 			# Send back to this page after login.
 			self.request_handler.redirect(users.create_login_url(self.request.path))
 		
-		elif (not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED' and
-			not self.request.path == '/mob_s_register'):
+		elif not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED' and not self.request.path == '/mob_s_register':
 		
 			# They have not yet registered with this application. Force them to the
 			# regisration page.
@@ -144,7 +147,16 @@ class master(object):
 			# STUB: haven't built the error page yet.
 			pass
 
-
+	def _string_validation_1001(self, fstr_to_test):
+	
+		if re.match(r'[a-z0-9_]+',fstr_to_test):
+		
+			self.TRACE.append("pattern matches")
+		
+		else:
+		
+			self.TRACE.append("pattern doesn't match")
+		
 
 # this is the user class specifically designed for using google user authentication
 class user(object):
@@ -218,6 +230,15 @@ class user(object):
 
 		return ldata_user
 		
+
+# this is metric reserve class, containing the P2P network related functionality
+class metric(object):
+
+	# intialization function, called when object is instantiated with or without a function call
+	def __init__(self, fobj_master):
+	
+		# give this object a reference to the master object
+		self.PARENT = fobj_master
 		
 ################################################################
 ###
@@ -370,7 +391,10 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		if lobj_master.IS_INTERRUPTED:return
 		
 		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
+		
 		# Do registration processing
+		lobj_master._string_validation_1001(lobj_master.request.POST.form_username)
+		
 		
 		# Redirect to non-POST page
 		
