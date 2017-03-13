@@ -247,7 +247,9 @@ class metric(object):
 		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
 		maybe_dummy_entity = maybe_new_key.get()
 		if maybe_dummy_entity is not None:
+			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
 			return False # False meaning "not created"
+		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
 		new_entity = ds_mr_unique_dummy_entity()
 		new_entity.unique_name = fstr_name
 		new_entity.key = maybe_new_key
