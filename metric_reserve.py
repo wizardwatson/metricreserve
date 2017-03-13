@@ -133,8 +133,9 @@ class master(object):
 		elif not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED':
 		
 			# They have not yet registered with this application. Force them to the
-			# STUB: haven't built the page yet
-			pass
+			# regisration page.
+			# STUB need to abstract this later for desktop vs. mobile
+			self.request_handler.redirect('/mob_s_register')
 		
 		elif fstr_security_req == 'admin' and self.user.IS_ADMIN == False:
 		
