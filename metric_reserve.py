@@ -241,23 +241,6 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 		
-	@ndb.transactional(xg=True)
-	def _save_unique_name(self, fstr_name):
-	
-		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
-		maybe_dummy_entity = maybe_new_key.get()
-		if maybe_dummy_entity is not None:
-			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
-			return False # False meaning "not created"
-		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
-		new_entity = ds_mr_unique_dummy_entity()
-		new_entity.unique_name = fstr_name
-		new_entity.key = maybe_new_key
-		new_entity.put()
-		self.PARENT.user.entity.user_status = "ACTIVE"
-		self.PARENT.user.entity.put()
-		return True # True meaning "created"
-		
 ################################################################
 ###
 ###  END: Application Classes
@@ -411,6 +394,23 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
 		
 		# Do registration processing
+		# Here's transaction we need to register the username
+		@ndb.transactional(xg=True)
+		def save_unique_username(fstr_name):
+
+			maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+			maybe_dummy_entity = maybe_new_key.get()
+			if maybe_dummy_entity is not None:
+				lobj_master.TRACE.append("metric._save_unique_name():entity was returned")
+				return False # False meaning "not created"
+			lobj_master.TRACE.append("metric._save_unique_name():entity was NOT returned")
+			new_entity = ds_mr_unique_dummy_entity()
+			new_entity.unique_name = fstr_name
+			new_entity.key = maybe_new_key
+			new_entity.put()
+			lobj_master.user.entity.user_status = "ACTIVE"
+			lobj_master.user.entity.put()
+			return True # True meaning "created"
 		
 		# STEP 1 (VALIDATE FORMAT)
 		# make sure the username format is entered correctly, only a-z, 0-9, and underscore allowed
@@ -423,7 +423,7 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 		# STEP 2 (VALIDATE UNIQUENESS AND PROCESS REQUEST)
 		# make sure the chosen username isn't already taken
-		elif not lobj_master.metric._save_unique_name(lobj_master.request.POST['form_username']):
+		elif not save_unique_username(lobj_master.request.POST['form_username']):
 		
 			# username is not unique
 			# kick them back to registration page with an error
