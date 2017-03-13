@@ -1,0 +1,99 @@
+<div id="debug">
+
+	<h3 id="lnk_debug_menu">DEBUG MENU</h3>
+
+	<div>
+		<a href="#lnk_debug_trace">DEBUG TRACE</a> |
+		<a href="#lnk_debug_request_environment">Request Environment</a> |
+		<a href="#lnk_debug_form_variables">Template Variables</a>
+	</div>
+
+	<hr/>
+
+	<!-- DEBUG TRACE -->
+	<h3 id="lnk_debug_trace">DEBUG_TEXT</h3>
+	<p><a href="#lnk_debug_menu">Top</a></p>
+	{% if master.TRACE %}
+	<p>
+	<ul>
+		{% for item in master.TRACE %}
+		<li><p>{{ item }}</p></li>
+		{% endfor %}
+	</ul>
+	</p>
+	{% else %}
+	<p>[[TRACE var is empty.]]</p>
+	{% endif %}
+
+	<hr/>
+
+	<!-- REQUEST ENVIRONMENT VARIABLES -->
+	<h3 id="lnk_debug_request_environment">REQUEST ENVIRONMENT</h3>
+	<p><a href="#lnk_debug_menu">debug top</a></p>
+	<table border=1>
+		<thead>
+			<tr><td><b>Request Variable</b></td><td><b>Value</b></td></tr>
+		</thead>
+		<tbody>
+			<tr><td>host_url</td>		<td>{{ master.request.host_url }}</td></tr>
+			<tr><td>path_url</td>		<td>{{ master.request.path_url }}</td></tr>
+			<tr><td>path</td>			<td>{{ master.request.path }}</td></tr>
+			<tr><td>method</td>			<td>{{ master.request.method }}</td></tr>
+			<tr><td>scheme</td>			<td>{{ master.request.scheme }}</td></tr>
+			<tr><td>script_name</td>	<td>{{ master.request.script_name }}</td></tr>
+			<tr><td>path_info</td>		<td>{{ master.request.path_info }}</td></tr>
+			<tr><td>host</td>			<td>{{ master.request.host }}</td></tr>
+			<tr><td>content_type</td>	<td>{{ master.request.content_type }}</td></tr>
+			<tr><td>url</td>			<td>{{ master.request.url }}</td></tr>
+			<tr><td>path_qs</td>		<td>{{ master.request.path_qs }}</td></tr>
+			<tr><td>query_string</td>	<td>{{ master.request.query_string }}</td></tr>
+			<tr><td>remote_addr</td>	<td>{{ master.request.remote_addr }}</td></tr>
+
+			{% for key, value in master.request.headers.iteritems() %}
+			<tr><td>headers.{{ key }}</td><td>{{ value }}</td></tr>
+			{% endfor %}
+
+			{% for key, value in master.request.cookies.iteritems() %}
+			<tr><td>cookies.{{ key }}</td><td>{{ value }}</td></tr>
+			{% endfor %}
+
+		</tbody>
+	</table>
+
+	<hr/>
+
+	<!-- FORM VARIABLES -->
+	<h3 id="lnk_debug_form_variables">Template Variables (Includes any GET/POST variables if this is form result page.)</h3>
+	<p><a href="#lnk_debug_menu">Top</a></p>
+
+	<h4>GET variables</h4>
+	<table border=1>
+		<thead>
+		<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+		</thead>
+		{% for key, value in master.request.GET.iteritems() %}
+		<tr>
+			<td>{{ key }}</td>
+			<td>{{ value }}</td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<p><a href="#lnk_debug_menu">Top</a></p>
+
+	<h4>POST variables</h4>
+	<table border=1>
+		<thead>
+		<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+		</thead>
+		{% for key, value in master.request.POST.iteritems() %}
+		<tr>
+			<td>{{ key }}</td>
+			<td>{{ value }}</td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<p><a href="#lnk_debug_menu">Top</a></p>
+
+</div>
