@@ -9,23 +9,27 @@
 	</div>
 	<div data-role="content">
     <h2>Register</h2>
-    <p>Enter username to register:</p>
-    {# comment out for now
-    <p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> username already in use.</font></p>
-    #}
-    {% if master.request.GET.user_error == "bad_username_format" %}
-    <p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Bad username format.</font></p>
+    {% if master.request.GET.form_success == "username_successfully_assigned" %}
+    <p>Username Successfully Assigned</p>
+    {% else %}
+		<p>Enter username to register:</p>
+		{% if master.request.GET.user_error == "bad_username_format" %}
+		<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Bad username format.</font></p>
+		{% endif %}
+		{% if master.request.GET.user_error == "username_not_unique" %}
+		<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Username chosen was not unique.  Please try again.</font></p>
+		{% endif %}
+		<form action="/mob_s_register" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+		  <fieldset>
+			<div data-role="fieldcontain">
+			  <label for="username">Choose a unique Username:</label>
+				<input type="text" name="form_username" id="username" value=""  />
+			</div>
+			<button type="submit" data-theme="b" name="submit" value="submit_register">Register</button>
+		  </fieldset>
+		</form>
+			{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
+		</div>
     {% endif %}
-    <form action="/mob_s_register" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
-      <fieldset>
-        <div data-role="fieldcontain">
-          <label for="username">Choose a unique Username:</label>
-            <input type="text" name="form_username" id="username" value=""  />
-        </div>
-        <button type="submit" data-theme="b" name="submit" value="submit_register">Register</button>
-      </fieldset>
-    </form>
-		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
-	</div>
 </div>
 {% endblock %}
