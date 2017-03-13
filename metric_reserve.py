@@ -145,18 +145,7 @@ class master(object):
 		
 			# Admin page is special case. Send them to error page if they are not admin.
 			# STUB: haven't built the error page yet.
-			pass
-
-	def _string_validation_1001(self, fstr_to_test):
-	
-		if re.match(r'^[a-z0-9_]+$',fstr_to_test):
-		
-			self.TRACE.append("pattern matches")
-		
-		else:
-		
-			self.TRACE.append("pattern doesn't match")
-		
+			pass		
 
 # this is the user class specifically designed for using google user authentication
 class user(object):
@@ -393,9 +382,24 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
 		
 		# Do registration processing
-		lobj_master._string_validation_1001(lobj_master.request.POST['form_username'])
+		
+		# STEP 1 (VALIDATE FORMAT)
+		# make sure the username format is entered correctly, only a-z, 0-9, and underscore allowed
+		if not re.match(r'^[a-z0-9_]+$',lobj_master.request.POST['form_username']):
+		
+			# bad username format
+			# kick them back to registration page with an error
+			# error messages are contained in template and activated by URL query string
+			lobj_master.request_handler.redirect('/mob_s_register?user_error=bad_username_format')
+		
+		# STEP 2 (VALIDATE UNIQUENESS)
+		# make sure the chosen 
 		
 		
+		# STEP 3 (PROCESS REQUEST)
+		
+		
+		# SETP 4 (REDIRECT ON SUCCESS)
 		# Redirect to non-POST page
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_register.html')
