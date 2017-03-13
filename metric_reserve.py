@@ -78,6 +78,8 @@ class master(object):
 		# attach request object to master object
 		self.request = fobj_request.request
 		self.response = fobj_request.response
+		# also, let's get the webapp.RequestHandler reference itself for redirects and errors
+		self.request_handler = fobj_request
 		
 		# store IS_POST variable. not necessary, useful for readability
 		if fstr_request_type == 'post':
@@ -126,7 +128,7 @@ class master(object):
 			
 			# This page requires login and they are not.
 			# Send back to this page after login.
-			pass
+			self.request_handler.redirect(users.create_login_url(self.request.path))
 		
 		elif not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED':
 		
@@ -185,7 +187,7 @@ class user(object):
 			self.entity = None
 		
 		# GAE Authentication Variables
-		self.LOG_IN_GAE_HREF = users.create_login_url('/')
+		self.LOG_IN_GAE_HREF = users.create_login_url('/mob_s_home')
 		self.LOG_IN_GAE_LINKTEXT = 'Login'
 		self.LOG_OUT_GAE_HREF = users.create_logout_url('/')
 		self.LOG_OUT_GAE_LINKTEXT = 'Logout'
@@ -249,7 +251,7 @@ class ph_home(webapp2.RequestHandler):
 		if True:
 		
 			# render mobile homepage
-		        template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_home.html')
+		        template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_home.html')
 		        self.response.write(template.render(master=lobj_master))
 		
 		else:
@@ -257,7 +259,21 @@ class ph_home(webapp2.RequestHandler):
 			# render desktop homepage
 			pass
 
-# page handler class for "/mob_home" 
+# page handler class for "/mob_u_home" 
+class ph_mob_u_home(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_home.html')
+		self.response.write(template.render(master=lobj_master))
+
+# page handler class for "/mob_u_menu" 
 class ph_mob_u_menu(webapp2.RequestHandler):
 
 	def get(self):
@@ -270,8 +286,22 @@ class ph_mob_u_menu(webapp2.RequestHandler):
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_menu.html')
 		self.response.write(template.render(master=lobj_master))
+
+# page handler class for "/mob_s_home"
+class ph_mob_s_home(webapp2.RequestHandler):
+
+	def get(self):
 		
-# page handler class for "/mob_menu" 
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_home.html')
+		self.response.write(template.render(master=lobj_master))
+		
+# page handler class for "/mob_s_menu" 
 class ph_mob_s_menu(webapp2.RequestHandler):
 
 	def get(self):
@@ -285,7 +315,7 @@ class ph_mob_s_menu(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_menu.html')
 		self.response.write(template.render(master=lobj_master))
 
-# page handler class
+# page handler class for "/mob_s_scaffold1"
 class ph_mob_s_scaffold1(webapp2.RequestHandler):
 
 	def get(self):
@@ -299,7 +329,7 @@ class ph_mob_s_scaffold1(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_scaffold1.html')
 		self.response.write(template.render(master=lobj_master))
 		
-# page handler class
+# page handler class for "/mob_s_test_form1"
 class ph_mob_s_test_form1(webapp2.RequestHandler):
 
 	def get(self):
@@ -328,6 +358,10 @@ class ph_mob_s_test_form1(webapp2.RequestHandler):
 # 'ph' prefix means "page handler"
 # 'mob' means "mobile version" (example: ph_mob_home)
 # 'full' means "full browser version" (example: ph_full_home)
+# 's' and 'u' refer to 'unsecured' vs. 'secured'
+#
+# so ph_mob_u_menu for instance means:
+# "this class is a page handler for the mobile version of an unsecured menu page."
 
 # All this function does is tell the module which path to match to which 
 # class. It then calls either 'get' or 'post' function on that class depending
@@ -337,7 +371,9 @@ class ph_mob_s_test_form1(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
 	('/', ph_home),
+	('/mob_u_home', ph_mob_u_home),
 	('/mob_u_menu', ph_mob_u_menu),
+	('/mob_s_home', ph_mob_s_home),
 	('/mob_s_menu', ph_mob_s_menu),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
