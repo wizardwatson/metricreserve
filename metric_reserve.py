@@ -33,6 +33,11 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 ###
 ################################################################
 
+# naming convention here is that:
+# "ds" just means this is a "datastore" object
+# "mr" means this is a "metric reserve" related entity
+
+# this is the user Model.  Not to be confused with the account model
 class ds_mr_user(ndb.Model):
 
 	user_id = ndb.StringProperty()
@@ -51,6 +56,13 @@ class ds_mr_user(ndb.Model):
 	@classmethod
     	def get_by_google_id(cls, user):
         	return cls.query().filter(cls.user_id == user.user_id()).get()
+
+# this is just an entity solely used to enforce name uniqueness in other objects via transactions
+# google's datastore requires a little extra work to enforce a unique constraint
+class ds_mr_unique_dummy_entity(ndb.Model):
+
+	unique_name = ndb.StringProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
 ################################################################
 ###
@@ -229,6 +241,21 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 		
+	@ndb.transactional(xg=True)
+	def _save_unique_name(self, fstr_name):
+	
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+		maybe_dummy_entity = maybe_new_key.get()
+		if maybe_dummy_entity is not None:
+			return False # False meaning "not created"
+		new_entity = ds_mr_unique_dummy_entity()
+		new_entity.unique_name = fstr_name
+		new_entity.key = maybe_new_key
+		new_entity.put()
+		self.PARENT.user.entity.user_status = "ACTIVE"
+		self.PARENT.user.entity.put()
+		return True # True meaning "created"
+		
 ################################################################
 ###
 ###  END: Application Classes
@@ -389,21 +416,22 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 			# bad username format
 			# kick them back to registration page with an error
-			# error messages are contained in template and activated by URL query string
+			# error messages are contained in the HTML template and activated by URL query string
 			lobj_master.request_handler.redirect('/mob_s_register?user_error=bad_username_format')
 		
-		# STEP 2 (VALIDATE UNIQUENESS)
-		# make sure the chosen 
+		# STEP 2 (VALIDATE UNIQUENESS AND PROCESS REQUEST)
+		# make sure the chosen username isn't already taken
+		if not lobj_master.metric._save_unique_username(lobj_master.request.POST['form_username']):
+		
+			# username is not unique
+			# kick them back to registration page with an error
+			# error messages are contained in the HTML template and activated by URL query string
+			lobj_master.request_handler.redirect('/mob_s_register?user_error=username_not_unique')
 		
 		
-		# STEP 3 (PROCESS REQUEST)
-		
-		
-		# SETP 4 (REDIRECT ON SUCCESS)
+		# SETP 3 (REDIRECT ON SUCCESS)
 		# Redirect to non-POST page
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_register.html')
-		self.response.write(template.render(master=lobj_master))
+		lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
 		
 ################################################################
 ###
