@@ -13,6 +13,9 @@
     {# comment out for now
     <p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> username already in use.</font></p>
     #}
+    {% if master.request.GET.user_error == "bad_username_format" %}
+    <p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Bad username format.</font></p>
+    {% endif %}
     <form action="/mob_s_register" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
       <fieldset>
         <div data-role="fieldcontain">
