@@ -393,7 +393,7 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
 		
 		# Do registration processing
-		lobj_master._string_validation_1001(lobj_master.request.POST.form_username)
+		lobj_master._string_validation_1001(lobj_master.request.POST['form_username'])
 		
 		
 		# Redirect to non-POST page
