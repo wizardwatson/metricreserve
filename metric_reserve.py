@@ -421,7 +421,7 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 		# STEP 2 (VALIDATE UNIQUENESS AND PROCESS REQUEST)
 		# make sure the chosen username isn't already taken
-		if not lobj_master.metric._save_unique_username(lobj_master.request.POST['form_username']):
+		if not lobj_master.metric._save_unique_name(lobj_master.request.POST['form_username']):
 		
 			# username is not unique
 			# kick them back to registration page with an error
