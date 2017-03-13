@@ -343,6 +343,38 @@ class ph_mob_s_test_form1(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_test_form1.html')
 		self.response.write(template.render(master=lobj_master))
 		
+# page handler class for "/mob_s_register"
+class ph_mob_s_register(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_register.get(): in registration GET function")
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_register.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+	
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
+		# Do registration processing
+		
+		# Redirect to non-POST page
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_register.html')
+		self.response.write(template.render(master=lobj_master))
+		
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -375,6 +407,7 @@ application = webapp2.WSGIApplication([
 	('/mob_u_menu', ph_mob_u_menu),
 	('/mob_s_home', ph_mob_s_home),
 	('/mob_s_menu', ph_mob_s_menu),
+	('/mob_s_register', ph_mob_s_register),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
