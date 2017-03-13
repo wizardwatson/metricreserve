@@ -28,6 +28,15 @@
 			<button type="submit" data-theme="b" name="submit" value="submit_register">Register</button>
 		  </fieldset>
 		</form>
+			<h4>User variables</h4>
+			<table border=1>
+				<thead>
+				<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+				</thead>
+				<tr><td>master.user.entity.user_id</td><td>{{ master.user.entity.user_id }}</td></tr>
+				<tr><td>master.user.entity.user_status</td><td>{{ master.user.entity.user_status }}</td></tr>
+				<tr><td>master.user.entity.date_created</td><td>{{ master.user.entity.date_created }}</td></tr>
+			</table>
 			{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 		</div>
     {% endif %}
