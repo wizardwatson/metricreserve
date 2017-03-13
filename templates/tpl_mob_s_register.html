@@ -13,13 +13,13 @@
     {# comment out for now
     <p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> username already in use.</font></p>
     #}
-    <form action="/mob_s_register?form_username=test1&urlthing=test2" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+    <form action="/mob_s_register" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
       <fieldset>
         <div data-role="fieldcontain">
           <label for="username">Choose a unique Username:</label>
             <input type="text" name="form_username" id="username" value=""  />
         </div>
-        <button type="submit" data-theme="b" name="submit" value="submit_username">Register</button>
+        <button type="submit" data-theme="b" name="submit" value="submit_register">Register</button>
       </fieldset>
     </form>
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
