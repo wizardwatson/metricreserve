@@ -130,8 +130,8 @@ class master(object):
 			# Send back to this page after login.
 			self.request_handler.redirect(users.create_login_url(self.request.path))
 		
-		elif not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED' and
-			not self.request.path == '/mob_s_register':
+		elif (not fstr_security_req == 'unsecured' and self.user.entity.user_status == 'VERIFIED' and
+			not self.request.path == '/mob_s_register'):
 		
 			# They have not yet registered with this application. Force them to the
 			# regisration page.
