@@ -149,7 +149,7 @@ class master(object):
 
 	def _string_validation_1001(self, fstr_to_test):
 	
-		if re.match(r'[a-z0-9_]+',fstr_to_test):
+		if re.match(r'^[a-z0-9_]+$',fstr_to_test):
 		
 			self.TRACE.append("pattern matches")
 		
