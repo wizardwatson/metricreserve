@@ -423,7 +423,7 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 		# STEP 2 (VALIDATE UNIQUENESS AND PROCESS REQUEST)
 		# make sure the chosen username isn't already taken
-		if not lobj_master.metric._save_unique_name(lobj_master.request.POST['form_username']):
+		elif not lobj_master.metric._save_unique_name(lobj_master.request.POST['form_username']):
 		
 			# username is not unique
 			# kick them back to registration page with an error
@@ -433,10 +433,9 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 		# SETP 3 (REDIRECT ON SUCCESS)
 		# Redirect to non-POST page
-		#lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_register.html')
-		self.response.write(template.render(master=lobj_master))
+		else:
+			
+			lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
 		
 ################################################################
 ###
