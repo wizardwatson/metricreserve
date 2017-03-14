@@ -12,26 +12,33 @@
 
     	<p>Please click the button to join the network.</p>
 
-	<h4>Network Profile Entity</h4>
-	<table border=1>
-		<thead>
-		<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
-		</thead>
-		<tr><td>master.network_summary_entity.network_name</td><td>{{ master.network_summary_entity.network_name }}</td></tr>
-		<tr><td>master.network_summary_entity.network_id</td><td>{{ master.network_summary_entity.network_id }}</td></tr>
-	</table>
+		<form action="/mob_s_join_network" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+		  <fieldset>
+			  <input type="hidden" name="form_network_id" value="{{ master.network_joining.network_id }}"  />
+			<button type="submit" data-theme="b" name="submit" value="submit_join_network">Join Network</button>
+		  </fieldset>
+		</form>
 
-	<h4>User variables</h4>
-	<table border=1>
-		<thead>
-		<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
-		</thead>
-		<tr><td>master.user.entity.user_id</td><td>{{ master.user.entity.user_id }}</td></tr>
-		<tr><td>master.user.entity.user_status</td><td>{{ master.user.entity.user_status }}</td></tr>
-		<tr><td>master.user.entity.date_created</td><td>{{ master.user.entity.date_created }}</td></tr>
-		<tr><td>master.user.entity.username</td><td>{{ master.user.entity.username }}</td></tr>
-	</table>
-	{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
+		<h4>Network Profile Entity</h4>
+		<table border=1>
+			<thead>
+			<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+			</thead>
+			<tr><td>master.network_joining.network_name</td><td>{{ master.network_joining.network_name }}</td></tr>
+			<tr><td>master.network_joining.network_id</td><td>{{ master.network_joining.network_id }}</td></tr>
+		</table>
+
+		<h4>User variables</h4>
+		<table border=1>
+			<thead>
+			<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+			</thead>
+			<tr><td>master.user.entity.user_id</td><td>{{ master.user.entity.user_id }}</td></tr>
+			<tr><td>master.user.entity.user_status</td><td>{{ master.user.entity.user_status }}</td></tr>
+			<tr><td>master.user.entity.date_created</td><td>{{ master.user.entity.date_created }}</td></tr>
+			<tr><td>master.user.entity.username</td><td>{{ master.user.entity.username }}</td></tr>
+		</table>
+		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
 </div>
 {% endblock %}
