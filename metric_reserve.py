@@ -342,7 +342,7 @@ class metric(object):
 		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12)))
 		lds_metric_account = ds_mr_metric_account()
 		lds_metric_account.network_id = fstr_network_id
-		lds_metric_account.account_id = lds_cursor.current_index
+		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
 		lds_metric_account.key = metric_account_key
 		
 		# put the metric account id into the user object so we know this user is joined
