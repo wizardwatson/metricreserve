@@ -22,6 +22,11 @@
 		<p>You are joined to this network.</p>
 		{% endif %}
 
+		<h4>All Users</h4>
+		{% for each_user in lobj_master.all_users %}
+
+		<p>{{ each_user.username }}, Connect/Disconnect</p>
+		{% endfor %}
 		<h4>Network Profile Entity</h4>
 		<table border=1>
 			<thead>
