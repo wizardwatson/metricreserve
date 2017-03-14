@@ -9,6 +9,7 @@ import os
 import urllib
 import datetime
 import re
+import pickle
 
 # these are standard GAE imports
 from google.appengine.api import users
@@ -51,7 +52,7 @@ class ds_mr_user(ndb.Model):
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
 	
-	metric_account_keys = ndb.StringProperty(default="EMPTY")
+	metric_account_keys = ndb.PickleProperty(default="EMPTY")
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -84,15 +85,15 @@ class ds_mr_metric_account(ndb.Model):
 
 	account_id = ndb.StringProperty()
 	network_id = ndb.StringProperty()
-	outgoing_connection_requests = ndb.StringProperty()
-	incoming_connection_requests = ndb.StringProperty()
-	incoming_reserve_transfer_requests = ndb.StringProperty()
-	outgoing_reserve_transfer_requests = ndb.StringProperty()
-	suggested_reserve_transfer_requests = ndb.StringProperty()
-	current_connections = ndb.StringProperty()
+	outgoing_connection_requests = ndb.PickleProperty()
+	incoming_connection_requests = ndb.PickleProperty()
+	incoming_reserve_transfer_requests = ndb.PickleProperty()
+	outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_reserve_transfer_requests = ndb.PickleProperty()
+	current_connections = ndb.PickleProperty()
 	current_reserve_balance = ndb.StringProperty()
 	current_network_balance = ndb.StringProperty()	
-	last_connections = ndb.StringProperty()
+	last_connections = ndb.PickleProperty()
 	last_reserve_balance = ndb.StringProperty()
 	last_network_balance = ndb.StringProperty()
 
@@ -568,6 +569,10 @@ class ph_mob_s_network_summary(webapp2.RequestHandler):
 		# Show network summary with join links
 		lobj_master.network_summary_entity = lobj_master.metric._get_network_summary()
 		
+		# STUB TEMP get all users to show connect/disconnect links
+		all_users = ds_mr_user.query().fetch()
+		lobj_master.all_users = all_users
+		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_network_summary.html')
 		self.response.write(template.render(master=lobj_master))
 		
@@ -616,6 +621,42 @@ class ph_mob_s_join_network(webapp2.RequestHandler):
 		
 		lobj_master.request_handler.redirect('/mob_s_network_summary?form_result=%s' % lstr_result)	
 
+# page handler class for "/mob_s_connect"
+class ph_mob_s_connect(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_connect.get(): in connect GET function")
+		
+		# Connect Page
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_connect.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_connect.get(): in connect POST function")
+		
+		
+		# Connect Page
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_connect.html')
+		self.response.write(template.render(master=lobj_master))	
+		
+		
+		
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -656,6 +697,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_register', ph_mob_s_register),
 	('/mob_s_network_summary', ph_mob_s_network_summary),
 	('/mob_s_join_network', ph_mob_s_join_network),
+	('/mob_s_connect', ph_mob_s_connect),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
