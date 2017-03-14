@@ -612,9 +612,9 @@ class ph_mob_s_join_network(webapp2.RequestHandler):
 		# In future we could have multiple networks and would query on passed in URL variable
 		# but for now, we're ignoring that and just loading the primary network
 		lobj_master.network_joining = lobj_master.metric._get_network_summary()
+		lstr_result = lobj_master.metric._join_network(lobj_master.user.entity.user_id,lobj_master.network_joining.network_id)
 		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_join_network.html')
-		self.response.write(template.render(master=lobj_master))	
+		lobj_master.request_handler.redirect('/mob_s_network_summary?form_result=%s' % lstr_result)	
 
 ################################################################
 ###
