@@ -507,6 +507,45 @@ class ph_mob_s_network_summary(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_network_summary.html')
 		self.response.write(template.render(master=lobj_master))
 		
+# page handler class for "/mob_s_join_network"
+class ph_mob_s_join_network(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_join_network.get(): in join_network GET function")
+		
+		# Show join verification
+		# In future we could have multiple networks and would query on passed in URL variable
+		# but for now, we're ignoring that and just loading the primary network
+		lobj_master.network_joining = lobj_master.metric._get_network_summary()
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_join_network.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_join_network.post(): in join_network POST function")
+		
+		# Show join verification
+		# In future we could have multiple networks and would query on passed in URL variable
+		# but for now, we're ignoring that and just loading the primary network
+		lobj_master.network_joining = lobj_master.metric._get_network_summary()
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_join_network.html')
+		self.response.write(template.render(master=lobj_master))	
+
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -546,6 +585,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_menu', ph_mob_s_menu),
 	('/mob_s_register', ph_mob_s_register),
 	('/mob_s_network_summary', ph_mob_s_network_summary),
+	('/mob_s_join_network', ph_mob_s_join_network),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
