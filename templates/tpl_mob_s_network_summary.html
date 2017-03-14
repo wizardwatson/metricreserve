@@ -16,7 +16,7 @@
 		<p class="ui-body ui-body-e"><strong>You've successfully joined this network.</strong></p>
 		{% endif %}
     	<p>Stuff and things about network summary.</p>
-		{% if master.user.entity.metric_account_keys == "EMPTY" %}
+		{% if master.user.entity.metric_account_ids == "EMPTY" %}
 		<a href="/mob_s_join_network?network_id={{ master.network_summary_entity.network_id }}">Join Primary Network</a>
 		{% else %}
 		<p>You are joined to this network.</p>
@@ -45,7 +45,7 @@
 			<tr><td>master.user.entity.user_status</td><td>{{ master.user.entity.user_status }}</td></tr>
 			<tr><td>master.user.entity.date_created</td><td>{{ master.user.entity.date_created }}</td></tr>
 			<tr><td>master.user.entity.username</td><td>{{ master.user.entity.username }}</td></tr>
-			<tr><td>master.user.entity.metric_account_keys</td><td>{{ master.user.entity.metric_account_keys }}</td></tr>
+			<tr><td>master.user.entity.metric_account_ids</td><td>{{ master.user.entity.metric_account_ids }}</td></tr>
 		</table>
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
