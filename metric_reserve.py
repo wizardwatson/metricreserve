@@ -545,7 +545,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_home', ph_mob_s_home),
 	('/mob_s_menu', ph_mob_s_menu),
 	('/mob_s_register', ph_mob_s_register),
-	('/mob_s_network_summary', ph_mob_s_register),
+	('/mob_s_network_summary', ph_mob_s_network_summary),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
