@@ -86,15 +86,16 @@ class ds_mr_metric_account(ndb.Model):
 
 	account_id = ndb.StringProperty()
 	network_id = ndb.StringProperty()
-	outgoing_connection_requests = ndb.PickleProperty()
-	incoming_connection_requests = ndb.PickleProperty()
+	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
 	outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	suggested_reserve_transfer_requests = ndb.PickleProperty()
-	current_connections = ndb.PickleProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_connections = ndb.PickleProperty(default="EMPTY")
 	current_reserve_balance = ndb.StringProperty()
 	current_network_balance = ndb.StringProperty()	
-	last_connections = ndb.PickleProperty()
+	last_connections = ndb.PickleProperty(default="EMPTY")
 	last_reserve_balance = ndb.StringProperty()
 	last_network_balance = ndb.StringProperty()
 
@@ -358,6 +359,86 @@ class metric(object):
 		
 		return "success"
 		
+	@ndb.transactional(xg=True)
+	def _connect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
+	
+		# connect() corresponds to a "friending" to use a Facebook
+		# term.  Basically reserves pass through your connections and
+		# the network is literally defined by these bilateral connections.
+		# If you are not connected to anyone you are an orphan.  Upper
+		# limit on connections needs to be set to mitigate chunking size
+		# issues in the graph/tree processing phase.
+		#
+		# Just like friending, both parties must agree to connect.  So 
+		# when one person tries to connect to the other, it's semantically
+		# a "connection request".  When the other party connects to the same
+		# person after they've already done a connection request, it's semantically a 
+		# "connection request authorized" and then the two parties are 
+		# connected.
+		#
+		# Just like with other functions that affect the graph state and are
+		# processed in the tree process phase, we have to pay attention to the
+		# timestamp to determine whether to only change the current state, or
+		# move the current to the last state before updating the current.
+		#
+		# got all that? lol
+		
+		# get the source and target metric accounts
+		
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		lds_source = source_key.get()
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		lds_target = target_key.get()
+
+		if lds_source.incoming_connection_requests == "EMPTY":
+			lds_source.incoming_connection_requests = []
+		if lds_source.outgoing_connection_requests == "EMPTY":
+			lds_source.outgoing_connection_requests = []
+		if lds_source.current_connections == "EMPTY":
+			lds_source.current_connections = []
+		if lds_source.last_connections == "EMPTY":
+			lds_source.last_connections = []
+		
+		if lds_target.incoming_connection_requests == "EMPTY":
+			lds_source.incoming_connection_requests = []
+		if lds_target.outgoing_connection_requests == "EMPTY":
+			lds_source.outgoing_connection_requests = []
+		if lds_target.current_connections == "EMPTY":
+			lds_source.current_connections = []
+		if lds_target.last_connections == "EMPTY":
+			lds_source.last_connections = []
+
+		# Five situations where we don't even try to connect
+		# 1. Source and target are already connected.
+		if fstr_target_account_id in lds_source.current_connections: return "error_already_connected"
+		# 2. Source already has outgoing connection request to target
+		if fstr_target_account_id in lds_source.outgoing_connection_requests: return "error_connection_already_requested"
+		# 3. Target incoming connection requests is maxed out
+		if len(lds_target.incoming_connection_requests) > 19: return "error_target_incoming_requests_maxed"
+		# 4. Source outgoing connection requests is maxed out
+		if len(lds_source.outgoing_connection_requests) > 19: return "error_target_incoming_requests_maxed"
+		# 5. Target or source has reached their maximum number of connections
+		if len(lds_source.current_connections) > 19: return "error_source_connections_maxed"
+		if len(lds_target.current_connections) > 19: return "error_target_connections_maxed"
+		
+		# should be ok to connect
+		# check if the target has the source in it's outgoing connection requests
+		if fstr_source_account_id in lds_target.outgoing_connection_requests:
+			
+			# target already connected, this is a connection request authorization
+		else:
+			# target not yet connected, this is a connection request
+			lds_source.outgoing_connection_requests.append(fstr_target_account_id)
+			lds_target.incoming_connection_requests.append(fstr_source_account_id)
+			return "success_connection_request_completed"
+		
+	
+	@ndb.transactional(xg=True)
+	def _disconnect(self):
+	
+		pass
+		
+			
 ################################################################
 ###
 ###  END: Application Classes
