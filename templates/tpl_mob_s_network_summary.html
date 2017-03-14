@@ -11,8 +11,11 @@
     	<h2>Network Summary</h2>
 
     	<p>Stuff and things about network summary.</p>
-
-    	<a href="/mob_s_join_network?network_id={{ master.network_summary_entity.network_id }}">Join Primary Network</a>
+		{% if master.user.entity.metric_account_keys == "EMPTY" %}
+		<a href="/mob_s_join_network?network_id={{ master.network_summary_entity.network_id }}">Join Primary Network</a>
+		{% else %}
+		<p>You are joined to this network.</p>
+		{% endif %}
 
 		<h4>Network Profile Entity</h4>
 		<table border=1>
