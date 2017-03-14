@@ -283,7 +283,7 @@ class metric(object):
 		network_key = ndb.Key("ds_mr_network_profile", "1000001")
 		primary_network_profile = network_key.get()
 		if primary_network_profile is not None:
-			lobj_master.TRACE.append("metric._get_network_summary():primary network exists")
+			self.PARENT.TRACE.append("metric._get_network_summary():primary network exists")
 			return primary_network_profile
 		else:
 			# not created yet
