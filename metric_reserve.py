@@ -637,6 +637,7 @@ class ph_mob_s_connect(webapp2.RequestHandler):
 		lobj_master.TRACE.append("ph_mob_s_connect.get(): in connect GET function")
 		
 		# Connect Page
+		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_connect.html')
 		self.response.write(template.render(master=lobj_master))
