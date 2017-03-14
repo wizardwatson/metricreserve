@@ -51,7 +51,7 @@ class ds_mr_user(ndb.Model):
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
 	
-	metric_account_keys = ndb.StringProperty()
+	metric_account_keys = ndb.StringProperty(default="EMPTY")
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -72,6 +72,29 @@ class ds_mr_network_profile(ndb.Model):
 	orphan_count = ndb.IntegerProperty()
 	total_trees = ndb.IntegerProperty()
 	last_graph_process = ndb.DateTimeProperty()
+	
+# network cursor: this entity maintains the index of network accounts
+class ds_mr_network_cursor(ndb.Model):
+
+	network_id = ndb.StringProperty()
+	current_index = ndb.IntegerProperty()
+
+# metric account: this is the main account information
+class ds_mr_metric_account(ndb.Model):
+
+	account_id = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	outgoing_connection_requests = ndb.StringProperty()
+	incoming_connection_requests = ndb.StringProperty()
+	incoming_reserve_transfer_requests = ndb.StringProperty()
+	outgoing_reserve_transfer_requests = ndb.StringProperty()
+	suggested_reserve_transfer_requests = ndb.StringProperty()
+	current_connections = ndb.StringProperty()
+	current_reserve_balance = ndb.StringProperty()
+	current_network_balance = ndb.StringProperty()	
+	last_connections = ndb.StringProperty()
+	last_reserve_balance = ndb.StringProperty()
+	last_network_balance = ndb.StringProperty()
 
 ################################################################
 ###
@@ -251,7 +274,7 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 	
-	@ndb.transactional
+	@ndb.transactional(xg=True)
 	def _initialize_network(self):
 	
 		# redo the existence check now that we're in a transaction
@@ -272,6 +295,15 @@ class metric(object):
 			# use the proper key from above
 			primary_network_profile.key = network_key
 			primary_network_profile.put()
+			
+			# also make the cursor for the network when making the network
+			cursor_key = ndb.Key("ds_mr_network_cursor", "1000001")
+			new_cursor = ds_mr_network_cursor()
+			new_cursor.current_index = 0
+			new_cursor.network_id = "1000001"
+			new_cursor.key = cursor_key
+			new_cursor.put()
+			
 			return primary_network_profile
 			
 	def _get_network_summary(self):
@@ -289,6 +321,39 @@ class metric(object):
 			# initialize it in a transaction
 			return self._initialize_network()
 			
+	@ndb.transactional(xg=True)
+	def _join_network(self,fstr_user_id,fstr_network_id):
+	
+		# first make sure the user isn't already joined to this network
+		# if not, join them at the proper index and create their metric account
+		user_key = ndb.Key("ds_mr_user",fstr_user_id)
+		lds_user = user_key.get()
+		if not lds_user.metric_account_keys == "EMPTY":
+			# user is already joined to the network
+			return "error_already_joined"
+		
+		cursor_key = ndb.Key("ds_mr_network_cursor",fstr_network_id)
+		
+		# increment the network cursor
+		lds_cursor = cursor_key.get()
+		lds_cursor.current_index += 1
+		
+		# create a new metric account with key equal to current cursor/index for this network
+		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12)))
+		lds_metric_account = ds_mr_metric_account()
+		lds_metric_account.network_id = fstr_network_id
+		lds_metric_account.account_id = lds_cursor.current_index
+		lds_metric_account.key = metric_account_key
+		
+		# put the metric account id into the user object so we know this user is joined
+		lds_user.metric_account_keys = "%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12))
+		
+		# save the transaction
+		lds_user.put()
+		lds_metric_account.put()
+		lds_cursor.put()
+		
+		return "success"
 		
 ################################################################
 ###
@@ -536,6 +601,12 @@ class ph_mob_s_join_network(webapp2.RequestHandler):
 		if lobj_master.IS_INTERRUPTED:return
 		
 		lobj_master.TRACE.append("ph_mob_s_join_network.post(): in join_network POST function")
+		
+		
+		# joining a network does 3 things primarily
+		# 1. Update your user object to reference the metric account
+		# 2. Create the metric account at cursor position
+		# 3. Update the network cursor
 		
 		# Show join verification
 		# In future we could have multiple networks and would query on passed in URL variable
