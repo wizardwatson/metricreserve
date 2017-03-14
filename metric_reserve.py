@@ -52,7 +52,8 @@ class ds_mr_user(ndb.Model):
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
 	
-	metric_account_keys = ndb.PickleProperty(default="EMPTY")
+	metric_network_ids = ndb.PickleProperty(default="EMPTY")
+	metric_account_ids = ndb.PickleProperty(default="EMPTY")
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -329,7 +330,7 @@ class metric(object):
 		# if not, join them at the proper index and create their metric account
 		user_key = ndb.Key("ds_mr_user",fstr_user_id)
 		lds_user = user_key.get()
-		if not lds_user.metric_account_keys == "EMPTY":
+		if not lds_user.metric_network_ids == "EMPTY":
 			# user is already joined to the network
 			return "error_already_joined"
 		
@@ -347,7 +348,8 @@ class metric(object):
 		lds_metric_account.key = metric_account_key
 		
 		# put the metric account id into the user object so we know this user is joined
-		lds_user.metric_account_keys = "%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12))
+		lds_user.metric_network_ids = "%s" % fstr_network_id
+		lds_user.metric_account_ids = "%s" % str(lds_cursor.current_index).zfill(12)
 		
 		# save the transaction
 		lds_user.put()
