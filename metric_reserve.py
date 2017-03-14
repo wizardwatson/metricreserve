@@ -64,6 +64,17 @@ class ds_mr_unique_dummy_entity(ndb.Model):
 	unique_name = ndb.StringProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
+# network profile: this entity contains information about specific graph
+class ds_mr_network_profile(ndb.Model):
+
+	network_name = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	network_status = ndb.StringProperty()
+	active_user_count = ndb.IntegerProperty()
+	orphan_count = ndb.IntegerProperty()
+	total_trees = ndb.IntegerProperty()
+	last_graph_process = ndb.DateTimeProperty()
+
 ################################################################
 ###
 ###  END: DATASTORE entities
@@ -240,6 +251,45 @@ class metric(object):
 	
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
+	
+	@ndb.transactional
+	def _initialize_network(self):
+	
+		# redo the existence check now that we're in a transaction
+		network_key = ndb.Key("ds_mr_network_profile", "1000001")
+		primary_network_profile = network_key.get()
+		if primary_network_profile is not None:
+			# it exists already, nevermind
+			return primary_network_profile
+		else:
+			# not created yet
+			primary_network_profile = ds_mr_network_profile()
+			primary_network_profile.network_name = "Primary"
+			primary_network_profile.network_id = "1000001"
+			primary_network_profile.network_status = "ACTIVE"
+			primary_network_profile.active_user_count = 0
+			primary_network_profile.orphan_count = 0
+			primary_network_profile.total_trees = 0
+			# use the proper key from above
+			primary_network_profile.key = network_key
+			primary_network_profile.put()
+			return primary_network_profile
+			
+	def _get_network_summary(self):
+	
+		# get the primary network
+		# arbitrarily, I start network ids at one million and one
+		# ..and that number is always the primary network.
+		network_key = ndb.Key("ds_mr_network_profile", "1000001")
+		primary_network_profile = network_key.get()
+		if primary_network_profile is not None:
+			lobj_master.TRACE.append("metric._get_network_summary():primary network exists")
+			return primary_network_profile
+		else:
+			# not created yet
+			# initialize it in a transaction
+			return self._initialize_network()
+			
 		
 ################################################################
 ###
@@ -409,6 +459,7 @@ class ph_mob_s_register(webapp2.RequestHandler):
 			new_entity.key = maybe_new_key
 			new_entity.put()
 			lobj_master.user.entity.user_status = "ACTIVE"
+			lobj_master.user.entity.username = fstr_name
 			lobj_master.user.entity.put()
 			return True # True meaning "created"
 		
@@ -436,6 +487,25 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		else:
 			
 			lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
+
+# page handler class for "/mob_s_network_summary"
+class ph_mob_s_network_summary(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_network_summary.get(): in network_summary GET function")
+		
+		# Show network summary with join links
+		lobj_master.network_summary_entity = lobj_master.metric._get_network_summary()
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_network_summary.html')
+		self.response.write(template.render(master=lobj_master))
 		
 ################################################################
 ###
@@ -463,6 +533,11 @@ class ph_mob_s_register(webapp2.RequestHandler):
 # just use static mapping as building logic into path tokenizing and handling 
 # gets unnecessarily complex.
 
+# steps to add a new page
+# 1. Create the template you want to use
+# 2. Add it to the tuple-ey/arrayish thingy below
+# 3. Create the class you designate below up above like the others with a get/post
+
 application = webapp2.WSGIApplication([
 	('/', ph_home),
 	('/mob_u_home', ph_mob_u_home),
@@ -470,6 +545,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_home', ph_mob_s_home),
 	('/mob_s_menu', ph_mob_s_menu),
 	('/mob_s_register', ph_mob_s_register),
+	('/mob_s_network_summary', ph_mob_s_register),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
