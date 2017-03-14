@@ -25,7 +25,7 @@
 		<h4>All Users</h4>
 		{% for each_user in master.all_users %}
 
-		<p>{{ each_user.username }}, Connect/Disconnect</p>
+		<p>{{ each_user.username }}, <a href="/mob_s_connect?target_connect_id={{ each_user.metric_account_ids }}">Connect</a>/Disconnect</p>
 		{% endfor %}
 		<h4>Network Profile Entity</h4>
 		<table border=1>
