@@ -9,7 +9,12 @@
 	</div>
 	<div data-role="content">
     	<h2>Network Summary</h2>
-
+		{% if master.request.GET.form_result == "error_already_joined" %}
+		<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> You are already joined to this network.</font></p>
+		{% endif %}
+		{% if master.request.GET.form_result == "success" %}
+		<p class="ui-body ui-body-e"><strong>You've successfully joined this network.</strong></p>
+		{% endif %}
     	<p>Stuff and things about network summary.</p>
 		{% if master.user.entity.metric_account_keys == "EMPTY" %}
 		<a href="/mob_s_join_network?network_id={{ master.network_summary_entity.network_id }}">Join Primary Network</a>
