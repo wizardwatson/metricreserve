@@ -51,11 +51,9 @@ class ds_mr_user(ndb.Model):
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
 	
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	metric_account_keys = ndb.StringProperty()
 	
-	@classmethod
-    	def get_by_google_id(cls, user):
-        	return cls.query().filter(cls.user_id == user.user_id()).get()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
 # this is just an entity solely used to enforce name uniqueness in other objects via transactions
 # google's datastore requires a little extra work to enforce a unique constraint
@@ -221,7 +219,8 @@ class user(object):
    	def _load_user(self, fobj_google_account):
    
 		# this function loads a user entity from a key
-		ldata_user = ds_mr_user.get_by_google_id(fobj_google_account)
+		ldata_user_key = ndb.Key("ds_mr_user",fobj_google_account.user_id())
+		ldata_user = ldata_user_key.get()
 		
 		if ldata_user:
 
@@ -234,10 +233,10 @@ class user(object):
 			self.PARENT.TRACE.append("user._load_user(): user object not loaded")
 			
 			# create a new user
-			ldata_user = ds_mr_user(
-				user_id=fobj_google_account.user_id(),
-				user_status='VERIFIED')
-				
+			ldata_user = ds_mr_user()
+			ldata_user.user_id = fobj_google_account.user_id()
+			ldata_user.user_status = 'VERIFIED'
+			ldata_user.key = ldata_user_key	
 			ldata_user.put()
 
 		return ldata_user
