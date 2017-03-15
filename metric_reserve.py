@@ -522,8 +522,8 @@ class metric(object):
 				# last transaction was in previous time window, swap
 				# a.k.a. move "old" current into "last" before overwriting
 				lds_source.last_connections = lds_source.current_connections
-				lds_target.last_reserve_balance = lds_source.current_reserve_balance
-				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_source.last_reserve_balance = lds_source.current_reserve_balance
+				lds_source.last_network_balance = lds_source.current_network_balance
 				lds_source.current_connections.append(fstr_target_account_id)
 				lds_source.incoming_connection_requests.remove(fstr_target_account_id)
 				
@@ -594,15 +594,65 @@ class metric(object):
 		
 		if fstr_target_account_id in lds_source.incoming_connection_requests:
 		
-			pass
+			# benign change with respect to graph
+			lds_source.incoming_connection_requests.remove(fstr_target_account_id)
+			lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+			lds_source.put()
+			lds_target.put()
+			return "success_denied_target_connection_request"
 		
-		if fstr_target_account_id in lds_source.outgoing_connection_requests:
+		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
 		
-			pass
+			# benign change with respect to graph
+			lds_target.incoming_connection_requests.remove(fstr_target_account_id)
+			lds_source.outgoing_connection_requests.remove(fstr_source_account_id)
+			lds_source.put()
+			lds_target.put()
+			return "success_withdrew_connection_request"
 		
-		if fstr_target_account_id in lds_source.current_connections:
+		elif fstr_target_account_id in lds_source.current_connections:
 		
-			pass
+			# update the source account
+			if lds_source.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_source.current_connections.remove(fstr_target_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_source.last_connections = lds_source.current_connections
+				lds_source.last_reserve_balance = lds_source.current_reserve_balance
+				lds_source.last_network_balance = lds_source.current_network_balance
+				lds_source.current_connections.remove(fstr_target_account_id)				
+	
+			# update the target account
+			if lds_target.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_target.current_connections.remove(fstr_source_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_target.last_connections = lds_source.current_connections
+				lds_target.last_reserve_balance = lds_source.current_reserve_balance
+				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_target.current_connections.remove(fstr_source_account_id)
+				
+			# only update current_timestamp for graph dependent transactions??? STUB
+			lds_source.current_timestamp = datetime.datetime.now()
+			lds_target.current_timestamp = datetime.datetime.now()
+			lds_source.put()
+			lds_target.put()
+			return "success_cancelled_connection"
+			
+		else: return "error_nothing_to_disconnect"
+		
 			
 ################################################################
 ###
