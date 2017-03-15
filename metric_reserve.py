@@ -612,8 +612,8 @@ class metric(object):
 		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
 		
 			# benign change with respect to graph
-			lds_target.incoming_connection_requests.remove(fstr_target_account_id)
-			lds_source.outgoing_connection_requests.remove(fstr_source_account_id)
+			lds_target.incoming_connection_requests.remove(fstr_source_account_id)
+			lds_source.outgoing_connection_requests.remove(fstr_target_account_id)
 			lds_source.put()
 			lds_target.put()
 			return "success_withdrew_connection_request"
