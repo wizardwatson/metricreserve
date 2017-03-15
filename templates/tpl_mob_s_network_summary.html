@@ -1,7 +1,7 @@
 {% extends "templates/tpl_base_mobile.html" %}
 {% block title %}Metric Reserve - Network Summary{% endblock %}
 {% block content %}
-<div data-role="page" id="mob_home">
+<div data-role="page" id="mob_s_network_summary">
 	<div data-role="header" data-position="inline">
 		<a href="/mob_s_menu" data-icon="grid">Menu</a>
 		<h1>METRIC RESERVE</h1>
@@ -25,7 +25,9 @@
 		<h4>All Users</h4>
 		{% for each_user in master.all_users %}
 
-		<p>{{ each_user.username }}, <a href="/mob_s_connect?target_connect_id={{ each_user.metric_account_ids }}">Connect</a>/Disconnect</p>
+		<p>{{ each_user.username }}, <a href="/mob_s_connect?target_connect_id={{ each_user.metric_account_ids }}">Connect</a>
+		/<a href="/mob_s_disconnect?target_disconnect_id={{ each_user.metric_account_ids }}">Disconnect</a>
+		/<a href="/mob_s_make_payment?target_to_pay_id={{ each_user.metric_account_ids }}">Make Payment</a></p>
 		{% endfor %}
 		<h4>Network Profile Entity</h4>
 		<table border=1>
