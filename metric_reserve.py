@@ -705,7 +705,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_POSITIVE_SHARDS - 1))
 			lds_counter1 = ds_mr_positive_balance_shard.get_by_id(lint_shard_string_index)
 			if lds_counter1 is None:
-			lds_counter1 = ds_mr_positive_balance_shard(id=lint_shard_string_index)
+				lds_counter1 = ds_mr_positive_balance_shard(id=lint_shard_string_index)
 			lds_counter1.count += 1
 			lds_counter1.put()
 			
@@ -713,7 +713,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_POSITIVE_SHARDS - 1))
 			lds_counter2 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter2 is None:
-			lds_counter2 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
+				lds_counter2 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
 			lds_counter2.count += 1
 			lds_counter2.put()
 			
@@ -736,7 +736,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
 			lds_counter3 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
 			if lds_counter3 is None:
-			lds_counter3 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
+				lds_counter3 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
 			lds_counter3.count += 1
 			lds_counter3.put()
 			
@@ -744,7 +744,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
 			lds_counter4 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter4 is None:
-			lds_counter4 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+				lds_counter4 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
 			lds_counter4.count += 1
 			lds_counter4.put()
 			
@@ -760,7 +760,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_POSITIVE_SHARDS - 1))
 			lds_counter5 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter5 is None:
-			lds_counter5 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
+				lds_counter5 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
 			lds_counter5.count += 1
 			lds_counter5.put()
 			
@@ -776,7 +776,7 @@ class metric(object):
 			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
 			lds_counter6 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter6 is None:
-			lds_counter6 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+				lds_counter6 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
 			lds_counter6.count += 1
 			lds_counter6.put()
 			
