@@ -1148,9 +1148,9 @@ class ph_mob_s_network_summary(webapp2.RequestHandler):
 		temp_source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (lobj_master.user.entity.metric_network_ids, lobj_master.user.entity.metric_account_ids))
 		temp_lds_source = temp_source_key.get()
 		
-		# error if source doesn't exist
+		# if metric account loads, pass to template
 		if not temp_lds_source is None: 
-			lobj_master.user.HAS_METRIC_ACCOUNT = False
+			lobj_master.user.HAS_METRIC_ACCOUNT = True
 			lobj_master.user.metric_account_entity = temp_lds_source
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_network_summary.html')
