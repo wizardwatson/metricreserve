@@ -415,13 +415,17 @@ class metric(object):
 		lds_metric_account = ds_mr_metric_account()
 		lds_metric_account.network_id = fstr_network_id
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
-		outgoing_connection_requests = []
-		incoming_connection_requests = []
-		incoming_reserve_transfer_requests = []
-		outgoing_reserve_transfer_requests = []
-		suggested_reserve_transfer_requests = []
-		current_connections = []	
-		last_connections = []
+		lds_metric_account.outgoing_connection_requests = []
+		lds_metric_account.incoming_connection_requests = []
+		lds_metric_account.incoming_reserve_transfer_requests = []
+		lds_metric_account.outgoing_reserve_transfer_requests = []
+		lds_metric_account.suggested_reserve_transfer_requests = []
+		lds_metric_account.current_connections = []
+		lds_metric_account.current_reserve_balance = 0
+		lds_metric_account.current_network_balance = 0	
+		lds_metric_account.last_connections = []
+		lds_metric_account.last_reserve_balance = 0
+		lds_metric_account.last_network_balance = 0
 		lds_metric_account.key = metric_account_key
 		
 		# put the metric account id into the user object so we know this user is joined
