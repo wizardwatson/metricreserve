@@ -44,6 +44,10 @@ IS_DEBUG = True
 
 GRAPH_FREQUENCY_MINUTES = 15
 
+# $1 of value = 100,000
+MAX_RESERVE_MODIFY = 100000000
+MAX_PAYMENT = 100000000
+
 ################################################################
 ###
 ###  BEGIN: DATASTORE entities
@@ -109,11 +113,11 @@ class ds_mr_metric_account(ndb.Model):
 	suggested_reserve_transfer_requests = ndb.PickleProperty()
 	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
 	current_connections = ndb.PickleProperty(default="EMPTY")
-	current_reserve_balance = ndb.StringProperty()
-	current_network_balance = ndb.StringProperty()	
+	current_reserve_balance = ndb.IntegerProperty()
+	current_network_balance = ndb.IntegerProperty()	
 	last_connections = ndb.PickleProperty(default="EMPTY")
-	last_reserve_balance = ndb.StringProperty()
-	last_network_balance = ndb.StringProperty()
+	last_reserve_balance = ndb.IntegerProperty()
+	last_network_balance = ndb.IntegerProperty()
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -333,7 +337,7 @@ class user(object):
 		return ldata_user
 		
 
-# this is metric reserve class, containing the P2P network related functionality
+# this is metric reserve class, containing the P2P network/accounting related functionality
 class metric(object):
 
 	# intialization function, called when object is instantiated with or without a function call
@@ -653,7 +657,160 @@ class metric(object):
 			
 		else: return "error_nothing_to_disconnect"
 		
+	@ndb.transactional(xg=True)
+	def _modify_reserve(self, fstr_network_id, fstr_source_account_id, fstr_type, fstr_amount):
+
+		# First, get the source account.
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		lds_source = source_key.get()
+		
+		# error if source doesn't exist
+		if lds_source is None: return "error_source_id_not_valid"
+		
+		# Second, let's make sure the number passed is valid.
+		#
+		# Keep in mind, we're passing it in as a string.
+		# Also, we use integers to represent decimals.  The integer 100000 equals $1 of value.
+		# This hopefully will provide ample room to represent large and small values.  At the 
+		# time of this writing the smallest amount Bitcoin could represent given a price of 
+		# $1254.97 per BTC would be around 1/100,000th of a dollar.
+		# a 64 bit integer stored in the NDB datastore can be up to 9,223,372,036,854,775,807
+		# so our upper limit (without making minor changes to fix it that is) would be 
+		# 92,233,720,368,547.75807...92 trillion.  Unlike Bitcoin, this is a per account balance.
+		# And as I will be discussing, this amount of liquidity is really ludicrous to begin with
+		# so we should be fine.
+		try:
+			lint_amount = int(fstr_amount)
+		except ValueError, ex:
+			return "error_invalid_amount_passed"
+		
+		# make sure amount isn't over the maximum
+		if lint_amount > MAX_RESERVE_MODIFY: return "error_amount_exceeds_maximum_allowed"
+		
+		# if we don't modify one or the other, "new" will be previous
+		lint_new_balance = lds_source.current_network_balance
+		lint_new_reserve = lds_source.current_reserve_balance		
+		
+		# 4 types of reserve modifications are possible
+		if fstr_type == "normal_add":		
+		
+			# 1.  Normal Add
+			# User is essentially depositing money.  This will add to their reserve
+			# amount, also adding to reserve total(shard), also adds to network balance and
+			# network total(shard).
+			lint_new_balance = lds_source.current_network_balance + lint_amount
+			lint_new_reserve = lds_source.current_reserve_balance + lint_amount
 			
+			# increment positive balance shard
+			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_POSITIVE_SHARDS - 1))
+			lds_counter1 = ds_mr_positive_balance_shard.get_by_id(lint_shard_string_index)
+			if lds_counter1 is None:
+			lds_counter1 = ds_mr_positive_balance_shard(id=lint_shard_string_index)
+			lds_counter1.count += 1
+			lds_counter1.put()
+			
+			# increment positive reserve shard
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_POSITIVE_SHARDS - 1))
+			lds_counter2 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter2 is None:
+			lds_counter2 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
+			lds_counter2.count += 1
+			lds_counter2.put()
+			
+			lstr_return_message = "success_reserve_normal_add"
+
+		elif fstr_type == "normal_subtract":
+		
+			# 2.  Normal Subtract
+			# User is withdrawing money via reserves.  Opposite of Normal Add with respect
+			# to individual and system totals.  User cannot take reserve balance below zero
+			# and cannot withdraw more reserves than they have network balance.
+			if lint_amount > lds_source.current_network_balance:
+				return "error_cannot_withdraw_reserves_exceeding_balance"
+			if lint_amount > lds_source.current_reserve_balance:
+				return "error_cannot withdraw_more_reserves_than_exist"
+			lint_new_balance = lds_source.current_network_balance - lint_amount
+			lint_new_reserve = lds_source.current_reserve_balance - lint_amount
+			
+			# increment negative balance shard
+			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
+			lds_counter3 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
+			if lds_counter3 is None:
+			lds_counter3 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
+			lds_counter3.count += 1
+			lds_counter3.put()
+			
+			# increment negative reserve shard
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
+			lds_counter4 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter4 is None:
+			lds_counter4 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+			lds_counter4.count += 1
+			lds_counter4.put()
+			
+			lstr_return_message = "success_reserve_normal_subtract"
+			
+		elif fstr_type == "override_add":
+
+			# 3.  Override Add
+			# Found money, donation, etc.  Adds to reserves for this user without adding to
+			# their network balance or the system balance.  Only adds to reserve balance.
+			lint_new_reserve = lds_source.current_reserve_balance + lint_amount
+			# increment positive reserve shard
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_POSITIVE_SHARDS - 1))
+			lds_counter5 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter5 is None:
+			lds_counter5 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
+			lds_counter5.count += 1
+			lds_counter5.put()
+			
+			lstr_return_message = "success_reserve_override_add"
+			
+		elif fstr_type == "override_subtract":
+		
+			# 4.  Override Subtract
+			# Lost money, etc.  User cannot subtract more reserves than they had.  Does not
+			# update network individual or system balance.
+			lint_new_reserve = lds_source.current_reserve_balance - lint_amount
+			# increment negative reserve shard
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
+			lds_counter6 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter6 is None:
+			lds_counter6 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+			lds_counter6.count += 1
+			lds_counter6.put()
+			
+			lstr_return_message = "success_reserve_override_subtract"
+			
+		else: return "error_invalid_transaction_type"
+		
+		# If we're here, then we modified something, so need to do 
+		# graph process time window check before saving data. Reserve
+		# modification always effects the graph state.
+		
+		# update the source account
+		if lds_source.current_timestamp > t_cutoff:
+
+			# last transaction was in current time window, no need to swap
+			# a.k.a. overwrite current
+			lds_source.current_network_balance = lint_new_balance
+			lds_source.current_reserve_balance = lint_new_reserve
+
+		else:
+
+			# last transaction was in previous time window, swap
+			# a.k.a. move "old" current into "last" before overwriting
+			lds_source.last_connections = lds_source.current_connections
+			lds_source.last_reserve_balance = lds_source.current_reserve_balance
+			lds_source.last_network_balance = lds_source.current_network_balance
+			lds_source.current_network_balance = lint_new_balance
+			lds_source.current_reserve_balance = lint_new_reserve
+
+		# only update current_timestamp for graph dependent transactions??? STUB
+		lds_source.current_timestamp = datetime.datetime.now()
+		lds_source.put()
+		return lstr_return_message
+
 ################################################################
 ###
 ###  END: Application Classes
@@ -1031,9 +1188,13 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 		
 		# modify_reserve Page
 		# Get the current network profile
-		lobj_master.network_current = lobj_master.metric._get_network_summary()
+		lobj_master.network_current = lobj_master.metric._get_network_summary()		
+		lstr_network_id = lobj_master.network_connecting.network_id
+		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
+		# lstr_amount = lobj_master.request.POST['form_target_id']
 		
-		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_modify_reserve.html')
+		self.response.write(template.render(master=lobj_master))
 		
 ################################################################
 ###
