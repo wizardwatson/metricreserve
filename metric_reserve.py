@@ -1208,7 +1208,7 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 			lstr_amount = lobj_master.request.POST['form_subtract_override']
 		else: lstr_modify_type = "invalid"
 		
-		lstr_result = lobj_master.metric._modify_reserve(self, lstr_network_id, lstr_source_account_id, lstr_modify_type, lstr_amount)
+		lstr_result = lobj_master.metric._modify_reserve(lstr_network_id, lstr_source_account_id, lstr_modify_type, lstr_amount)
 		
 		lobj_master.request_handler.redirect('/mob_s_modify_reserve?form_result=%s' % lstr_result)
 		
