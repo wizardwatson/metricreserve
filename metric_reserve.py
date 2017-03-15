@@ -1189,7 +1189,7 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 		# modify_reserve Page
 		# Get the current network profile
 		lobj_master.network_current = lobj_master.metric._get_network_summary()		
-		lstr_network_id = lobj_master.network_connecting.network_id
+		lstr_network_id = lobj_master.network_current.network_id
 		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
 		# lstr_amount = lobj_master.request.POST['form_target_id']
 		
