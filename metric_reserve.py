@@ -1146,7 +1146,7 @@ class ph_mob_s_network_summary(webapp2.RequestHandler):
 		lobj_master.user.HAS_METRIC_ACCOUNT = False
 		# let's grab metric account for user so we can look at metric account in development
 		temp_source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (lobj_master.user.entity.metric_network_ids, lobj_master.user.entity.metric_account_ids))
-		temp_lds_source = source_key.get()
+		temp_lds_source = temp_source_key.get()
 		
 		# error if source doesn't exist
 		if not temp_lds_source is None: 
