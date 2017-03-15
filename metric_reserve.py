@@ -112,7 +112,10 @@ class ds_mr_metric_account(ndb.Model):
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
 	outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
 	current_connections = ndb.PickleProperty(default="EMPTY")
 	current_reserve_balance = ndb.IntegerProperty()
@@ -418,9 +421,12 @@ class metric(object):
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
 		lds_metric_account.outgoing_connection_requests = []
 		lds_metric_account.incoming_connection_requests = []
-		lds_metric_account.incoming_reserve_transfer_requests = []
-		lds_metric_account.outgoing_reserve_transfer_requests = []
-		lds_metric_account.suggested_reserve_transfer_requests = []
+		lds_metric_account.incoming_reserve_transfer_requests = {}
+		lds_metric_account.outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
 		lds_metric_account.current_connections = []
 		lds_metric_account.current_reserve_balance = 0
 		lds_metric_account.current_network_balance = 0	
@@ -574,6 +580,9 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _disconnect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
 	
+	
+		# STUB we need to remove any reserve transfer requests when disconnecting
+		
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
 		lds_source = source_key.get()
 		
@@ -925,7 +934,173 @@ class metric(object):
 		lds_target.put()
 		return "success_payment_succeeded"
 
+	@ndb.transactional(xg=True)
+	def _process_reserve_transfer(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id, fstr_amount, fstr_type):
+	
+		# A "reserve transfer" is just what I'm calling a bilateral agreement to move
+		# some amount of reserve balance from an account with a positive amount equal
+		# to or greater than the reserve transfer amount, to some other account.
+		#
+		# It functions very similar to a connection in that one account will "request" the
+		# reserve transfer, basically requesting that the transfer take place, but the transfer
+		# will not be finalized, by actually updating the balances in each account until the
+		# corresponding account "authorizes" the reserve transfer. Once the reserve transfer is authorized
+		# both accounts will be updated.  
+		#
+		# Only one reserve transfer can exist per connection.  If a user requests a new one when an
+		# old one already exists, the old one is cancelled automatically.  "Suggested" reserve transfers
+		# that are created by the system do not get cancelled.  Ideally, user created reserve transfers
+		# will be at a minimum overall, since the graph process is designed to suggest reserve transfers
+		# that balance out the network as a whole.		
 		
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		lds_source = source_key.get()
+		
+		# error if source doesn't exist
+		if lds_source is None: return "error_source_id_not_valid"
+		# error if trying to write check to self
+		if fstr_source_account_id == fstr_target_account_id: return "error_cant_write check_to_self"
+		
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		lds_target = target_key.get()
+		
+		# error if target doesn't exist
+		if lds_target is None: return "error_target_id_not_valid"
+
+		# make sure fstr_amount actually is an integer
+		try:
+			lint_amount = int(float(fstr_amount)*100000)
+		except ValueError, ex:
+			return "error_invalid_amount_passed"
+			
+		if not fstr_target_account_id in lds_source.current_connections: return "error_source_and_target_not_connected"
+		
+		# We don't do a lot of checks on the requesting a transfer side, because graph state changes, and users may
+		# be writing transfer requests in anticipation of balance updates.  So we only do the main checks when we
+		# actually try to authorize a reserve transfer.
+		
+		if fstr_type == "storing_suggested":		
+			
+			# This is a new suggestion from the graph process.  If any previous exist 
+			# that are in the inactive queue, delete them.
+			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			# create new request
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+
+"""
+
+	account_id = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_reserve_transfer_requests = ndb.PickleProperty()
+	outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_connections = ndb.PickleProperty(default="EMPTY")
+	current_reserve_balance = ndb.IntegerProperty()
+	current_network_balance = ndb.IntegerProperty()	
+	last_connections = ndb.PickleProperty(default="EMPTY")
+	last_reserve_balance = ndb.IntegerProperty()
+	last_network_balance = ndb.IntegerProperty()
+
+"""
+
+		elif fstr_type == "activating_suggested":
+			
+			# We're "activating" a suggested one.  So we move it to active queue.  This let's
+			# the other party know that they can authorize it.
+			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			# create new request
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			
+		elif fstr_type == "deactivating_suggested":
+			
+			pass
+			
+		elif fstr_type == "authorizing_suggested":
+			
+			pass
+			
+		elif fstr_type == "requesting_user":
+		
+			# new outgoing transfer request from source
+			# delete any existing between source and target
+			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			# create new request
+			lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+			lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			
+		elif fstr_type == "cancelling_user":
+			
+			pass
+			
+		elif fstr_type == "authorizing_user":
+		
+			if fbool_is_suggested:
+
+				# new suggested outgoing transfer request from graph process
+				# delete any existing between source and target
+				lds_source.suggested_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_source.suggested_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_target.suggested_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				lds_target.suggested_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				# create new request
+				lds_source.suggested_outgoing_reserve_transfer_requests[fstr_target_account_id] = (lint_amount,"inactive")
+				lds_target.suggested_incoming_reserve_transfer_requests[fstr_source_account_id] = (lint_amount,"inactive")
+			
+			else:
+				# new outgoing transfer request from source
+				# delete any existing between source and target
+				lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				# create new request
+				lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+				lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+				
+		else:
+
+			# error: type not recognized				
+			pass
+		
+"""
+
+	account_id = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_reserve_transfer_requests = ndb.PickleProperty()
+	outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_connections = ndb.PickleProperty(default="EMPTY")
+	current_reserve_balance = ndb.IntegerProperty()
+	current_network_balance = ndb.IntegerProperty()	
+	last_connections = ndb.PickleProperty(default="EMPTY")
+	last_reserve_balance = ndb.IntegerProperty()
+	last_network_balance = ndb.IntegerProperty()
+
+"""
+	
 ################################################################
 ###
 ###  END: Application Classes
