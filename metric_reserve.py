@@ -10,6 +10,7 @@ import urllib
 import datetime
 import re
 import pickle
+import random
 
 # these are standard GAE imports
 from google.appengine.api import users
@@ -27,6 +28,21 @@ JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     extensions=['jinja2.ext.autoescape'],
     autoescape=True)
+
+################################################################
+###
+###  SETTINGS
+###
+################################################################
+
+NUM_BALANCE_POSITIVE_SHARDS = 20
+NUM_BALANCE_NEGATIVE_SHARDS = 20
+NUM_RESERVE_POSITIVE_SHARDS = 20
+NUM_RESERVE_NEGATIVE_SHARDS = 20
+
+IS_DEBUG = True
+
+GRAPH_FREQUENCY_MINUTES = 15
 
 ################################################################
 ###
@@ -98,7 +114,46 @@ class ds_mr_metric_account(ndb.Model):
 	last_connections = ndb.PickleProperty(default="EMPTY")
 	last_reserve_balance = ndb.StringProperty()
 	last_network_balance = ndb.StringProperty()
-
+	
+# counter shards to track global balances and reserves
+# on the fly creation is done where they are used/incremented
+# positive balance counter shard
+class ds_mr_positive_balance_shard(ndb.Model):
+	count = ndb.IntegerProperty(default=0)
+	
+	def get_count():
+	    total = 0
+	    for counter in ds_mr_positive_balance_shard.query():
+		total += counter.count
+	    return total
+# negative balance counter shard
+class ds_mr_negative_balance_shard(ndb.Model):
+	count = ndb.IntegerProperty(default=0)
+	
+	def get_count():
+	    total = 0
+	    for counter in ds_mr_negative_balance_shard.query():
+		total += counter.count
+	    return total
+# positive reserve counter shard
+class ds_mr_positive_reserve_shard(ndb.Model):
+	count = ndb.IntegerProperty(default=0)
+	
+	def get_count():
+	    total = 0
+	    for counter in ds_mr_positive_reserve_shard.query():
+		total += counter.count
+	    return total
+# negative reserve counter shard
+class ds_mr_negative_reserve_shard(ndb.Model):
+	count = ndb.IntegerProperty(default=0)
+	
+	def get_count():
+	    total = 0
+	    for counter in ds_mr_negative_reserve_shard.query():
+		total += counter.count
+	    return total
+	
 ################################################################
 ###
 ###  END: DATASTORE entities
@@ -137,12 +192,22 @@ class master(object):
 		
 		# This is used for page debugging, placing helper debug references in page code.
 		# Different from the WSGI "debug_mode" which tells app to spit out the call stack.
-		self.IS_DEBUG = True
+		self.IS_DEBUG = IS_DEBUG
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
 		
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
+		# Calculate the graph process cutoff time for this request
+		t_epoch = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
+		t_now = datetime.datetime.now()
+		d_since = t_now - t_epoch
+		# this requests cutoff time
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		self.TRACE.append("request cutoff time:%s" % str(t_cutoff))
+		
+		
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
 		
@@ -346,6 +411,13 @@ class metric(object):
 		lds_metric_account = ds_mr_metric_account()
 		lds_metric_account.network_id = fstr_network_id
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
+		outgoing_connection_requests = []
+		incoming_connection_requests = []
+		incoming_reserve_transfer_requests = []
+		outgoing_reserve_transfer_requests = []
+		suggested_reserve_transfer_requests = []
+		current_connections = []	
+		last_connections = []
 		lds_metric_account.key = metric_account_key
 		
 		# put the metric account id into the user object so we know this user is joined
@@ -387,26 +459,17 @@ class metric(object):
 		
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
 		lds_source = source_key.get()
+		
+		# error if source doesn't exist
+		if lds_source is None: return "error_source_id_not_valid"
+		# error if trying to connect to self
+		if fstr_source_account_id == fstr_target_account_id: return "error_cant_connect_to_self"
+		
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
 		lds_target = target_key.get()
-
-		if lds_source.incoming_connection_requests == "EMPTY":
-			lds_source.incoming_connection_requests = []
-		if lds_source.outgoing_connection_requests == "EMPTY":
-			lds_source.outgoing_connection_requests = []
-		if lds_source.current_connections == "EMPTY":
-			lds_source.current_connections = []
-		if lds_source.last_connections == "EMPTY":
-			lds_source.last_connections = []
 		
-		if lds_target.incoming_connection_requests == "EMPTY":
-			lds_source.incoming_connection_requests = []
-		if lds_target.outgoing_connection_requests == "EMPTY":
-			lds_source.outgoing_connection_requests = []
-		if lds_target.current_connections == "EMPTY":
-			lds_source.current_connections = []
-		if lds_target.last_connections == "EMPTY":
-			lds_source.last_connections = []
+		# error if target doesn't exist
+		if lds_target is None: return "error_target_id_not_valid"
 
 		# Five situations where we don't even try to connect
 		# 1. Source and target are already connected.
@@ -426,18 +489,120 @@ class metric(object):
 		if fstr_source_account_id in lds_target.outgoing_connection_requests:
 			
 			# target already connected, this is a connection request authorization
+			
+			# First thing we need to do-and probably should abstract this later STUB
+			# since we will need in other places-is we need to figure out our cutoff
+			# time for "current_timestamp" based on graph processing frequency.
+			#
+			# My basic idea is to subtract the frequencies modulus since epoch time
+			# (which I'm arbitralily making 8am UTC March 13th, 2017) from the current
+			# datetime.  We'll set frequency in minutes but convert to seconds since
+			# that's what timedelta uses in python.
+			
+			t_epoch = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
+			t_now = datetime.datetime.now()
+			d_since = t_now - t_epoch
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			
+			# Worthy to note here, perhaps, is that we are evaluating the "old" 
+			# current_timestamps for the two parties involved independently, even though the 
+			# "new" current_timestamp will be the same.
+			
+			# update the source account
+			if lds_source.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_source.current_connections.append(fstr_target_account_id)
+				lds_source.incoming_connection_requests.remove(fstr_target_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_source.last_connections = lds_source.current_connections
+				lds_target.last_reserve_balance = lds_source.current_reserve_balance
+				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_source.current_connections.append(fstr_target_account_id)
+				lds_source.incoming_connection_requests.remove(fstr_target_account_id)
+				
+	
+			# update the target account
+			if lds_target.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_target.current_connections.append(fstr_source_account_id)
+				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_target.last_connections = lds_source.current_connections
+				lds_target.last_reserve_balance = lds_source.current_reserve_balance
+				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_target.current_connections.append(fstr_source_account_id)
+				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+			
+			# only update current_timestamp for graph dependent transactions??? STUB
+			lds_source.current_timestamp = datetime.datetime.now()
+			lds_target.current_timestamp = datetime.datetime.now()
+			lds_source.put()
+			lds_target.put()			
+			return "success_connection_request_authorized"
+			
+			
 		else:
 			# target not yet connected, this is a connection request
 			lds_source.outgoing_connection_requests.append(fstr_target_account_id)
 			lds_target.incoming_connection_requests.append(fstr_source_account_id)
+			lds_source.put()
+			lds_target.put()
 			return "success_connection_request_completed"
 		
 	
 	@ndb.transactional(xg=True)
-	def _disconnect(self):
+	def _disconnect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
 	
-		pass
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		lds_source = source_key.get()
 		
+		# error if source doesn't exist
+		if lds_source is None: return "error_source_id_not_valid"
+		# error if trying to disconnect from self
+		if fstr_source_account_id == fstr_target_account_id: return "error_cant_disconnect_from_self"
+		
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		lds_target = target_key.get()
+		
+		# error if target doesn't exist
+		if lds_target is None: return "error_target_id_not_valid"
+		
+		# Disconnect() can do one of three things:
+		#
+		# 1. Cancel an incoming connection request
+		# 2. Cancel an outgoing connection request
+		# 3. Cancel an existing connection
+		#
+		# None of these three situations can exist simultaneously.  And if none of
+		# the three cases apply, then the request to disconnect is invalid.
+		#
+		# 1 & 2 are benign changes and don't effect the graph, but cancelling an
+		# existing connection will require a graph process time window check.
+		
+		if fstr_target_account_id in lds_source.incoming_connection_requests:
+		
+			pass
+		
+		if fstr_target_account_id in lds_source.outgoing_connection_requests:
+		
+			pass
+		
+		if fstr_target_account_id in lds_source.current_connections:
+		
+			pass
 			
 ################################################################
 ###
@@ -731,10 +896,11 @@ class ph_mob_s_connect(webapp2.RequestHandler):
 		lobj_master = master(self,"post","secured")
 		if lobj_master.IS_INTERRUPTED:return
 		
-		lobj_master.TRACE.append("ph_mob_s_connect.get(): in connect POST function")
+		lobj_master.TRACE.append("ph_mob_s_connect.post(): in connect POST function")
 		
 		
 		# Connect Page
+		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_connect.html')
 		self.response.write(template.render(master=lobj_master))	
