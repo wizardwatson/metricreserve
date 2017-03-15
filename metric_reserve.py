@@ -950,10 +950,88 @@ class ph_mob_s_connect(webapp2.RequestHandler):
 		
 		
 		# Connect Page
+		# Get the current network profile
+		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
+		lstr_network_id = lobj_master.network_connecting.network_id
+		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
+		lstr_target_account_id = lobj_master.request.POST['form_target_id']
+		lstr_result = lobj_master.metric._connect(lstr_network_id, lstr_source_account_id, lstr_target_account_id)
+		
+		lobj_master.request_handler.redirect('/mob_s_connect?form_result=%s' % lstr_result)	
+		
+# page handler class for "/mob_s_disconnect"
+class ph_mob_s_disconnect(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_disconnect.get(): in disconnect GET function")
+		
+		# Disconnect Page
 		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
 		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_connect.html')
-		self.response.write(template.render(master=lobj_master))	
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_disconnect.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_disconnect.post(): in disconnect POST function")
+		
+		
+		# Disconnect Page
+		# Get the current network profile
+		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
+		lstr_network_id = lobj_master.network_connecting.network_id
+		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
+		lstr_target_account_id = lobj_master.request.POST['form_target_id']
+		lstr_result = lobj_master.metric._disconnect(lstr_network_id, lstr_source_account_id, lstr_target_account_id)
+		
+		lobj_master.request_handler.redirect('/mob_s_disconnect?form_result=%s' % lstr_result)
+
+# page handler class for "/mob_s_modify_reserve"
+class ph_mob_s_modify_reserve(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_modify_reserve.get(): in modify_reserve GET function")
+		
+		# modify_reserve Page
+		lobj_master.network_current = lobj_master.metric._get_network_summary()
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_modify_reserve.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_modify_reserve.post(): in modify_reserve POST function")
+		
+		
+		# modify_reserve Page
+		# Get the current network profile
+		lobj_master.network_current = lobj_master.metric._get_network_summary()
 		
 		
 		
@@ -998,6 +1076,8 @@ application = webapp2.WSGIApplication([
 	('/mob_s_network_summary', ph_mob_s_network_summary),
 	('/mob_s_join_network', ph_mob_s_join_network),
 	('/mob_s_connect', ph_mob_s_connect),
+	('/mob_s_disconnect', ph_mob_s_disconnect),
+	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
