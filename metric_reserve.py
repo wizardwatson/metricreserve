@@ -698,7 +698,7 @@ class metric(object):
 		# And as I will be discussing, this amount of liquidity is really ludicrous to begin with
 		# so we should be fine.
 		try:
-			lint_amount = int(fstr_amount)
+			lint_amount = int(float(fstr_amount)*100000)
 		except ValueError, ex:
 			return "error_invalid_amount_passed"
 		
@@ -843,6 +843,89 @@ class metric(object):
 		lds_source.put()
 		return lstr_return_message
 
+	@ndb.transactional(xg=True)
+	def _make_payment(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id, fstr_amount):
+	
+		# make a payment
+		# transfer network balance from one user to another
+		# this does not affect our global balance counters
+				
+		# get the source and target metric accounts
+		
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		lds_source = source_key.get()
+		
+		# error if source doesn't exist
+		if lds_source is None: return "error_source_id_not_valid"
+		# error if trying to connect to self
+		if fstr_source_account_id == fstr_target_account_id: return "error_cant_pay_self"
+		
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		lds_target = target_key.get()
+		
+		# error if target doesn't exist
+		if lds_target is None: return "error_target_id_not_valid"
+		# make sure fstr_amount actually is an integer
+		try:
+			lint_amount = int(float(fstr_amount)*100000)
+		except ValueError, ex:
+			return "error_invalid_amount_passed"
+		# can't pay if you don't have that much
+		if lds_source.current_network_balance < lint_amount: return "error_not_enough_balance_to_make_payment"
+		# can't exceed maximum allowed payment
+		if lint_amount > MAX_PAYMENT: return "error_amount_exceeds_maximum_allowed"
+		
+		# So everything checks out, payments are probably simplest things to do.
+		# We do count network balances as "graph affecting" even though the algorithms
+		# don't deal with balances (yet).  It's still an important summarized statistic
+		# so we will check the cutoff time as with other graph affecting functions.
+		
+		# calculate cutoff time
+		t_now = datetime.datetime.now()
+		d_since = t_now - T_EPOCH
+		# this requests cutoff time
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		
+		# update the source account
+		if lds_source.current_timestamp > t_cutoff:
+
+			# last transaction was in current time window, no need to swap
+			# a.k.a. overwrite current
+			lds_source.current_network_balance -= lint_amount
+
+		else:
+
+			# last transaction was in previous time window, swap
+			# a.k.a. move "old" current into "last" before overwriting
+			lds_source.last_connections = lds_source.current_connections
+			lds_source.last_reserve_balance = lds_source.current_reserve_balance
+			lds_source.last_network_balance = lds_source.current_network_balance
+			lds_source.current_network_balance -= lint_amount				
+
+		# update the target account
+		if lds_target.current_timestamp > t_cutoff:
+
+			# last transaction was in current time window, no need to swap
+			# a.k.a. overwrite current
+			lds_target.current_network_balance += lint_amount
+
+		else:
+
+			# last transaction was in previous time window, swap
+			# a.k.a. move "old" current into "last" before overwriting
+			lds_target.last_connections = lds_source.current_connections
+			lds_target.last_reserve_balance = lds_source.current_reserve_balance
+			lds_target.last_network_balance = lds_source.current_network_balance
+			lds_target.current_network_balance += lint_amount
+
+		# only update current_timestamp for graph dependent transactions??? STUB
+		lds_source.current_timestamp = datetime.datetime.now()
+		lds_target.current_timestamp = datetime.datetime.now()
+		lds_source.put()
+		lds_target.put()
+		return "success_payment_succeeded"
+
+		
 ################################################################
 ###
 ###  END: Application Classes
@@ -1244,6 +1327,49 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 		
 		lobj_master.request_handler.redirect('/mob_s_modify_reserve?form_result=%s' % lstr_result)
 		
+# page handler class for "/mob_s_make_payment"
+class ph_mob_s_make_payment(webapp2.RequestHandler):
+
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_make_payment.get(): in make_payment GET function")
+		
+		# make_payment Page
+		lobj_master.network_current = lobj_master.metric._get_network_summary()
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_make_payment.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","secured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_s_make_payment.post(): in make_payment POST function")
+		
+		
+		# make_payment Page
+		# Get the current network profile
+		lobj_master.network_current = lobj_master.metric._get_network_summary()		
+		lstr_network_id = lobj_master.network_current.network_id
+		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
+		lstr_target_account_id = lobj_master.request.POST['form_target_id']
+		lstr_amount = lobj_master.request.POST['form_amount']
+		
+		lstr_result = lobj_master.metric._make_payment(lstr_network_id, lstr_source_account_id, lstr_target_account_id, lstr_amount)
+		
+		lobj_master.request_handler.redirect('/mob_s_make_payment?form_result=%s' % lstr_result)
+		
+		
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -1287,6 +1413,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_connect', ph_mob_s_connect),
 	('/mob_s_disconnect', ph_mob_s_disconnect),
 	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
+	('/mob_s_make_payment', ph_mob_s_make_payment),
 	('/mobile_scaffold1', ph_mob_s_scaffold1),
 	('/mobile_test_form1', ph_mob_s_test_form1)
 	],debug=True)
