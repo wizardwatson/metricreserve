@@ -49,6 +49,28 @@
 			<tr><td>master.user.entity.username</td><td>{{ master.user.entity.username }}</td></tr>
 			<tr><td>master.user.entity.metric_account_ids</td><td>{{ master.user.entity.metric_account_ids }}</td></tr>
 		</table>
+		{% if master.user.HAS_METRIC_ACCOUNT %}
+		<h4>Your Metric Account Info</h4>
+		<table border=1>
+			<thead>
+			<tr><th><b>Name</b></th><th><b>Value</b></th></tr>
+			</thead>
+			<tr><td>master.user.metric_account_entity.account_id</td><td>{{ master.user.metric_account_entity.account_id }}</td></tr>
+			<tr><td>master.user.metric_account_entity.network_id</td><td>{{ master.user.metric_account_entity.network_id }}</td></tr>
+			<tr><td>master.user.metric_account_entity.outgoing_connection_requests</td><td>{{ master.user.metric_account_entity.outgoing_connection_requests }}</td></tr>
+			<tr><td>master.user.metric_account_entity.incoming_connection_requests</td><td>{{ master.user.metric_account_entity.incoming_connection_requests }}</td></tr>
+			<tr><td>master.user.metric_account_entity.incoming_reserve_transfer_requests</td><td>{{ master.user.metric_account_entity.incoming_reserve_transfer_requests }}</td></tr>
+			<tr><td>master.user.metric_account_entity.outgoing_reserve_transfer_requests</td><td>{{ master.user.metric_account_entity.outgoing_reserve_transfer_requests }}</td></tr>
+			<tr><td>master.user.metric_account_entity.suggested_reserve_transfer_requests</td><td>{{ master.user.metric_account_entity.suggested_reserve_transfer_requests }}</td></tr>
+			<tr><td>master.user.metric_account_entity.current_timestamp</td><td>{{ master.user.metric_account_entity.current_timestamp }}</td></tr>
+			<tr><td>master.user.metric_account_entity.current_connections</td><td>{{ master.user.metric_account_entity.current_connections }}</td></tr>
+			<tr><td>master.user.metric_account_entity.current_reserve_balance</td><td>{{ master.user.metric_account_entity.current_reserve_balance }}</td></tr>
+			<tr><td>master.user.metric_account_entity.current_network_balance</td><td>{{ master.user.metric_account_entity.current_network_balance }}</td></tr>
+			<tr><td>master.user.metric_account_entity.last_connections</td><td>{{ master.user.metric_account_entity.last_connections }}</td></tr>
+			<tr><td>master.user.metric_account_entity.last_reserve_balance</td><td>{{ master.user.metric_account_entity.last_reserve_balance }}</td></tr>
+			<tr><td>master.user.metric_account_entity.last_network_balance</td><td>{{ master.user.metric_account_entity.last_network_balance }}</td></tr>
+		</table>
+		{% endif %}
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
 </div>
