@@ -48,6 +48,8 @@ GRAPH_FREQUENCY_MINUTES = 15
 MAX_RESERVE_MODIFY = 100000000
 MAX_PAYMENT = 100000000
 
+T_EPOCH = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
+
 ################################################################
 ###
 ###  BEGIN: DATASTORE entities
@@ -204,9 +206,8 @@ class master(object):
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		
 		# Calculate the graph process cutoff time for this request
-		t_epoch = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
 		t_now = datetime.datetime.now()
-		d_since = t_now - t_epoch
+		d_since = t_now - T_EPOCH
 		# this requests cutoff time
 		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
 		self.TRACE.append("request cutoff time:%s" % str(t_cutoff))
@@ -507,9 +508,8 @@ class metric(object):
 			# datetime.  We'll set frequency in minutes but convert to seconds since
 			# that's what timedelta uses in python.
 			
-			t_epoch = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
 			t_now = datetime.datetime.now()
-			d_since = t_now - t_epoch
+			d_since = t_now - T_EPOCH
 			# this requests cutoff time
 			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
 			
@@ -619,6 +619,20 @@ class metric(object):
 			return "success_withdrew_connection_request"
 		
 		elif fstr_target_account_id in lds_source.current_connections:
+		
+			# First thing we need to do-and probably should abstract this later STUB
+			# since we will need in other places-is we need to figure out our cutoff
+			# time for "current_timestamp" based on graph processing frequency.
+			#
+			# My basic idea is to subtract the frequencies modulus since epoch time
+			# (which I'm arbitralily making 8am UTC March 13th, 2017) from the current
+			# datetime.  We'll set frequency in minutes but convert to seconds since
+			# that's what timedelta uses in python.
+			
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
 		
 			# update the source account
 			if lds_source.current_timestamp > t_cutoff:
