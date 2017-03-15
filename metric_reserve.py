@@ -1191,10 +1191,26 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 		lobj_master.network_current = lobj_master.metric._get_network_summary()		
 		lstr_network_id = lobj_master.network_current.network_id
 		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
-		# lstr_amount = lobj_master.request.POST['form_target_id']
 		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_modify_reserve.html')
-		self.response.write(template.render(master=lobj_master))
+		lstr_submit_value = lobj_master.request.POST['submit']
+		
+		if lstr_submit_value == "submit_add_normal":
+			lstr_modify_type = "normal_add"
+			lstr_amount = lobj_master.request.POST['form_add_normal']
+		elif lstr_submit_value == "submit_subtract_normal":
+			lstr_modify_type = "normal_subtract"
+			lstr_amount = lobj_master.request.POST['form_subtract_normal']
+		elif lstr_submit_value == "submit_add_override":
+			lstr_modify_type = "override_add"
+			lstr_amount = lobj_master.request.POST['form_add_override']
+		elif lstr_submit_value == "submit_subtract_override":
+			lstr_modify_type = "override_subtract"
+			lstr_amount = lobj_master.request.POST['form_subtract_override']
+		else: lstr_modify_type = "invalid"
+		
+		lstr_result = lobj_master.metric._modify_reserve(self, lstr_network_id, lstr_source_account_id, lstr_modify_type, lstr_amount)
+		
+		lobj_master.request_handler.redirect('/mob_s_modify_reserve?form_result=%s' % lstr_result)
 		
 ################################################################
 ###
