@@ -806,6 +806,20 @@ class metric(object):
 		# graph process time window check before saving data. Reserve
 		# modification always effects the graph state.
 		
+		# First thing we need to do-and probably should abstract this later STUB
+		# since we will need in other places-is we need to figure out our cutoff
+		# time for "current_timestamp" based on graph processing frequency.
+		#
+		# My basic idea is to subtract the frequencies modulus since epoch time
+		# (which I'm arbitralily making 8am UTC March 13th, 2017) from the current
+		# datetime.  We'll set frequency in minutes but convert to seconds since
+		# that's what timedelta uses in python.
+
+		t_now = datetime.datetime.now()
+		d_since = t_now - T_EPOCH
+		# this requests cutoff time
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		
 		# update the source account
 		if lds_source.current_timestamp > t_cutoff:
 
