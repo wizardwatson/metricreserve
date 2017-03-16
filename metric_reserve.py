@@ -879,6 +879,7 @@ class metric(object):
 			lint_amount = int(float(fstr_amount)*100000)
 		except ValueError, ex:
 			return "error_invalid_amount_passed"
+		# STUB make sure all lint_amount inputs are greater than 0
 		# can't pay if you don't have that much
 		if lds_source.current_network_balance < lint_amount: return "error_not_enough_balance_to_make_payment"
 		# can't exceed maximum allowed payment
@@ -991,56 +992,88 @@ class metric(object):
 			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 
-"""
-
-	account_id = ndb.StringProperty()
-	network_id = ndb.StringProperty()
-	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_reserve_transfer_requests = ndb.PickleProperty()
-	outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_connections = ndb.PickleProperty(default="EMPTY")
-	current_reserve_balance = ndb.IntegerProperty()
-	current_network_balance = ndb.IntegerProperty()	
-	last_connections = ndb.PickleProperty(default="EMPTY")
-	last_reserve_balance = ndb.IntegerProperty()
-	last_network_balance = ndb.IntegerProperty()
-
-"""
-
 		elif fstr_type == "activating_suggested":
 			
 			# We're "activating" a suggested one.  So we move it to active queue.  This let's
-			# the other party know that they can authorize it.
+			# the other party know that they can authorize it.  But it's the web, so need to
+			# make sure that inactive request still exists
+			if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+				return "error_activation_request_has_no_inactive_match_on_id"
+			# ...and has the same amount
+			if not lint_amount == lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id]:
+				return "error_activation_request_has_no_inactive_match_on_amount"
+			# before inactive can be moved to active, any old activated, suggested transfers must be
+			# either cancelled or completed.  We don't automatically cancel an active one since it may
+			# be in process.
+			if fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+				return "error_active_must_be_completed_or_cancelled_before_new_activation"
+			if fstr_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
+				return "error_active_must_be_completed_or_cancelled_before_new_activation"
+				
+			# request is valid
+			# move inactive to active, leaving inactive empty
 			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
 			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
 			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
 			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
 			# create new request
-			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+			lds_target.suggested_active_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
 		elif fstr_type == "deactivating_suggested":
+		
+			# This is similar to a "disconnect()".  Once a suggested transfer is active, either
+			# party to it, can deny/withdraw it.  The special case here, is that if the inactive
+			# suggested slot is empty, we move this one back to it.  If not, we simply delete it
+			# as the system has already suggested a new one.
 			
-			pass
+			# source is always the one doing the action, let's see which situation we're in first
+			if fstr_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
+				
+				# we are deactiving our own activation
+				# verify amount
+				if not lint_amount == lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id]:
+					return "error_deactivation_request_has_no_active_match_on_amount"
+				# if inactive slot is empty, we move before deleting otherwise just delete
+				if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+					if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+						# ok to copy back to inactive
+						lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+						lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+				# delete the suggested active entries
+				lds_source.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_target.suggested_active_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			
+			elif fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+			
+				# we are denying the targets activation
+				# verify amount
+				if not lint_amount == lds_source.suggested_active_incoming_reserve_transfer_requests[fstr_target_account_id]:
+					return "error_denial_request_has_no_active_match_on_amount"
+				# if inactive slot is empty, we move before deleting otherwise just delete
+				if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+					if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+						# ok to copy back to inactive
+						lds_source.suggested_inactive_incoming_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+						lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+				# delete the suggested active entries
+				lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+				lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			
+			else: return "error_no_suggested_active_request_between_source_and_target"
 			
 		elif fstr_type == "authorizing_suggested":
 			
-			pass
-			
+			pass		
+		
 		elif fstr_type == "requesting_user":
 		
 			# new outgoing transfer request from source
-			# delete any existing between source and target
-			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
-			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			# must complete or cancel old ones before making a new one
+			if fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
+				return "error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one"
+			if fstr_target_account_id in lds_source.outgoing_reserve_transfer_requests:
+				return "error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one"
 			# create new request
 			lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
@@ -1048,36 +1081,20 @@ class metric(object):
 		elif fstr_type == "cancelling_user":
 			
 			pass
+
+		elif fstr_type == "denying_user":
 			
+			pass
+		
 		elif fstr_type == "authorizing_user":
 		
-			if fbool_is_suggested:
-
-				# new suggested outgoing transfer request from graph process
-				# delete any existing between source and target
-				lds_source.suggested_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_source.suggested_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_target.suggested_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
-				lds_target.suggested_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
-				# create new request
-				lds_source.suggested_outgoing_reserve_transfer_requests[fstr_target_account_id] = (lint_amount,"inactive")
-				lds_target.suggested_incoming_reserve_transfer_requests[fstr_source_account_id] = (lint_amount,"inactive")
-			
-			else:
-				# new outgoing transfer request from source
-				# delete any existing between source and target
-				lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
-				lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
-				# create new request
-				lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-				lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
-				
-		else:
-
-			# error: type not recognized				
 			pass
+				
+		else: return "error_transaction_type_invalid"
+		
+		
+		
+		return lstr_return_message
 		
 """
 
