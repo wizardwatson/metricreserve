@@ -84,8 +84,9 @@ class ds_mr_user(ndb.Model):
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
-# this is just an entity solely used to enforce name uniqueness in other objects via transactions
-# google's datastore requires a little extra work to enforce a unique constraint
+# this is just an entity solely used to enforce name uniqueness in other
+# objects via transactions google's datastore requires a little extra work
+# to enforce a unique constraint
 class ds_mr_unique_dummy_entity(ndb.Model):
 
 	unique_name = ndb.StringProperty()
@@ -116,6 +117,7 @@ class ds_mr_metric_account(ndb.Model):
 	account_id = ndb.StringProperty()
 	network_id = ndb.StringProperty()
 	user_id = ndb.StringProperty()
+	tx_index = ndb.IntegerProperty()
 	account_status = ndb.StringProperty()
 	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
@@ -137,17 +139,42 @@ class ds_mr_metric_account(ndb.Model):
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
-	tx_category = ndb.StringProperty()
-	network_id = ndb.StringProperty()
-	account_id = ndb.StringProperty()
-	tx_index = ndb.StringProperty()
+	category = ndb.StringProperty()
+	tx_index = ndb.IntegerProperty()
 	tx_type = ndb.StringProperty()
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	amount = IntegerProperty()
+	access = StringProperty()
 	description = ndb.StringProperty()
 	memo = ndb.StringProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	user_id_created = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	account_id = ndb.StringProperty()
 	source_account = ndb.StringProperty()
 	target_account = ndb.StringProperty()
-	tx_amount = IntegerProperty()
+	
+"""
+
+			# transaction log
+			tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,lstr_tx_index) # optional
+			lds_tx_log = ds_mr_tx_log()
+			lds_tx_log.key = tx_log_key # optional
+			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+			# tx_index should be based on incremented metric_account value
+			lds_tx_log.tx_index = 0
+			lds_tx_log.tx_type = "" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			lds_tx_log.amount = 0
+			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			lds_tx_log.description = "" 
+			lds_tx_log.memo = ""
+			lds_tx_log.user_id_created = fobj_google_account.user_id()
+			lds_tx_log.network_id = ""
+			lds_tx_log.account_id = ""
+			lds_tx_log.source_account = "" 
+			lds_tx_log.target_account = ""
+			lds_tx_log.put()
+
+"""
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -375,6 +402,23 @@ class user(object):
 			ldata_user.user_status = 'VERIFIED'
 			ldata_user.key = ldata_user_key	
 			ldata_user.put()
+			
+			# transaction log:  think "bank statements"
+			lds_tx_log = ds_mr_tx_log()
+			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+			# tx_index should be based on incremented metric_account value
+			lds_tx_log.tx_index = 0
+			lds_tx_log.tx_type = "USER CREATED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			lds_tx_log.amount = 0
+			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			lds_tx_log.description = "A new user object was created." 
+			lds_tx_log.memo = ""
+			lds_tx_log.user_id_created = fobj_google_account.user_id()
+			lds_tx_log.network_id = ""
+			lds_tx_log.account_id = ""
+			lds_tx_log.source_account = "" 
+			lds_tx_log.target_account = ""
+			lds_tx_log.put()			
 
 		return ldata_user
 		
@@ -396,6 +440,24 @@ class user(object):
 		self.PARENT.user.entity.user_status = "ACTIVE"
 		self.PARENT.user.entity.username = fstr_name
 		self.PARENT.user.entity.put()
+		
+		# transaction log:  think "bank statements"
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = 0
+		lds_tx_log.tx_type = "NEW USERNAME CREATED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A new username was chosen by a user." 
+		lds_tx_log.memo = fstr_name
+		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.network_id = ""
+		lds_tx_log.account_id = ""
+		lds_tx_log.source_account = "" 
+		lds_tx_log.target_account = ""
+		lds_tx_log.put()
+		
 		return True # True meaning "created"
 		
 	@ndb.transactional(xg=True)
@@ -419,6 +481,24 @@ class user(object):
 		self.PARENT.user.entity.user_status = "ACTIVE"
 		self.PARENT.user.entity.username = fstr_name
 		self.PARENT.user.entity.put()
+		
+		# transaction log:  think "bank statements"
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = 0
+		lds_tx_log.tx_type = "USERNAME CHANGED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A user changed their username." 
+		lds_tx_log.memo = fstr_name
+		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.network_id = ""
+		lds_tx_log.account_id = ""
+		lds_tx_log.source_account = "" 
+		lds_tx_log.target_account = ""
+		lds_tx_log.put()
+		
 		return True # True meaning "created"
 			
 # this is metric reserve class, containing the P2P network/accounting related functionality
@@ -463,12 +543,29 @@ class metric(object):
 			
 			# also make the chunk catalog for this network
 			# retrieve chunk catalog, should have been initialized along with the network itself.
-			chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s%s" % (fstr_network_id))
+			chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s" % (fstr_network_id))
 			new_chunk_catalog = ds_mrgp_chunk_catalog()
 			new_chunk_catalog.key = chunk_catalog_key
 			# STUB CHUNK CATALOG STRUCTURE INITIALIZED HERE
 			new_chunk_catalog.put()
-			
+
+			# transaction log
+			lds_tx_log = ds_mr_tx_log()
+			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+			# tx_index should be based on incremented metric_account value
+			lds_tx_log.tx_index = 0
+			lds_tx_log.tx_type = "NETWORK INITIALIZED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			lds_tx_log.amount = 0
+			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			lds_tx_log.description = "A new network was created." 
+			lds_tx_log.memo = "%s %s" % (fstr_network_name, fstr_network_id)
+			lds_tx_log.user_id_created = self.PARENT.user.user_id
+			lds_tx_log.network_id = fstr_network_id
+			lds_tx_log.account_id = ""
+			lds_tx_log.source_account = "" 
+			lds_tx_log.target_account = ""
+			lds_tx_log.put()
+
 			return new_network_profile
 			
 	def _get_network_summary(self, fstr_network_id="1000001"):
@@ -509,6 +606,7 @@ class metric(object):
 		lds_metric_account.network_id = fstr_network_id
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
 		lds_metric_account.user_id = lds_user.user_id
+		lds_metric_account.tx_index = 1
 		lds_metric_account.account_status = "ACTIVE"
 		lds_metric_account.outgoing_connection_requests = []
 		lds_metric_account.incoming_connection_requests = []
@@ -529,6 +627,25 @@ class metric(object):
 		# put the metric account id into the user object so we know this user is joined
 		lds_user.metric_network_ids = "%s" % fstr_network_id
 		lds_user.metric_account_ids = "%s" % str(lds_cursor.current_index).zfill(12)
+		
+		# transaction log
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_user_id,str(1).zfill(12))
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.key = tx_log_key
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = 1
+		lds_tx_log.tx_type = "JOINED NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A user joined a network." 
+		lds_tx_log.memo = ""
+		lds_tx_log.user_id_created = lds_user.user_id()
+		lds_tx_log.network_id = fstr_network_id
+		lds_tx_log.account_id = fstr_user_id
+		lds_tx_log.source_account = fstr_user_id 
+		lds_tx_log.target_account = ""
+		lds_tx_log.put()
 		
 		# save the transaction
 		lds_user.put()
