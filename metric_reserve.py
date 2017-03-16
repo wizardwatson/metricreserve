@@ -640,7 +640,7 @@ class metric(object):
 		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A user joined a network." 
 		lds_tx_log.memo = ""
-		lds_tx_log.user_id_created = lds_user.user_id()
+		lds_tx_log.user_id_created = lds_user.user_id
 		lds_tx_log.network_id = fstr_network_id
 		lds_tx_log.account_id = fstr_user_id
 		lds_tx_log.source_account = fstr_user_id 
@@ -725,6 +725,27 @@ class metric(object):
 		lstr_return_message = "success_reserve_normal_subtract"
 		
 		lds_chunk_catalog.put()
+		
+		lds_metric_account.tx_index += 1
+		# transaction log
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,str(lds_metric_account.tx_index).zfill(12))
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.key = tx_log_key
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = lds_metric_account.tx_index
+		lds_tx_log.tx_type = "LEFT NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A user left a network." 
+		lds_tx_log.memo = ""
+		lds_tx_log.user_id_created = lds_metric_account.user_id
+		lds_tx_log.network_id = fstr_network_id
+		lds_tx_log.account_id = fstr_account_id
+		lds_tx_log.source_account = fstr_account_id 
+		lds_tx_log.target_account = ""
+		lds_tx_log.put()
+		
 		# don't delete an account, just set it's status to "deleted", and delete it along with
 		# it's transactions when however much time passes where we no longer want to keep them
 		lds_metric_account.current_network_balance = 0
@@ -848,22 +869,72 @@ class metric(object):
 				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
 			
 			# only update current_timestamp for graph dependent transactions??? STUB
+			lstr_source_tx_type = "INCOMING CONNECTION AUTHORIZED"
+			lstr_source_tx_description = "INCOMING CONNECTION AUTHORIZED"
+			lstr_target_tx_type = "OUTGOING CONNECTION AUTHORIZED"
+			lstr_target_tx_description = "OUTGOING CONNECTION AUTHORIZED"
 			lds_source.current_timestamp = datetime.datetime.now()
-			lds_target.current_timestamp = datetime.datetime.now()
-			lds_source.put()
-			lds_target.put()			
-			return "success_connection_request_authorized"
+			lds_target.current_timestamp = datetime.datetime.now()			
+			lstr_return_message = "success_connection_request_authorized"
 			
 			
 		else:
 			# target not yet connected, this is a connection request
+			lstr_source_tx_type = "OUTGOING CONNECTION REQUEST"
+			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST"
+			lstr_target_tx_type = "INCOMING CONNECTION REQUEST"
+			lstr_target_tx_description = "INCOMING CONNECTION REQUEST"
 			lds_source.outgoing_connection_requests.append(fstr_target_account_id)
 			lds_target.incoming_connection_requests.append(fstr_source_account_id)
-			lds_source.put()
-			lds_target.put()
-			return "success_connection_request_completed"
+			lstr_return_message = "success_connection_request_completed"
 		
-	
+		
+		lds_source.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
+		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		source_lds_tx_log.tx_index = lds_source.tx_index
+		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.amount = 0
+		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = lstr_source_tx_description 
+		source_lds_tx_log.memo = ""
+		source_lds_tx_log.user_id_created = lds_source.user_id
+		source_lds_tx_log.network_id = fstr_network_id
+		source_lds_tx_log.account_id = fstr_source_account_id
+		source_lds_tx_log.source_account = fstr_source_account_id 
+		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.put()
+
+		lds_target.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target.tx_index
+		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.amount = 0
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = lstr_target_tx_description 
+		target_lds_tx_log.memo = ""
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = fstr_network_id
+		target_lds_tx_log.account_id = fstr_target_account_id
+		target_lds_tx_log.source_account = fstr_source_account_id 
+		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.put()
+		
+		lds_source.put()
+		lds_target.put()
+		return lstr_return_message
+			
 	@ndb.transactional(xg=True)
 	def _disconnect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
 	
@@ -901,18 +972,14 @@ class metric(object):
 			# benign change with respect to graph
 			lds_source.incoming_connection_requests.remove(fstr_target_account_id)
 			lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
-			lds_source.put()
-			lds_target.put()
-			return "success_denied_target_connection_request"
+			lstr_return_message = "success_denied_target_connection_request"
 		
 		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
 		
 			# benign change with respect to graph
 			lds_target.incoming_connection_requests.remove(fstr_source_account_id)
 			lds_source.outgoing_connection_requests.remove(fstr_target_account_id)
-			lds_source.put()
-			lds_target.put()
-			return "success_withdrew_connection_request"
+			lstr_return_message = "success_withdrew_connection_request"
 		
 		elif fstr_target_account_id in lds_source.current_connections:
 		
@@ -965,12 +1032,16 @@ class metric(object):
 			# only update current_timestamp for graph dependent transactions??? STUB
 			lds_source.current_timestamp = datetime.datetime.now()
 			lds_target.current_timestamp = datetime.datetime.now()
-			lds_source.put()
-			lds_target.put()
-			return "success_cancelled_connection"
+			lstr_return_message = "success_cancelled_connection"
 			
 		else: return "error_nothing_to_disconnect"
-		
+
+		# STUB ADD TWO TRANSACTIONS LIKE CONNECT()
+
+		lds_source.put()
+		lds_target.put()
+		return lstr_return_message
+
 	@ndb.transactional(xg=True)
 	def _modify_reserve(self, fstr_network_id, fstr_source_account_id, fstr_type, fstr_amount):
 
