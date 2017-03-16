@@ -1,10 +1,10 @@
-################################################################
+############################################################################79
 ###
 ###  IMPORTS
 ###
-################################################################
+##############################################################################
 
-# these are standard python libraries
+# These are standard python libraries.
 import os
 import urllib
 import datetime
@@ -16,25 +16,27 @@ import random
 from google.appengine.api import users
 from google.appengine.ext import ndb
 
-# these are app.yaml imports
+# These are app.yaml imports.
 import webapp2
 import jinja2
 
-# these are my custom modules
+# These are my custom modules.
 # [example]: from [directory] import [some py file without extension]
 
-# setup jinja environment - we are using jinja for processing templates
+# Setup jinja environment: we are using jinja for processing templates
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     extensions=['jinja2.ext.autoescape'],
     autoescape=True)
 
-################################################################
+##############################################################################
 ###
 ###  SETTINGS
 ###
-################################################################
+##############################################################################
 
+# Number of shard counters application creates.
+# You can increase these, but decreasing will break it.
 NUM_BALANCE_POSITIVE_SHARDS = 20
 NUM_BALANCE_NEGATIVE_SHARDS = 20
 NUM_RESERVE_POSITIVE_SHARDS = 20
@@ -42,19 +44,22 @@ NUM_RESERVE_NEGATIVE_SHARDS = 20
 
 IS_DEBUG = True
 
+# How often do you want the application to process the graph?
 GRAPH_FREQUENCY_MINUTES = 15
 
 # $1 of value = 100,000
 MAX_RESERVE_MODIFY = 100000000
 MAX_PAYMENT = 100000000
 
+# Arbitrary time from which the application calculates cutoff time for graph 
+# process.
 T_EPOCH = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
 
-################################################################
+##############################################################################
 ###
 ###  BEGIN: DATASTORE entities
 ###
-################################################################
+##############################################################################
 
 # naming convention here is that:
 # "ds" just means this is a "datastore" object
@@ -92,10 +97,12 @@ class ds_mr_network_profile(ndb.Model):
 	network_name = ndb.StringProperty()
 	network_id = ndb.StringProperty()
 	network_status = ndb.StringProperty()
+	network_type = ndb.StringProperty()
 	active_user_count = ndb.IntegerProperty()
 	orphan_count = ndb.IntegerProperty()
 	total_trees = ndb.IntegerProperty()
 	last_graph_process = ndb.DateTimeProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	
 # network cursor: this entity maintains the index of network accounts
 class ds_mr_network_cursor(ndb.Model):
@@ -109,6 +116,7 @@ class ds_mr_metric_account(ndb.Model):
 	account_id = ndb.StringProperty()
 	network_id = ndb.StringProperty()
 	user_id = ndb.StringProperty()
+	account_status = ndb.StringProperty()
 	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
@@ -124,6 +132,22 @@ class ds_mr_metric_account(ndb.Model):
 	last_connections = ndb.PickleProperty(default="EMPTY")
 	last_reserve_balance = ndb.IntegerProperty()
 	last_network_balance = ndb.IntegerProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+
+# transaction log:  think "bank statements"
+class ds_mr_tx_log(ndb.Model):
+
+	tx_category = ndb.StringProperty()
+	network_id = ndb.StringProperty()
+	account_id = ndb.StringProperty()
+	tx_index = ndb.StringProperty()
+	tx_type = ndb.StringProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	description = ndb.StringProperty()
+	memo = ndb.StringProperty()
+	source_account = ndb.StringProperty()
+	target_account = ndb.StringProperty()
+	tx_amount = IntegerProperty()
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -163,7 +187,20 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 	    for counter in ds_mr_negative_reserve_shard.query():
 		total += counter.count
 	    return total
-	
+
+
+
+################################################################
+###
+###  DATASTORE entities specifically related to GRAPH PROCESSING
+###  (mrgp = metric reserve graph processing)
+################################################################
+
+# the chunk index catalog / one per network
+class ds_mrgp_chunk_catalog(ndb.Model):
+
+	catalog = ndb.PickleProperty()
+
 ################################################################
 ###
 ###  END: DATASTORE entities
@@ -341,7 +378,49 @@ class user(object):
 
 		return ldata_user
 		
+	@ndb.transactional(xg=True)
+	def _save_unique_username(self,fstr_name):
 
+		# new name check
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+		maybe_dummy_entity = maybe_new_key.get()
+		if maybe_dummy_entity is not None:
+			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
+			return False # False meaning "not created"
+		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
+		new_entity = ds_mr_unique_dummy_entity()
+		new_entity.unique_name = fstr_name
+		new_entity.key = maybe_new_key
+		new_entity.put()
+		# assign new username to user
+		self.PARENT.user.entity.user_status = "ACTIVE"
+		self.PARENT.user.entity.username = fstr_name
+		self.PARENT.user.entity.put()
+		return True # True meaning "created"
+		
+	@ndb.transactional(xg=True)
+	def _change_unique_username(self,fstr_name):
+
+		# new name check
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+		maybe_dummy_entity = maybe_new_key.get()
+		if maybe_dummy_entity is not None:
+			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
+			return False # False meaning "not created"
+		self.PARENT.TRACE.append("metric._change_unique_username():entity was NOT returned")
+		new_entity = ds_mr_unique_dummy_entity()
+		new_entity.unique_name = fstr_name
+		new_entity.key = maybe_new_key
+		new_entity.put()
+		# delete old name making available for others to now use
+		old_key = ndb.Key("ds_mr_unique_dummy_entity", self.PARENT.user.entity.username)
+		old_key.delete()
+		# assign new username to user
+		self.PARENT.user.entity.user_status = "ACTIVE"
+		self.PARENT.user.entity.username = fstr_name
+		self.PARENT.user.entity.put()
+		return True # True meaning "created"
+			
 # this is metric reserve class, containing the P2P network/accounting related functionality
 class metric(object):
 
@@ -352,51 +431,60 @@ class metric(object):
 		self.PARENT = fobj_master
 	
 	@ndb.transactional(xg=True)
-	def _initialize_network(self):
+	def _initialize_network(self, fstr_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
 	
 		# redo the existence check now that we're in a transaction
-		network_key = ndb.Key("ds_mr_network_profile", "1000001")
-		primary_network_profile = network_key.get()
-		if primary_network_profile is not None:
+		network_key = ndb.Key("ds_mr_network_profile", fstr_network_id)
+		new_network_profile = network_key.get()
+		if new_network_profile is not None:
 			# it exists already, nevermind
-			return primary_network_profile
+			return new_network_profile
 		else:
 			# not created yet
-			primary_network_profile = ds_mr_network_profile()
-			primary_network_profile.network_name = "Primary"
-			primary_network_profile.network_id = "1000001"
-			primary_network_profile.network_status = "ACTIVE"
-			primary_network_profile.active_user_count = 0
-			primary_network_profile.orphan_count = 0
-			primary_network_profile.total_trees = 0
+			new_network_profile = ds_mr_network_profile()
+			new_network_profile.network_name = fstr_network_name
+			new_network_profile.network_id = fstr_network_id
+			new_network_profile.network_status = "ACTIVE"
+			new_network_profile.network_type = fstr_network_type
+			new_network_profile.active_user_count = 0
+			new_network_profile.orphan_count = 0
+			new_network_profile.total_trees = 0
 			# use the proper key from above
-			primary_network_profile.key = network_key
-			primary_network_profile.put()
+			new_network_profile.key = network_key
+			new_network_profile.put()
 			
 			# also make the cursor for the network when making the network
-			cursor_key = ndb.Key("ds_mr_network_cursor", "1000001")
+			cursor_key = ndb.Key("ds_mr_network_cursor", fstr_network_id)
 			new_cursor = ds_mr_network_cursor()
 			new_cursor.current_index = 0
-			new_cursor.network_id = "1000001"
+			new_cursor.network_id = fstr_network_id
 			new_cursor.key = cursor_key
 			new_cursor.put()
 			
-			return primary_network_profile
+			# also make the chunk catalog for this network
+			# retrieve chunk catalog, should have been initialized along with the network itself.
+			chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s%s" % (fstr_network_id))
+			new_chunk_catalog = ds_mrgp_chunk_catalog()
+			new_chunk_catalog.key = chunk_catalog_key
+			# STUB CHUNK CATALOG STRUCTURE INITIALIZED HERE
+			new_chunk_catalog.put()
 			
-	def _get_network_summary(self):
+			return new_network_profile
+			
+	def _get_network_summary(self, fstr_network_id="1000001"):
 	
 		# get the primary network
 		# arbitrarily, I start network ids at one million and one
 		# ..and that number is always the primary network.
-		network_key = ndb.Key("ds_mr_network_profile", "1000001")
-		primary_network_profile = network_key.get()
-		if primary_network_profile is not None:
-			self.PARENT.TRACE.append("metric._get_network_summary():primary network exists")
-			return primary_network_profile
+		network_key = ndb.Key("ds_mr_network_profile", fstr_network_id)
+		network_profile = network_key.get()
+		if network_profile is not None:
+			self.PARENT.TRACE.append("metric._get_network_summary():network exists")
+			return network_profile
 		else:
 			# not created yet
-			# initialize it in a transaction
-			return self._initialize_network()
+			# ONLY AUTO-INITIALIZE THE PRIMARY NETWORK!!!
+			if fstr_network_id == "1000001": return self._initialize_network(fstr_network_id)
 			
 	@ndb.transactional(xg=True)
 	def _join_network(self,fstr_user_id,fstr_network_id):
@@ -421,6 +509,7 @@ class metric(object):
 		lds_metric_account.network_id = fstr_network_id
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
 		lds_metric_account.user_id = lds_user.user_id
+		lds_metric_account.account_status = "ACTIVE"
 		lds_metric_account.outgoing_connection_requests = []
 		lds_metric_account.incoming_connection_requests = []
 		lds_metric_account.incoming_reserve_transfer_requests = {}
@@ -447,6 +536,85 @@ class metric(object):
 		lds_cursor.put()
 		
 		return "success"
+
+	@ndb.transactional(xg=True)
+	def _leave_network(self,fstr_account_id,fstr_network_id):
+	
+		# must have zero connections in order to leave the network
+		# graph process cannot be going on when we delete
+		
+		# BEGIN THOUGHT
+		# OK, so I just thought of something.  For the graph process, I felt
+		# it was necessary to use integer based keys to make the algorithm more
+		# simplistic.  I knew that if we had each "chunk" hold say 2000 accounts
+		# that first chunk would be 1-2000.  The whole point being that we can 
+		# query by keys.  Originally, I envisioned-when someone leaves the network-
+		# that we'd have to swap out their index with the account at last index.
+		#
+		# But I don't think this is necessary, and we can avoid I think having
+		# to transactionally swap all the connections for the last account we're
+		# moving into the vacant spot.  What we need to store is the "chunk ranges".
+		# Starting is: chunk#1 = 1-2000, chunk#2 = 2001-4000, etc.  If you delete
+		# an account you just need to adjust the chunk ranges.  It makes it a little
+		# more complex when running the graph process, but no deleting will occur
+		# during the process, so the chunk range structure can stay in memory without
+		# worry of it being modified.
+		# 
+		# This lets us also avoid ever having to change a network account id for a 
+		# user on a specific network.
+		# END THOUGHT
+		
+		# first retrieve and check the metric account
+		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_account_id))
+		lds_metric_account = metric_account_key.get()
+		
+		# error if source doesn't exist
+		if lds_metric_account is None: return "error_account_id_invalid"
+		
+		# error if account still has connections
+		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"
+		
+		# retrieve chunk catalog, should have been initialized along with the network itself.
+		chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s%s" % (fstr_network_id))
+		lds_chunk_catalog = chunk_catalog_key.get()
+		
+		# STUB CHUNK CATALOG MODIFICATION LOGIC GOES HERE
+		
+		
+		# the only two values in a metric account that really matter during a deletion
+		# will be the network and reserve remaining balances.  We do one finally transaction
+		# on this account that works like a "modify_reserve", "normal_subtract" only we ignore
+		# any checks and we remove entire balance even if it exceeds the reserve amount.  All
+		# reserves and balances are forfeit, essentially.
+		
+		# increment negative balance shard
+		if lds_metric_account.current_network_balance > 0:
+			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
+			lds_counter1 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
+			if lds_counter1 is None:
+				lds_counter1 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
+			lds_counter1.count += lds_metric_account.current_network_balance
+			lds_counter1.put()
+
+		# increment negative reserve shard
+		if lds_metric_account.current_reserve_balance > 0:
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
+			lds_counter2 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter2 is None:
+				lds_counter2 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+			lds_counter2.count += lds_metric_account.current_reserve_balance
+			lds_counter2.put()
+
+		lstr_return_message = "success_reserve_normal_subtract"
+		
+		lds_chunk_catalog.put()
+		# don't delete an account, just set it's status to "deleted", and delete it along with
+		# it's transactions when however much time passes where we no longer want to keep them
+		lds_metric_account.current_network_balance = 0
+		lds_metric_account.current_reserve_balance = 0
+		lds_metric_account.account_status = "DELETED"
+		lds_metric_account.current_timestamp = datetime.datetime.now()
+		lds_metric_account.put()
 		
 	@ndb.transactional(xg=True)
 	def _connect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
@@ -735,7 +903,7 @@ class metric(object):
 			lds_counter1 = ds_mr_positive_balance_shard.get_by_id(lint_shard_string_index)
 			if lds_counter1 is None:
 				lds_counter1 = ds_mr_positive_balance_shard(id=lint_shard_string_index)
-			lds_counter1.count += 1
+			lds_counter1.count += lint_amount
 			lds_counter1.put()
 			
 			# increment positive reserve shard
@@ -743,7 +911,7 @@ class metric(object):
 			lds_counter2 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter2 is None:
 				lds_counter2 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
-			lds_counter2.count += 1
+			lds_counter2.count += lint_amount
 			lds_counter2.put()
 			
 			lstr_return_message = "success_reserve_normal_add"
@@ -766,7 +934,7 @@ class metric(object):
 			lds_counter3 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
 			if lds_counter3 is None:
 				lds_counter3 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
-			lds_counter3.count += 1
+			lds_counter3.count += lint_amount
 			lds_counter3.put()
 			
 			# increment negative reserve shard
@@ -774,7 +942,7 @@ class metric(object):
 			lds_counter4 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter4 is None:
 				lds_counter4 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
-			lds_counter4.count += 1
+			lds_counter4.count += lint_amount
 			lds_counter4.put()
 			
 			lstr_return_message = "success_reserve_normal_subtract"
@@ -790,7 +958,7 @@ class metric(object):
 			lds_counter5 = ds_mr_positive_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter5 is None:
 				lds_counter5 = ds_mr_positive_reserve_shard(id=lint_shard_string_index)
-			lds_counter5.count += 1
+			lds_counter5.count += lint_amount
 			lds_counter5.put()
 			
 			lstr_return_message = "success_reserve_override_add"
@@ -806,7 +974,7 @@ class metric(object):
 			lds_counter6 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
 			if lds_counter6 is None:
 				lds_counter6 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
-			lds_counter6.count += 1
+			lds_counter6.count += lint_amount
 			lds_counter6.put()
 			
 			lstr_return_message = "success_reserve_override_subtract"
@@ -1403,28 +1571,6 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		lobj_master = master(self,"post","secured")
 		if lobj_master.IS_INTERRUPTED:return
 		
-		lobj_master.TRACE.append("ph_mob_s_register.post(): in registration POST function")
-		
-		# Do registration processing
-		# Here's transaction we need to register the username
-		@ndb.transactional(xg=True)
-		def save_unique_username(fstr_name):
-
-			maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
-			maybe_dummy_entity = maybe_new_key.get()
-			if maybe_dummy_entity is not None:
-				lobj_master.TRACE.append("metric._save_unique_name():entity was returned")
-				return False # False meaning "not created"
-			lobj_master.TRACE.append("metric._save_unique_name():entity was NOT returned")
-			new_entity = ds_mr_unique_dummy_entity()
-			new_entity.unique_name = fstr_name
-			new_entity.key = maybe_new_key
-			new_entity.put()
-			lobj_master.user.entity.user_status = "ACTIVE"
-			lobj_master.user.entity.username = fstr_name
-			lobj_master.user.entity.put()
-			return True # True meaning "created"
-		
 		# STEP 1 (VALIDATE FORMAT)
 		# make sure the username format is entered correctly, only a-z, 0-9, and underscore allowed
 		if not re.match(r'^[a-z0-9_]+$',lobj_master.request.POST['form_username']):
@@ -1436,19 +1582,16 @@ class ph_mob_s_register(webapp2.RequestHandler):
 		
 		# STEP 2 (VALIDATE UNIQUENESS AND PROCESS REQUEST)
 		# make sure the chosen username isn't already taken
-		elif not save_unique_username(lobj_master.request.POST['form_username']):
+		elif not lobj_master.user._save_unique_username(lobj_master.request.POST['form_username']):
 		
 			# username is not unique
 			# kick them back to registration page with an error
 			# error messages are contained in the HTML template and activated by URL query string
-			lobj_master.request_handler.redirect('/mob_s_register?user_error=username_not_unique')
-		
+			lobj_master.request_handler.redirect('/mob_s_register?user_error=username_not_unique')		
 		
 		# SETP 3 (REDIRECT ON SUCCESS)
 		# Redirect to non-POST page
-		else:
-			
-			lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
+		else: lobj_master.request_handler.redirect('/mob_s_register?form_success=username_successfully_assigned')
 
 # page handler class for "/mob_s_network_summary"
 class ph_mob_s_network_summary(webapp2.RequestHandler):
