@@ -108,6 +108,7 @@ class ds_mr_metric_account(ndb.Model):
 
 	account_id = ndb.StringProperty()
 	network_id = ndb.StringProperty()
+	user_id = ndb.StringProperty()
 	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
@@ -419,6 +420,7 @@ class metric(object):
 		lds_metric_account = ds_mr_metric_account()
 		lds_metric_account.network_id = fstr_network_id
 		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
+		lds_metric_account.user_id = lds_user.user_id
 		lds_metric_account.outgoing_connection_requests = []
 		lds_metric_account.incoming_connection_requests = []
 		lds_metric_account.incoming_reserve_transfer_requests = {}
@@ -554,9 +556,9 @@ class metric(object):
 			
 				# last transaction was in previous time window, swap
 				# a.k.a. move "old" current into "last" before overwriting
-				lds_target.last_connections = lds_source.current_connections
-				lds_target.last_reserve_balance = lds_source.current_reserve_balance
-				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_target.last_connections = lds_target.current_connections
+				lds_target.last_reserve_balance = lds_target.current_reserve_balance
+				lds_target.last_network_balance = lds_target.current_network_balance
 				lds_target.current_connections.append(fstr_source_account_id)
 				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
 			
@@ -670,9 +672,9 @@ class metric(object):
 			
 				# last transaction was in previous time window, swap
 				# a.k.a. move "old" current into "last" before overwriting
-				lds_target.last_connections = lds_source.current_connections
-				lds_target.last_reserve_balance = lds_source.current_reserve_balance
-				lds_target.last_network_balance = lds_source.current_network_balance
+				lds_target.last_connections = lds_target.current_connections
+				lds_target.last_reserve_balance = lds_target.current_reserve_balance
+				lds_target.last_network_balance = lds_target.current_network_balance
 				lds_target.current_connections.remove(fstr_source_account_id)
 				
 			# only update current_timestamp for graph dependent transactions??? STUB
@@ -923,9 +925,9 @@ class metric(object):
 
 			# last transaction was in previous time window, swap
 			# a.k.a. move "old" current into "last" before overwriting
-			lds_target.last_connections = lds_source.current_connections
-			lds_target.last_reserve_balance = lds_source.current_reserve_balance
-			lds_target.last_network_balance = lds_source.current_network_balance
+			lds_target.last_connections = lds_target.current_connections
+			lds_target.last_reserve_balance = lds_target.current_reserve_balance
+			lds_target.last_network_balance = lds_target.current_network_balance
 			lds_target.current_network_balance += lint_amount
 
 		# only update current_timestamp for graph dependent transactions??? STUB
@@ -960,7 +962,7 @@ class metric(object):
 		# error if source doesn't exist
 		if lds_source is None: return "error_source_id_not_valid"
 		# error if trying to write check to self
-		if fstr_source_account_id == fstr_target_account_id: return "error_cant_write check_to_self"
+		if fstr_source_account_id == fstr_target_account_id: return "error_source_and_target_ids_cannot_be_the_same"
 		
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
 		lds_target = target_key.get()
@@ -991,6 +993,8 @@ class metric(object):
 			# create new request
 			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			
+			lstr_return_message = "success_suggested_reserve_transfer_stored"
 
 		elif fstr_type == "activating_suggested":
 			
@@ -1020,6 +1024,8 @@ class metric(object):
 			lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.suggested_active_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
+			lstr_return_message = "success_suggested_reserve_transfer_activated"
+			
 		elif fstr_type == "deactivating_suggested":
 		
 			# This is similar to a "disconnect()".  Once a suggested transfer is active, either
@@ -1043,6 +1049,8 @@ class metric(object):
 				# delete the suggested active entries
 				lds_source.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
 				lds_target.suggested_active_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				
+				lstr_return_message = "success_suggested_reserve_transfer_deactivated"
 			
 			elif fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
 			
@@ -1059,12 +1067,10 @@ class metric(object):
 				# delete the suggested active entries
 				lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
 				lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				
+				lstr_return_message = "success_suggested_reserve_transfer_denied"
 			
-			else: return "error_no_suggested_active_request_between_source_and_target"
-			
-		elif fstr_type == "authorizing_suggested":
-			
-			pass		
+			else: return "error_no_suggested_active_request_between_source_and_target"		
 		
 		elif fstr_type == "requesting_user":
 		
@@ -1078,45 +1084,174 @@ class metric(object):
 			lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
+			lstr_return_message = "success_user_reserve_transfer_requested"
+			
 		elif fstr_type == "cancelling_user":
 			
-			pass
+			# creator of a transfer request is cancelling
+			# verify source actually has an outgoing for correct amount and if so delete it
+			if fstr_target_account_id in lds_source.outgoing_reserve_transfer_requests:
+				if not lint_amount == lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id]:
+					return "error_cancellation_request_does_not_match_outgoing_amount"
+			else: return "error_cancel_request_does_not_have_match_in_outgoing_requests_for_source"
+			# delete the transfer request in question
+			lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			
+			lstr_return_message = "success_user_reserve_transfer_cancelled"
 
 		elif fstr_type == "denying_user":
 			
-			pass
+			# source is denying targets requested transfer
+			# verify source actually has an incoming request for correct amount and if so delete it
+			if fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
+				if not lint_amount == lds_source.incoming_reserve_transfer_requests[fstr_target_account_id]:
+					return "error_cancellation_request_does_not_match_incoming_amount"
+			else: return "error_cancel_request_does_not_have_match_in_incoming_requests_for_source"
+			# delete the transfer request in question
+			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			
+			lstr_return_message = "success_user_reserve_transfer_denied"
 		
+		elif fstr_type == "authorizing_suggested":
+
+			# This transaction type is one which affects the graph.
+			# "authorizing_suggested" pretty much works exactly like "authorizing_user" except that we will
+			# put this request back in the suggested_inactive slot if it is blank just like we did for 
+			# deactivate and deny.
+			
+			# Again, authorization is always an incoming request with respect to the source account.
+
+			# From the initial checks in this function we already know:
+			# 1. source and target accounts are valid
+			# 2. source id and target id are different
+			# 3. amount is valid
+			# 4. source and target are connected
+			
+			# make sure still an incoming suggested request from the target
+			if not fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+				return "error_no_request_in_active_suggested_incoming_for_target"
+			# make sure it's the same amount
+			if not lds_source.suggested_active_incoming_reserve_transfer_requests[fstr_target_account_id] == lint_amount:
+				return "error_authorization_amount_does_not_match_incoming_request"
+			# make sure target still has enough to pay
+			if not lds_target.current_reserve_balance > lint_amount: return "error_target_has_insufficient_reserves_for_transfer"			
+			
+			# calculate cutoff time
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			
+			# update the source account last/current
+			if not lds_source.current_timestamp > t_cutoff:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_source.last_connections = lds_source.current_connections
+				lds_source.last_reserve_balance = lds_source.current_reserve_balance
+				lds_source.last_network_balance = lds_source.current_network_balance
+			
+			# update the source account
+			# delete the incoming request and add to reserve balance
+			lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.current_reserve_balance += lint_amount
+			lds_source.current_timestamp = datetime.datetime.now()
+
+			# update the target account last/current
+			if not lds_target.current_timestamp > t_cutoff:
+				
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_target.last_connections = lds_target.current_connections
+				lds_target.last_reserve_balance = lds_target.current_reserve_balance
+				lds_target.last_network_balance = lds_target.current_network_balance
+
+			# if inactive slot is empty, we move before deleting otherwise just delete
+			# one check is sufficient for both parties
+			if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+				if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+					# ok to copy back to inactive
+					lds_source.suggested_inactive_incoming_reserve_transfer_requests[fstr_target_account_id] = lint_amount
+					lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+				
+			# update the target account
+			lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.current_reserve_balance -= lint_amount
+			lds_target.current_timestamp = datetime.datetime.now()
+
+			lds_source.put()
+			lds_target.put()
+			lstr_return_message = "success_suggested_reserve_transfer_authorized"
+			
 		elif fstr_type == "authorizing_user":
 		
-			pass
+			# This transaction type is one which affects the graph.
+			
+			# When a reserve transfer is "authorized" is essentially means that whatever reserves the two accounts
+			# intended to transfer have been transferred and they have both agreed to adjust their reserve amounts
+			# accordingly.  Just like any balance we need to do all the necessary checks to make sure they have
+			# the amount available to move.  
+			
+			# From the initial checks in this function we already know:
+			# 1. source and target accounts are valid
+			# 2. source isn't trying to transfer to themselves
+			# 3. amount is valid
+			# 4. source and target are connected
+			
+			# "authorizing" means the source in this request is authorizing an incoming request.  Therefore we need
+			# to validate it is still active and also need to make sure the target still has funds to pay.
+			if not fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
+				return "error_no_request_in_incoming_for_target"
+			if not lds_source.incoming_reserve_transfer_requests[fstr_target_account_id] == lint_amount:
+				return "error_authorization_amount_does_not_match_incoming_request"
+			if not lds_target.current_reserve_balance > lint_amount: return "error_target_has_insufficient_reserves_for_transfer"			
+			
+			# ok to update now
+			
+			# calculate cutoff time
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+
+			# update the source account last/current
+			if not lds_source.current_timestamp > t_cutoff:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_source.last_connections = lds_source.current_connections
+				lds_source.last_reserve_balance = lds_source.current_reserve_balance
+				lds_source.last_network_balance = lds_source.current_network_balance
+			
+			# update the source account
+			# delete the incoming request and add to reserve balance
+			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.current_reserve_balance += lint_amount
+			lds_source.current_timestamp = datetime.datetime.now()
+			
+			# update the target account last/current
+			if not lds_target.current_timestamp > t_cutoff:
 				
-		else: return "error_transaction_type_invalid"
-		
-		
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_target.last_connections = lds_target.current_connections
+				lds_target.last_reserve_balance = lds_target.current_reserve_balance
+				lds_target.last_network_balance = lds_target.current_network_balance
+				
+			# update the target account
+			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.current_reserve_balance -= lint_amount
+			lds_target.current_timestamp = datetime.datetime.now()
+
+			lds_source.put()
+			lds_target.put()
+			lstr_return_message = "success_user_reserve_transfer_authorized"
+
+		else: return "error_transaction_type_invalid"			
 		
 		return lstr_return_message
-		
-"""
-
-	account_id = ndb.StringProperty()
-	network_id = ndb.StringProperty()
-	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_reserve_transfer_requests = ndb.PickleProperty()
-	outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_connections = ndb.PickleProperty(default="EMPTY")
-	current_reserve_balance = ndb.IntegerProperty()
-	current_network_balance = ndb.IntegerProperty()	
-	last_connections = ndb.PickleProperty(default="EMPTY")
-	last_reserve_balance = ndb.IntegerProperty()
-	last_network_balance = ndb.IntegerProperty()
-
-"""
 	
 ################################################################
 ###
