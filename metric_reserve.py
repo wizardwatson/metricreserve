@@ -972,6 +972,11 @@ class metric(object):
 			# benign change with respect to graph
 			lds_source.incoming_connection_requests.remove(fstr_target_account_id)
 			lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+			lstr_source_tx_type = "INCOMING CONNECTION REQUEST DENIED"
+			lstr_source_tx_description = "INCOMING CONNECTION REQUEST DENIED"
+			lstr_target_tx_type = "OUTGOING CONNECTION REQUEST DENIED"
+			lstr_target_tx_description = "OUTGOING CONNECTION REQUEST DENIED"
+			
 			lstr_return_message = "success_denied_target_connection_request"
 		
 		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
@@ -979,6 +984,10 @@ class metric(object):
 			# benign change with respect to graph
 			lds_target.incoming_connection_requests.remove(fstr_source_account_id)
 			lds_source.outgoing_connection_requests.remove(fstr_target_account_id)
+			lstr_source_tx_type = "OUTGOING CONNECTION REQUEST WITHDRAWN"
+			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST WITHDRAWN"
+			lstr_target_tx_type = "INCOMING CONNECTION REQUEST WITHDRAWN"
+			lstr_target_tx_description = "INCOMING CONNECTION REQUEST WITHDRAWN"
 			lstr_return_message = "success_withdrew_connection_request"
 		
 		elif fstr_target_account_id in lds_source.current_connections:
@@ -1032,11 +1041,56 @@ class metric(object):
 			# only update current_timestamp for graph dependent transactions??? STUB
 			lds_source.current_timestamp = datetime.datetime.now()
 			lds_target.current_timestamp = datetime.datetime.now()
+			lstr_source_tx_type = "DISCONNECTION BY THIS ACCOUNT"
+			lstr_source_tx_description = "DISCONNECTION BY THIS ACCOUNT"
+			lstr_target_tx_type = "DISCONNECTION BY OTHER ACCOUNT"
+			lstr_target_tx_description = "DISCONNECTION BY OTHER ACCOUNT"
 			lstr_return_message = "success_cancelled_connection"
 			
 		else: return "error_nothing_to_disconnect"
 
-		# STUB ADD TWO TRANSACTIONS LIKE CONNECT()
+		# ADD TWO TRANSACTIONS LIKE CONNECT()
+		lds_source.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
+		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		source_lds_tx_log.tx_index = lds_source.tx_index
+		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.amount = 0
+		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = lstr_source_tx_description 
+		source_lds_tx_log.memo = ""
+		source_lds_tx_log.user_id_created = lds_source.user_id
+		source_lds_tx_log.network_id = fstr_network_id
+		source_lds_tx_log.account_id = fstr_source_account_id
+		source_lds_tx_log.source_account = fstr_source_account_id 
+		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.put()
+
+		lds_target.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target.tx_index
+		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.amount = 0
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = lstr_target_tx_description 
+		target_lds_tx_log.memo = ""
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = fstr_network_id
+		target_lds_tx_log.account_id = fstr_target_account_id
+		target_lds_tx_log.source_account = fstr_source_account_id 
+		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.put()
 
 		lds_source.put()
 		lds_target.put()
@@ -1102,6 +1156,8 @@ class metric(object):
 			lds_counter2.count += lint_amount
 			lds_counter2.put()
 			
+			lstr_source_tx_type = "RESERVE MODIFIED NORMAL ADD"
+			lstr_source_tx_description = "RESERVE MODIFIED NORMAL ADD"
 			lstr_return_message = "success_reserve_normal_add"
 
 		elif fstr_type == "normal_subtract":
@@ -1133,6 +1189,8 @@ class metric(object):
 			lds_counter4.count += lint_amount
 			lds_counter4.put()
 			
+			lstr_source_tx_type = "RESERVE MODIFIED NORMAL SUBTRACT"
+			lstr_source_tx_description = "RESERVE MODIFIED NORMAL SUBTRACT"
 			lstr_return_message = "success_reserve_normal_subtract"
 			
 		elif fstr_type == "override_add":
@@ -1149,6 +1207,8 @@ class metric(object):
 			lds_counter5.count += lint_amount
 			lds_counter5.put()
 			
+			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE ADD"
+			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE ADD"
 			lstr_return_message = "success_reserve_override_add"
 			
 		elif fstr_type == "override_subtract":
@@ -1165,6 +1225,8 @@ class metric(object):
 			lds_counter6.count += lint_amount
 			lds_counter6.put()
 			
+			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE SUBTRACT"
+			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE SUBTRACT"
 			lstr_return_message = "success_reserve_override_subtract"
 			
 		else: return "error_invalid_transaction_type"
@@ -1205,6 +1267,26 @@ class metric(object):
 			lds_source.current_network_balance = lint_new_balance
 			lds_source.current_reserve_balance = lint_new_reserve
 
+		lds_source.tx_index += 1
+		# source transaction log
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.key = tx_log_key
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = lds_source.tx_index
+		lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = lint_amount
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = lstr_source_tx_description 
+		lds_tx_log.memo = ""
+		lds_tx_log.user_id_created = lds_source.user_id
+		lds_tx_log.network_id = fstr_network_id
+		lds_tx_log.account_id = fstr_source_account_id
+		lds_tx_log.source_account = fstr_source_account_id 
+		lds_tx_log.target_account = ""
+		lds_tx_log.put()
+		
 		# only update current_timestamp for graph dependent transactions??? STUB
 		lds_source.current_timestamp = datetime.datetime.now()
 		lds_source.put()
@@ -1289,6 +1371,50 @@ class metric(object):
 		# only update current_timestamp for graph dependent transactions??? STUB
 		lds_source.current_timestamp = datetime.datetime.now()
 		lds_target.current_timestamp = datetime.datetime.now()
+		
+		# ADD TWO TRANSACTIONS LIKE CONNECT()
+		lds_source.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
+		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		source_lds_tx_log.tx_index = lds_source.tx_index
+		source_lds_tx_log.tx_type = "PAYMENT MADE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.amount = lint_amount
+		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = "PAYMENT MADE" 
+		source_lds_tx_log.memo = ""
+		source_lds_tx_log.user_id_created = lds_source.user_id
+		source_lds_tx_log.network_id = fstr_network_id
+		source_lds_tx_log.account_id = fstr_source_account_id
+		source_lds_tx_log.source_account = fstr_source_account_id 
+		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.put()
+
+		lds_target.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target.tx_index
+		target_lds_tx_log.tx_type = "PAYMENT RECEIVED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.amount = lint_amount
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = "PAYMENT RECEIVED" 
+		target_lds_tx_log.memo = ""
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = fstr_network_id
+		target_lds_tx_log.account_id = fstr_target_account_id
+		target_lds_tx_log.source_account = fstr_source_account_id 
+		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.put()
+		
 		lds_source.put()
 		lds_target.put()
 		return "success_payment_succeeded"
@@ -1350,6 +1476,10 @@ class metric(object):
 			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
+			lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER STORED"
+			lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER STORED"
+			lstr_target_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER STORED"
+			lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER STORED"
 			lstr_return_message = "success_suggested_reserve_transfer_stored"
 
 		elif fstr_type == "activating_suggested":
@@ -1380,6 +1510,10 @@ class metric(object):
 			lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.suggested_active_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
+			lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER ACTIVATED"
+			lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER ACTIVATED"
+			lstr_target_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER ACTIVATED"
+			lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER ACTIVATED"
 			lstr_return_message = "success_suggested_reserve_transfer_activated"
 			
 		elif fstr_type == "deactivating_suggested":
@@ -1406,6 +1540,10 @@ class metric(object):
 				lds_source.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
 				lds_target.suggested_active_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
 				
+				lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER DEACTIVATED"
+				lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER DEACTIVATED"
+				lstr_target_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER DEACTIVATED"
+				lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER DEACTIVATED"
 				lstr_return_message = "success_suggested_reserve_transfer_deactivated"
 			
 			elif fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
@@ -1424,6 +1562,10 @@ class metric(object):
 				lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
 				lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
 				
+				lstr_source_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER DENIED"
+				lstr_source_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER DENIED"
+				lstr_target_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER DENIED"
+				lstr_target_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER DENIED"
 				lstr_return_message = "success_suggested_reserve_transfer_denied"
 			
 			else: return "error_no_suggested_active_request_between_source_and_target"		
@@ -1440,6 +1582,10 @@ class metric(object):
 			lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
 			lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
 			
+			lstr_source_tx_type = "USER OUTGOING RESERVE TRANSFER REQUESTED"
+			lstr_source_tx_description = "USER OUTGOING RESERVE TRANSFER REQUESTED"
+			lstr_target_tx_type = "USER INCOMING RESERVE TRANSFER REQUESTED"
+			lstr_target_tx_description = "USER INCOMING RESERVE TRANSFER REQUESTED"
 			lstr_return_message = "success_user_reserve_transfer_requested"
 			
 		elif fstr_type == "cancelling_user":
@@ -1454,6 +1600,10 @@ class metric(object):
 			lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
 			lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
 			
+			lstr_source_tx_type = "USER OUTGOING RESERVE TRANSFER WITHDRAWN"
+			lstr_source_tx_description = "USER OUTGOING RESERVE TRANSFER WITHDRAWN"
+			lstr_target_tx_type = "USER INCOMING RESERVE TRANSFER WITHDRAWN"
+			lstr_target_tx_description = "USER INCOMING RESERVE TRANSFER WITHDRAWN"
 			lstr_return_message = "success_user_reserve_transfer_cancelled"
 
 		elif fstr_type == "denying_user":
@@ -1468,6 +1618,10 @@ class metric(object):
 			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
 			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
 			
+			lstr_source_tx_type = "USER INCOMING RESERVE TRANSFER DENIED"
+			lstr_source_tx_description = "USER INCOMING RESERVE TRANSFER DENIED"
+			lstr_target_tx_type = "USER OUTGOING RESERVE TRANSFER DENIED"
+			lstr_target_tx_description = "USER OUTGOING RESERVE TRANSFER DENIED"
 			lstr_return_message = "success_user_reserve_transfer_denied"
 		
 		elif fstr_type == "authorizing_suggested":
@@ -1537,8 +1691,10 @@ class metric(object):
 			lds_target.current_reserve_balance -= lint_amount
 			lds_target.current_timestamp = datetime.datetime.now()
 
-			lds_source.put()
-			lds_target.put()
+			lstr_source_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED"
+			lstr_source_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED"
+			lstr_target_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"
+			lstr_target_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"
 			lstr_return_message = "success_suggested_reserve_transfer_authorized"
 			
 		elif fstr_type == "authorizing_user":
@@ -1601,12 +1757,59 @@ class metric(object):
 			lds_target.current_reserve_balance -= lint_amount
 			lds_target.current_timestamp = datetime.datetime.now()
 
-			lds_source.put()
-			lds_target.put()
+			lstr_source_tx_type = "USER INCOMING RESERVE TRANSFER AUTHORIZED"
+			lstr_source_tx_description = "USER INCOMING RESERVE TRANSFER AUTHORIZED"
+			lstr_target_tx_type = "USER OUTGOING RESERVE TRANSFER AUTHORIZED"
+			lstr_target_tx_description = "USER OUTGOING RESERVE TRANSFER AUTHORIZED"
 			lstr_return_message = "success_user_reserve_transfer_authorized"
 
 		else: return "error_transaction_type_invalid"			
 		
+		# ADD TWO TRANSACTIONS LIKE CONNECT()
+		lds_source.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
+		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		source_lds_tx_log.tx_index = lds_source.tx_index
+		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.amount = lint_amount
+		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = lstr_source_tx_description 
+		source_lds_tx_log.memo = ""
+		source_lds_tx_log.user_id_created = lds_source.user_id
+		source_lds_tx_log.network_id = fstr_network_id
+		source_lds_tx_log.account_id = fstr_source_account_id
+		source_lds_tx_log.source_account = fstr_source_account_id 
+		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.put()
+
+		lds_target.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target.tx_index
+		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.amount = lint_amount
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = lstr_target_tx_description 
+		target_lds_tx_log.memo = ""
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = fstr_network_id
+		target_lds_tx_log.account_id = fstr_target_account_id
+		target_lds_tx_log.source_account = fstr_source_account_id 
+		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.put()
+		
+		lds_source.put()
+		lds_target.put()
 		return lstr_return_message
 	
 ################################################################
