@@ -2088,13 +2088,24 @@ class metric(object):
 		# now the clock starts.  If we don't finish before the
 		# deadline, then we pause and wait for a different 
 		# request
+		
+		def process_finish():
+				
+			pass
+			
 		def process_pause():
 		
 			pass
 			
-		def process_finish():
+		def check_chunk():
 		
 			pass
+			
+		def check_deadline():
+		
+			pass
+			
+		 
 		
 		
 		
