@@ -44,6 +44,7 @@ NUM_RESERVE_POSITIVE_SHARDS = 20
 NUM_RESERVE_NEGATIVE_SHARDS = 20
 
 IS_DEBUG = True
+REDO_FINISHED_GRAPH_PROCESS = True
 
 # How often do you want the application to process the graph?
 GRAPH_FREQUENCY_MINUTES = 15
@@ -360,6 +361,10 @@ class master(object):
 		self.TRACE.append(str((int(str(int(-10222)).zfill(12)) + 30000)*-1))
 		
 		self.TRACE.append("key chunk sample test: %s" % str((50000 - (50000 % 20000))/20000))
+		
+		
+		
+		
 		#DEBUG STUFF END
 		
 		
@@ -369,7 +374,11 @@ class master(object):
 		# this requests cutoff time
 		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
 		self.TRACE.append("request cutoff time:%s" % str(t_cutoff))
-		
+		self.TRACE.append("request cutoff time:YEAR-%s-" % str(t_cutoff.year))
+		self.TRACE.append("request cutoff time:MONTH-%s-" % str(t_cutoff.month))
+		self.TRACE.append("request cutoff time:DAY-%s-" % str(t_cutoff.day))
+		self.TRACE.append("request cutoff time:HOUR-%s-" % str(t_cutoff.hour))
+		self.TRACE.append("request cutoff time:MINUTES-%s-" % str(t_cutoff.minute))
 		
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
@@ -1996,15 +2005,87 @@ class metric(object):
 		lds_target.put()
 		return lstr_return_message
 
-	def _process_graph(self):
+	def _process_graph(self, fstr_network_id):
 	
 		# So...we meet again.
 		
+		# Each NETWORK!!! has a process lock. Network, not application
+		# ..so if you and 50 of your buddies are playing around on the
+		# same application running graph processing on 50 different
+		# networks, might explain any slowness.
+		
+		# first get the cutoff time
+		# It is from the cutoff time that we derive the entity key/id
+		# for the profile.  
+		# calculate cutoff time
+		t_now = datetime.datetime.now()
+		d_since = t_now - T_EPOCH
+		# this requests cutoff time
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		
+		profile_key_time_part = "%s%s%s%s%s" % (str(t_cutoff.year),
+			str(t_cutoff.month).zfill(2),
+			str(t_cutoff.day).zfill(2),
+			str(t_cutoff.hour).zfill(2),
+			str(t_cutoff.minute).zfill(2))
+		
+		@ndb.transactional(xg=True)
+		def process_lock():
+		
+			# get or create this networks master process entity
+			profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (fstr_network_id, profile_key_time_part))
+			profile = profile_key.get()
+			if profile is None:
+			
+				# This process is creating the profile. We can
+				# start a fresh process.
+				pass
+			else:
+				# profile loaded
+				pass
+				
+		
+		"""
+		
+		REDO_FINISHED_GRAPH_PROCESS = True
+		
+		class ds_mrgp_master(ndb.Model):
+
+			status = ndb.StringProperty()
+			last_p_time = ndb.DateTimeProperty()
+			last_p_time = ndb.DateTimeProperty()
+			profile_id = ndb.IntegerProperty()
+
+		class ds_mrgp_profile(ndb.Model):
+
+			status = ndb.StringProperty()
+			phase_cursor = ndb.IntegerProperty()
+			step_cursor = ndb.IntegerProperty()
+			count_cursor = ndb.IntegerProperty()
+			key_chunks = ndb.IntegerProperty()
+			tree_chunks = ndb.IntegerProperty()
+			staging_chunks = ndb.IntegerProperty()
+			map_chunks = ndb.IntegerProperty()
+			index_chunks = ndb.IntegerProperty()
+			read_needle = ndb.IntegerProperty()
+			write_needle = ndb.IntegerProperty()
+
+		class ds_mrgp_key_chunk(ndb.Model):
+
+			current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+			current_stuff = ndb.PickleProperty()
+			current_start_key = ndb.IntegerProperty()
+			current_stop_key = ndb.IntegerProperty()
+			current_total_keys = ndb.IntegerProperty()
+			last_stuff = ndb.PickleProperty()
+			last_start_key = ndb.IntegerProperty()
+			last_stop_key = ndb.IntegerProperty()
+			last_total_keys = ndb.IntegerProperty()
+		"""
 		
 		
 		
-		
-		pass
+
 ################################################################
 ###
 ###  END: Application Classes
