@@ -11,6 +11,7 @@ import datetime
 import re
 import pickle
 import random
+import bisect
 
 # these are standard GAE imports
 from google.appengine.api import users
@@ -217,33 +218,99 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 
 
 
-################################################################
+##############################################################################
 ###
-###  DATASTORE entities specifically related to GRAPH PROCESSING
-###  (mrgp = metric reserve graph processing)
-################################################################
+###  DATASTORE entities related to GRAPH PROCESSING
+###  
+##############################################################################
 
-# the chunk index catalog / one per network
+# Labeling Conventions:
+#
+# ds = datastore class
+# mrgp = metric reserve graph processing related
+
+# *** the master entity ***
+#
+# This entity controls process locking to make sure only one process is
+# handling a specific networks graph processing iteration.  
+
+class ds_mrgp_master(ndb.Model):
+
+	status = ndb.StringProperty()
+	last_p_time = ndb.DateTimeProperty()
+	last_p_time = ndb.DateTimeProperty()
+	profile_id = ndb.IntegerProperty()
+	
+# *** the profile entity ***
+#
+# This entity controls a specific networks specific graph process and 
+# also is what generates the report after it's finished.  If a process
+# gets paused, this is the entity that keeps track of where it stopped
+# at and where it needs to continue from.  It holds all the important
+# information about how many chunks there are for this process, etc.
+
+class ds_mrgp_profile(ndb.Model):
+
+	status = ndb.StringProperty()
+	phase_cursor = ndb.IntegerProperty()
+	step_cursor = ndb.IntegerProperty()
+	count_cursor = ndb.IntegerProperty()
+	key_chunks = ndb.IntegerProperty()
+	tree_chunks = ndb.IntegerProperty()
+	staging_chunks = ndb.IntegerProperty()
+	map_chunks = ndb.IntegerProperty()
+	index_chunks = ndb.IntegerProperty()
+	read_needle = ndb.IntegerProperty()
+	write_needle = ndb.IntegerProperty()
+
+# *** the key chunk ***
+#
+# Provides quick access to all the metric account keys so that
+# we not only save time accessing them all at once, but we also
+# avoid querying deleted accounts from the datastore. Each key
+# chunk is intended to hold 20,000 keys.  The network cursor 
+# keeps a count of the total key chunks for the network, and 
+# also a mapping of the start/stop indexes in each key chunk.
+#
+# The metric._join_network() and metric._leave_network functions
+# manipulate this chunk as new people join and leave the network.
+
 class ds_mrgp_key_chunk(ndb.Model):
 
-	catalog = ndb.PickleProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_stuff = ndb.PickleProperty()
+	current_start_key = ndb.IntegerProperty()
+	current_stop_key = ndb.IntegerProperty()
+	current_total_keys = ndb.IntegerProperty()
+	last_stuff = ndb.PickleProperty()
+	last_start_key = ndb.IntegerProperty()
+	last_stop_key = ndb.IntegerProperty()
+	last_total_keys = ndb.IntegerProperty()
 	
+# *** 
+
+##############################################################################
+###
+###  DATASTORE entities related to DEBUGGING
+###  
+##############################################################################
+
 # the big pickle
 class ds_mrgp_big_pickle(ndb.Model):
 
 	stuff = ndb.PickleProperty()
 
-################################################################
+##############################################################################
 ###
 ###  END: DATASTORE entities
 ###
-################################################################
+##############################################################################
 
-################################################################
+##############################################################################
 ###
 ###  BEGIN: Application Classes
 ###
-################################################################
+##############################################################################
 
 # capitalized variables generally refer to class variables
 
@@ -292,7 +359,7 @@ class master(object):
 		
 		self.TRACE.append(str((int(str(int(-10222)).zfill(12)) + 30000)*-1))
 		
-		
+		self.TRACE.append("key chunk sample test: %s" % str((50000 - (50000 % 20000))/20000))
 		#DEBUG STUFF END
 		
 		
@@ -565,10 +632,18 @@ class metric(object):
 			new_cursor.put()
 			
 			# initialize the first key chunk
-			# each key chunk holds 10,000 keys
-			key_chunk_key = ndb.Key("ds_mrgp_chunk_catalog", "%s000000" % (fstr_network_id))
+			# each key chunk holds 20,000 keys
+			key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(new_cursor.key_chunk_count).zfill(12)))
 			new_key_chunk = ds_mrgp_key_chunk()
 			new_key_chunk.key = key_chunk_key
+			new_key_chunk.current_stuff = []
+			new_key_chunk.current_start_key = 0
+			new_key_chunk.current_stop_key = 0
+			new_key_chunk.current_total_keys = 0
+			new_key_chunk.last_stuff = []
+			new_key_chunk.last_start_key = 0
+			new_key_chunk.last_stop_key = 0
+			new_key_chunk.last_total_keys = 0
 			new_key_chunk.put()
 
 			# transaction log
@@ -608,19 +683,71 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _join_network(self,fstr_user_id,fstr_network_id):
 	
-		# first make sure the user isn't already joined to this network
-		# if not, join them at the proper index and create their metric account
-		user_key = ndb.Key("ds_mr_user",fstr_user_id)
+		# first make sure the user isn't already joined to this 
+		# network if not, join them at the proper index and create
+		# their metric account user_key = ndb.Key("ds_mr_user",
+		# fstr_user_id)
 		lds_user = user_key.get()
 		if not lds_user.metric_network_ids == "EMPTY":
 			# user is already joined to the network
 			return "error_already_joined"
 		
-		cursor_key = ndb.Key("ds_mr_network_cursor",fstr_network_id)
-		
-		# increment the network cursor
+		# increment the network cursor and update the key chunk(s)
+		cursor_key = ndb.Key("ds_mr_network_cursor",fstr_network_id)		
 		lds_cursor = cursor_key.get()
 		lds_cursor.current_index += 1
+		
+		# Get the key chunk we need.  Each chunk holds 20,000 so
+		# by current cursor index we can figure out the key chunk
+		# key to use.
+		t_num = lds_cursor.current_index
+		t_num = ((t_num - (t_num % 20000))/20000) + 1
+		key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(t_num).zfill(12)))
+		lds_key_chunk = key_chunk_key.get()		
+				
+		t_now = datetime.datetime.now()
+		
+		if lds_key_chunk is None:
+		
+			# this key chunk does not yet exist
+			# If this is a new key chunk we already know that it
+			# must be the first so it's both start and stop and
+			# count is only 1.
+			lds_key_chunk.current_timestamp = t_now
+			lds_key_chunk.current_stuff = [lds_cursor.current_index]
+			lds_key_chunk.current_start_key = lds_cursor.current_index
+			lds_key_chunk.current_stop_key = lds_cursor.current_index
+			lds_key_chunk.current_total_keys = 1
+			lds_key_chunk.last_stuff = []
+			lds_key_chunk.last_start_key = 0
+			lds_key_chunk.last_stop_key = 0
+			lds_key_chunk.last_total_keys = 0
+			
+		else:
+			
+			# The graph process reads the key chunks when it starts.
+			# We don't want to include new accounts that are after
+			# the cutoff..
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			
+			if not lds_key_chunk.current_timestamp > t_cutoff:
+			
+				# swap before assigning new				
+				lds_key_chunk.last_stuff = lds_key_chunk.current_stuff
+				lds_key_chunk.last_start_key = lds_key_chunk.current_start_key
+				lds_key_chunk.last_stop_key = lds_key_chunk.current_stop_key
+				lds_key_chunk.last_total_keys = lds_key_chunk.current_total_keys
+			
+			# assign new
+			lds_key_chunk.current_timestamp = t_now
+			lds_key_chunk.current_stuff.append(lds_cursor.current_index)
+			# lds_key_chunk.current_start_key won't change in this function if existing
+			lds_key_chunk.current_stop_key = lds_cursor.current_index
+			lds_key_chunk.current_total_keys += 1
+			
+		lds_key_chunk.put()
 		
 		# create a new metric account with key equal to current cursor/index for this network
 		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12)))
@@ -711,14 +838,49 @@ class metric(object):
 		if lds_metric_account is None: return "error_account_id_invalid"
 		
 		# error if account still has connections
-		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"
+		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"		
+
+		# Get the key chunk we need.  Each chunk holds 20,000 so
+		# by account id we can figure out the key chunk
+		# key to use.
+		t_num = int(fstr_account_id)
+		t_num = ((t_num - (t_num % 20000))/20000) + 1
+		key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(t_num).zfill(12)))
+		lds_key_chunk = key_chunk_key.get()		
+				
+		t_now = datetime.datetime.now()
 		
-		# retrieve chunk catalog, should have been initialized along with the network itself.
-		chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s%s" % (fstr_network_id))
-		lds_chunk_catalog = chunk_catalog_key.get()
+		if lds_key_chunk is None:
 		
-		# STUB CHUNK CATALOG MODIFICATION LOGIC GOES HERE
-		
+			# shouldn't happen
+			return "error_FATAL_key_chunk_missing"
+			
+		else:
+			
+			# The graph process reads the key chunks when it starts.
+			# We don't want to include new accounts that are after
+			# the cutoff..
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			
+			if not lds_key_chunk.current_timestamp > t_cutoff:
+			
+				# swap before assigning new				
+				lds_key_chunk.last_stuff = lds_key_chunk.current_stuff
+				lds_key_chunk.last_start_key = lds_key_chunk.current_start_key
+				lds_key_chunk.last_stop_key = lds_key_chunk.current_stop_key
+				lds_key_chunk.last_total_keys = lds_key_chunk.current_total_keys
+			
+			lds_key_chunk.current_timestamp = t_now
+			# delete the key and reset start/stop in case the deleted
+			# was either of those
+			del lds_key_chunk.current_stuff[lds_cursor.current_index]
+			lds_key_chunk.current_start_key = lds_key_chunk.current_stuff[0]
+			lds_key_chunk.current_stop_key = lds_key_chunk.current_stuff[-1]
+			lds_key_chunk.current_total_keys -= 1
+			
+		lds_key_chunk.put()		
 		
 		# the only two values in a metric account that really matter during a deletion
 		# will be the network and reserve remaining balances.  We do one finally transaction
