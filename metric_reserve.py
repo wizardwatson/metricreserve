@@ -142,8 +142,8 @@ class ds_mr_tx_log(ndb.Model):
 	category = ndb.StringProperty()
 	tx_index = ndb.IntegerProperty()
 	tx_type = ndb.StringProperty()
-	amount = IntegerProperty()
-	access = StringProperty()
+	amount = ndb.IntegerProperty()
+	access = ndb.StringProperty()
 	description = ndb.StringProperty()
 	memo = ndb.StringProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
@@ -224,9 +224,14 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 ################################################################
 
 # the chunk index catalog / one per network
-class ds_mrgp_chunk_catalog(ndb.Model):
+class ds_mrgp_key_chunk(ndb.Model):
 
 	catalog = ndb.PickleProperty()
+	
+# the big pickle
+class ds_mrgp_big_pickle(ndb.Model):
+
+	stuff = ndb.PickleProperty()
 
 ################################################################
 ###
@@ -272,6 +277,24 @@ class master(object):
 		
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
+		#DEBUG STUFF BEGIN
+		
+		some_obj = ds_mrgp_big_pickle()
+		
+		some_obj.stuff = (1,2,3)
+		self.TRACE.append("object length:%s" % str(len(some_obj._to_pb().Encode())))
+		self.TRACE.append(str(int(-10222)).zfill(12))
+		some_obj.put()
+		
+		str(int(-10222)).zfill(12)
+		self.TRACE.append(str(int(str(int(-10222)).zfill(12)) + 30000))
+		
+		self.TRACE.append(str((int(str(int(-10222)).zfill(12)) + 30000)*-1))
+		
+		
+		#DEBUG STUFF END
+		
 		
 		# Calculate the graph process cutoff time for this request
 		t_now = datetime.datetime.now()
@@ -541,13 +564,12 @@ class metric(object):
 			new_cursor.key = cursor_key
 			new_cursor.put()
 			
-			# also make the chunk catalog for this network
-			# retrieve chunk catalog, should have been initialized along with the network itself.
-			chunk_catalog_key = ndb.Key("ds_mrgp_chunk_catalog", "%s" % (fstr_network_id))
-			new_chunk_catalog = ds_mrgp_chunk_catalog()
-			new_chunk_catalog.key = chunk_catalog_key
-			# STUB CHUNK CATALOG STRUCTURE INITIALIZED HERE
-			new_chunk_catalog.put()
+			# initialize the first key chunk
+			# each key chunk holds 10,000 keys
+			key_chunk_key = ndb.Key("ds_mrgp_chunk_catalog", "%s000000" % (fstr_network_id))
+			new_key_chunk = ds_mrgp_key_chunk()
+			new_key_chunk.key = key_chunk_key
+			new_key_chunk.put()
 
 			# transaction log
 			lds_tx_log = ds_mr_tx_log()
@@ -629,7 +651,7 @@ class metric(object):
 		lds_user.metric_account_ids = "%s" % str(lds_cursor.current_index).zfill(12)
 		
 		# transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_user_id,str(1).zfill(12))
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_user_id,str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -728,7 +750,7 @@ class metric(object):
 		
 		lds_metric_account.tx_index += 1
 		# transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,str(lds_metric_account.tx_index).zfill(12))
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,str(lds_metric_account.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -891,7 +913,7 @@ class metric(object):
 		
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -911,7 +933,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1052,7 +1074,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1072,7 +1094,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1269,7 +1291,7 @@ class metric(object):
 
 		lds_source.tx_index += 1
 		# source transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1375,7 +1397,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1395,7 +1417,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1768,7 +1790,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1788,7 +1810,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1811,7 +1833,16 @@ class metric(object):
 		lds_source.put()
 		lds_target.put()
 		return lstr_return_message
+
+	def _process_graph(self):
 	
+		# So...we meet again.
+		
+		
+		
+		
+		
+		pass
 ################################################################
 ###
 ###  END: Application Classes
