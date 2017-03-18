@@ -84,8 +84,8 @@ class ds_mr_user(ndb.Model):
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
 	
-	metric_network_ids = ndb.PickleProperty(default="EMPTY")
-	metric_account_ids = ndb.PickleProperty(default="EMPTY")
+	metric_network_ids = ndb.PickleProperty(default=[])
+	metric_account_ids = ndb.PickleProperty(default=[])
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -101,7 +101,7 @@ class ds_mr_unique_dummy_entity(ndb.Model):
 class ds_mr_network_profile(ndb.Model):
 
 	network_name = ndb.StringProperty()
-	network_id = ndb.StringProperty()
+	network_id = ndb.IntegerProperty()
 	network_status = ndb.StringProperty()
 	network_type = ndb.StringProperty()
 	active_user_count = ndb.IntegerProperty()
@@ -119,8 +119,8 @@ class ds_mr_network_cursor(ndb.Model):
 # metric account: this is the main account information
 class ds_mr_metric_account(ndb.Model):
 
-	account_id = ndb.StringProperty()
-	network_id = ndb.StringProperty()
+	account_id = ndb.IntegerProperty()
+	network_id = ndb.IntegerProperty()
 	user_id = ndb.StringProperty()
 	tx_index = ndb.IntegerProperty()
 	account_status = ndb.StringProperty()
@@ -153,33 +153,10 @@ class ds_mr_tx_log(ndb.Model):
 	memo = ndb.StringProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	user_id_created = ndb.StringProperty()
-	network_id = ndb.StringProperty()
-	account_id = ndb.StringProperty()
-	source_account = ndb.StringProperty()
-	target_account = ndb.StringProperty()
-	
-"""
-
-			# transaction log
-			tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,lstr_tx_index) # optional
-			lds_tx_log = ds_mr_tx_log()
-			lds_tx_log.key = tx_log_key # optional
-			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-			# tx_index should be based on incremented metric_account value
-			lds_tx_log.tx_index = 0
-			lds_tx_log.tx_type = "" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-			lds_tx_log.amount = 0
-			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-			lds_tx_log.description = "" 
-			lds_tx_log.memo = ""
-			lds_tx_log.user_id_created = fobj_google_account.user_id()
-			lds_tx_log.network_id = ""
-			lds_tx_log.account_id = ""
-			lds_tx_log.source_account = "" 
-			lds_tx_log.target_account = ""
-			lds_tx_log.put()
-
-"""
+	network_id = ndb.IntegerProperty()
+	account_id = ndb.IntegerProperty()
+	source_account = ndb.IntegerProperty()
+	target_account = ndb.IntegerProperty()
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -245,6 +222,7 @@ class ds_mrgp_profile(ndb.Model):
 
 	status = ndb.StringProperty()
 	deadline = ndb.DateTimeProperty()
+	total_accounts = ndb.IntegerProperty()
 	phase_cursor = ndb.IntegerProperty()
 	step_cursor = ndb.IntegerProperty()
 	count_cursor = ndb.IntegerProperty()
@@ -338,6 +316,12 @@ class master(object):
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		
+		
+		
+		
+		
+		
+		
 		#DEBUG STUFF BEGIN
 		
 		some_obj = ds_mrgp_big_pickle()
@@ -357,7 +341,7 @@ class master(object):
 		
 		
 		
-		#DEBUG STUFF END
+		
 		
 		
 		# Calculate the graph process cutoff time for this request
@@ -371,6 +355,15 @@ class master(object):
 		self.TRACE.append("request cutoff time:DAY-%s-" % str(t_cutoff.day))
 		self.TRACE.append("request cutoff time:HOUR-%s-" % str(t_cutoff.hour))
 		self.TRACE.append("request cutoff time:MINUTES-%s-" % str(t_cutoff.minute))
+		
+		
+		
+		
+		
+		#DEBUG STUFF END
+		
+		
+		
 		
 		# instantiate a user via class - see 'class user(object)'
 		self.user = user(self)
@@ -602,10 +595,10 @@ class metric(object):
 		self.PARENT = fobj_master
 	
 	@ndb.transactional(xg=True)
-	def _initialize_network(self, fstr_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
+	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
 	
 		# redo the existence check now that we're in a transaction
-		network_key = ndb.Key("ds_mr_network_profile", fstr_network_id)
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
 		new_network_profile = network_key.get()
 		if new_network_profile is not None:
 			# it exists already, nevermind
@@ -614,7 +607,7 @@ class metric(object):
 			# not created yet
 			new_network_profile = ds_mr_network_profile()
 			new_network_profile.network_name = fstr_network_name
-			new_network_profile.network_id = fstr_network_id
+			new_network_profile.network_id = fint_network_id
 			new_network_profile.network_status = "ACTIVE"
 			new_network_profile.network_type = fstr_network_type
 			new_network_profile.active_user_count = 0
@@ -625,27 +618,12 @@ class metric(object):
 			new_network_profile.put()
 			
 			# also make the cursor for the network when making the network
-			cursor_key = ndb.Key("ds_mr_network_cursor", fstr_network_id)
+			cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))
 			new_cursor = ds_mr_network_cursor()
 			new_cursor.current_index = 0
-			new_cursor.network_id = fstr_network_id
+			new_cursor.network_id = fint_network_id
 			new_cursor.key = cursor_key
 			new_cursor.put()
-			
-			# initialize the first key chunk
-			# each key chunk holds 20,000 keys
-			key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(new_cursor.key_chunk_count).zfill(12)))
-			new_key_chunk = ds_mrgp_key_chunk()
-			new_key_chunk.key = key_chunk_key
-			new_key_chunk.current_stuff = []
-			new_key_chunk.current_start_key = 0
-			new_key_chunk.current_stop_key = 0
-			new_key_chunk.current_total_keys = 0
-			new_key_chunk.last_stuff = []
-			new_key_chunk.last_start_key = 0
-			new_key_chunk.last_stop_key = 0
-			new_key_chunk.last_total_keys = 0
-			new_key_chunk.put()
 
 			# transaction log
 			lds_tx_log = ds_mr_tx_log()
@@ -656,9 +634,9 @@ class metric(object):
 			lds_tx_log.amount = 0
 			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 			lds_tx_log.description = "A new network was created." 
-			lds_tx_log.memo = "%s %s" % (fstr_network_name, fstr_network_id)
+			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
 			lds_tx_log.user_id_created = self.PARENT.user.user_id
-			lds_tx_log.network_id = fstr_network_id
+			lds_tx_log.network_id = fint_network_id
 			lds_tx_log.account_id = ""
 			lds_tx_log.source_account = "" 
 			lds_tx_log.target_account = ""
@@ -666,12 +644,11 @@ class metric(object):
 
 			return new_network_profile
 			
-	def _get_network_summary(self, fstr_network_id="1000001"):
+	def _get_network_summary(self, fint_network_id=1):
 	
 		# get the primary network
-		# arbitrarily, I start network ids at one million and one
-		# ..and that number is always the primary network.
-		network_key = ndb.Key("ds_mr_network_profile", fstr_network_id)
+		# default is 1
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
 		network_profile = network_key.get()
 		if network_profile is not None:
 			self.PARENT.TRACE.append("metric._get_network_summary():network exists")
@@ -679,10 +656,10 @@ class metric(object):
 		else:
 			# not created yet
 			# ONLY AUTO-INITIALIZE THE PRIMARY NETWORK!!!
-			if fstr_network_id == "1000001": return self._initialize_network(fstr_network_id)
+			if fstr_network_id == 1: return self._initialize_network(fint_network_id)
 			
 	@ndb.transactional(xg=True)
-	def _join_network(self,fstr_user_id,fstr_network_id):
+	def _join_network(self,fstr_user_id,fint_network_id):
 	
 		# first make sure the user isn't already joined to this 
 		# network if not, join them at the proper index and create
@@ -694,67 +671,15 @@ class metric(object):
 			return "error_already_joined"
 		
 		# increment the network cursor and update the key chunk(s)
-		cursor_key = ndb.Key("ds_mr_network_cursor",fstr_network_id)		
+		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))		
 		lds_cursor = cursor_key.get()
 		lds_cursor.current_index += 1
 		
-		# Get the key chunk we need.  Each chunk holds 20,000 so
-		# by current cursor index we can figure out the key chunk
-		# key to use.
-		t_num = lds_cursor.current_index
-		t_num = ((t_num - (t_num % 20000))/20000) + 1
-		key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(t_num).zfill(12)))
-		lds_key_chunk = key_chunk_key.get()		
-				
-		t_now = datetime.datetime.now()
-		
-		if lds_key_chunk is None:
-		
-			# this key chunk does not yet exist
-			# If this is a new key chunk we already know that it
-			# must be the first so it's both start and stop and
-			# count is only 1.
-			lds_key_chunk.current_timestamp = t_now
-			lds_key_chunk.current_stuff = [lds_cursor.current_index]
-			lds_key_chunk.current_start_key = lds_cursor.current_index
-			lds_key_chunk.current_stop_key = lds_cursor.current_index
-			lds_key_chunk.current_total_keys = 1
-			lds_key_chunk.last_stuff = []
-			lds_key_chunk.last_start_key = 0
-			lds_key_chunk.last_stop_key = 0
-			lds_key_chunk.last_total_keys = 0
-			
-		else:
-			
-			# The graph process reads the key chunks when it starts.
-			# We don't want to include new accounts that are after
-			# the cutoff..
-			d_since = t_now - T_EPOCH
-			# this requests cutoff time
-			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-			
-			if not lds_key_chunk.current_timestamp > t_cutoff:
-			
-				# swap before assigning new				
-				lds_key_chunk.last_stuff = lds_key_chunk.current_stuff
-				lds_key_chunk.last_start_key = lds_key_chunk.current_start_key
-				lds_key_chunk.last_stop_key = lds_key_chunk.current_stop_key
-				lds_key_chunk.last_total_keys = lds_key_chunk.current_total_keys
-			
-			# assign new
-			lds_key_chunk.current_timestamp = t_now
-			lds_key_chunk.current_stuff.append(lds_cursor.current_index)
-			# lds_key_chunk.current_start_key won't change in this function if existing
-			lds_key_chunk.current_stop_key = lds_cursor.current_index
-			lds_key_chunk.current_total_keys += 1
-			
-		lds_key_chunk.put()
-		
 		# create a new metric account with key equal to current cursor/index for this network
-		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (fstr_network_id,str(lds_cursor.current_index).zfill(12)))
+		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(fint_network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
 		lds_metric_account = ds_mr_metric_account()
-		lds_metric_account.network_id = fstr_network_id
-		lds_metric_account.account_id = str(lds_cursor.current_index).zfill(12)
+		lds_metric_account.network_id = fint_network_id
+		lds_metric_account.account_id = lds_cursor.current_index
 		lds_metric_account.user_id = lds_user.user_id
 		lds_metric_account.tx_index = 1
 		lds_metric_account.account_status = "ACTIVE"
@@ -775,8 +700,8 @@ class metric(object):
 		lds_metric_account.key = metric_account_key
 		
 		# put the metric account id into the user object so we know this user is joined
-		lds_user.metric_network_ids = "%s" % fstr_network_id
-		lds_user.metric_account_ids = "%s" % str(lds_cursor.current_index).zfill(12)
+		lds_user.metric_network_ids = fint_network_id
+		lds_user.metric_account_ids = lds_cursor.current_index
 		
 		# transaction log
 		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_user_id,str(1).zfill(12)))
@@ -805,7 +730,7 @@ class metric(object):
 		return "success"
 
 	@ndb.transactional(xg=True)
-	def _leave_network(self,fstr_account_id,fstr_network_id):
+	def _leave_network(self, fint_account_id, fint_network_id):
 	
 		# must have zero connections in order to leave the network
 		# graph process cannot be going on when we delete
@@ -832,7 +757,9 @@ class metric(object):
 		# END THOUGHT
 		
 		# first retrieve and check the metric account
-		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_account_id).zfill(12)
+		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_metric_account = metric_account_key.get()
 		
 		# error if source doesn't exist
@@ -841,48 +768,6 @@ class metric(object):
 		# error if account still has connections
 		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"		
 
-		# Get the key chunk we need.  Each chunk holds 20,000 so
-		# by account id we can figure out the key chunk
-		# key to use.
-		t_num = int(fstr_account_id)
-		t_num = ((t_num - (t_num % 20000))/20000) + 1
-		key_chunk_key = ndb.Key("ds_mrgp_key_chunk", "%s%s" % (fstr_network_id,str(t_num).zfill(12)))
-		lds_key_chunk = key_chunk_key.get()		
-				
-		t_now = datetime.datetime.now()
-		
-		if lds_key_chunk is None:
-		
-			# shouldn't happen
-			return "error_FATAL_key_chunk_missing"
-			
-		else:
-			
-			# The graph process reads the key chunks when it starts.
-			# We don't want to include new accounts that are after
-			# the cutoff..
-			d_since = t_now - T_EPOCH
-			# this requests cutoff time
-			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-			
-			if not lds_key_chunk.current_timestamp > t_cutoff:
-			
-				# swap before assigning new				
-				lds_key_chunk.last_stuff = lds_key_chunk.current_stuff
-				lds_key_chunk.last_start_key = lds_key_chunk.current_start_key
-				lds_key_chunk.last_stop_key = lds_key_chunk.current_stop_key
-				lds_key_chunk.last_total_keys = lds_key_chunk.current_total_keys
-			
-			lds_key_chunk.current_timestamp = t_now
-			# delete the key and reset start/stop in case the deleted
-			# was either of those
-			del lds_key_chunk.current_stuff[lds_cursor.current_index]
-			lds_key_chunk.current_start_key = lds_key_chunk.current_stuff[0]
-			lds_key_chunk.current_stop_key = lds_key_chunk.current_stuff[-1]
-			lds_key_chunk.current_total_keys -= 1
-			
-		lds_key_chunk.put()		
-		
 		# the only two values in a metric account that really matter during a deletion
 		# will be the network and reserve remaining balances.  We do one finally transaction
 		# on this account that works like a "modify_reserve", "normal_subtract" only we ignore
@@ -913,7 +798,8 @@ class metric(object):
 		
 		lds_metric_account.tx_index += 1
 		# transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_account_id,str(lds_metric_account.tx_index).zfill(12)))
+		key_part3 = str(lds_metric_account.tx_index).zfill(12)
+		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,key_part3))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -925,9 +811,9 @@ class metric(object):
 		lds_tx_log.description = "A user left a network." 
 		lds_tx_log.memo = ""
 		lds_tx_log.user_id_created = lds_metric_account.user_id
-		lds_tx_log.network_id = fstr_network_id
-		lds_tx_log.account_id = fstr_account_id
-		lds_tx_log.source_account = fstr_account_id 
+		lds_tx_log.network_id = fint_network_id
+		lds_tx_log.account_id = fint_account_id
+		lds_tx_log.source_account = fint_account_id 
 		lds_tx_log.target_account = ""
 		lds_tx_log.put()
 		
@@ -940,7 +826,7 @@ class metric(object):
 		lds_metric_account.put()
 		
 	@ndb.transactional(xg=True)
-	def _connect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
+	def _connect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
 	
 		# connect() corresponds to a "friending" to use a Facebook
 		# term.  Basically reserves pass through your connections and
@@ -964,16 +850,18 @@ class metric(object):
 		# got all that? lol
 		
 		# get the source and target metric accounts
-		
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_source_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
 		if lds_source is None: return "error_source_id_not_valid"
 		# error if trying to connect to self
-		if fstr_source_account_id == fstr_target_account_id: return "error_cant_connect_to_self"
+		if fint_source_account_id == fint_target_account_id: return "error_cant_connect_to_self"
 		
-		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		key_part3 = str(fint_target_account_id).zfill(12)
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
@@ -981,9 +869,9 @@ class metric(object):
 
 		# Five situations where we don't even try to connect
 		# 1. Source and target are already connected.
-		if fstr_target_account_id in lds_source.current_connections: return "error_already_connected"
+		if fint_target_account_id in lds_source.current_connections: return "error_already_connected"
 		# 2. Source already has outgoing connection request to target
-		if fstr_target_account_id in lds_source.outgoing_connection_requests: return "error_connection_already_requested"
+		if fint_target_account_id in lds_source.outgoing_connection_requests: return "error_connection_already_requested"
 		# 3. Target incoming connection requests is maxed out
 		if len(lds_target.incoming_connection_requests) > 19: return "error_target_incoming_requests_maxed"
 		# 4. Source outgoing connection requests is maxed out
@@ -994,7 +882,7 @@ class metric(object):
 		
 		# should be ok to connect
 		# check if the target has the source in it's outgoing connection requests
-		if fstr_source_account_id in lds_target.outgoing_connection_requests:
+		if fint_source_account_id in lds_target.outgoing_connection_requests:
 			
 			# target already connected, this is a connection request authorization
 			
@@ -1021,8 +909,8 @@ class metric(object):
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_source.current_connections.append(fstr_target_account_id)
-				lds_source.incoming_connection_requests.remove(fstr_target_account_id)
+				lds_source.current_connections.append(fint_target_account_id)
+				lds_source.incoming_connection_requests.remove(fint_target_account_id)
 				
 			else:
 			
@@ -1031,8 +919,8 @@ class metric(object):
 				lds_source.last_connections = lds_source.current_connections
 				lds_source.last_reserve_balance = lds_source.current_reserve_balance
 				lds_source.last_network_balance = lds_source.current_network_balance
-				lds_source.current_connections.append(fstr_target_account_id)
-				lds_source.incoming_connection_requests.remove(fstr_target_account_id)
+				lds_source.current_connections.append(fint_target_account_id)
+				lds_source.incoming_connection_requests.remove(fint_target_account_id)
 				
 	
 			# update the target account
@@ -1040,8 +928,8 @@ class metric(object):
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_target.current_connections.append(fstr_source_account_id)
-				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+				lds_target.current_connections.append(fint_source_account_id)
+				lds_target.outgoing_connection_requests.remove(fint_source_account_id)
 				
 			else:
 			
@@ -1050,8 +938,8 @@ class metric(object):
 				lds_target.last_connections = lds_target.current_connections
 				lds_target.last_reserve_balance = lds_target.current_reserve_balance
 				lds_target.last_network_balance = lds_target.current_network_balance
-				lds_target.current_connections.append(fstr_source_account_id)
-				lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+				lds_target.current_connections.append(fint_source_account_id)
+				lds_target.outgoing_connection_requests.remove(fint_source_account_id)
 			
 			# only update current_timestamp for graph dependent transactions??? STUB
 			lstr_source_tx_type = "INCOMING CONNECTION AUTHORIZED"
@@ -1069,14 +957,14 @@ class metric(object):
 			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST"
 			lstr_target_tx_type = "INCOMING CONNECTION REQUEST"
 			lstr_target_tx_description = "INCOMING CONNECTION REQUEST"
-			lds_source.outgoing_connection_requests.append(fstr_target_account_id)
-			lds_target.incoming_connection_requests.append(fstr_source_account_id)
+			lds_source.outgoing_connection_requests.append(fint_target_account_id)
+			lds_target.incoming_connection_requests.append(fint_source_account_id)
 			lstr_return_message = "success_connection_request_completed"
 		
 		
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1088,15 +976,15 @@ class metric(object):
 		source_lds_tx_log.description = lstr_source_tx_description 
 		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fstr_network_id
-		source_lds_tx_log.account_id = fstr_source_account_id
-		source_lds_tx_log.source_account = fstr_source_account_id 
-		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.network_id = fint_network_id
+		source_lds_tx_log.account_id = fint_source_account_id
+		source_lds_tx_log.source_account = fint_source_account_id 
+		source_lds_tx_log.target_account = fint_target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1110,10 +998,10 @@ class metric(object):
 		target_lds_tx_log.description = lstr_target_tx_description 
 		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fstr_network_id
-		target_lds_tx_log.account_id = fstr_target_account_id
-		target_lds_tx_log.source_account = fstr_source_account_id 
-		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.network_id = fint_network_id
+		target_lds_tx_log.account_id = fint_target_account_id
+		target_lds_tx_log.source_account = fint_source_account_id 
+		target_lds_tx_log.target_account = fint_target_account_id
 		target_lds_tx_log.put()
 		
 		lds_source.put()
@@ -1121,20 +1009,23 @@ class metric(object):
 		return lstr_return_message
 			
 	@ndb.transactional(xg=True)
-	def _disconnect(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id):
+	def _disconnect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
 	
 	
 		# STUB we need to remove any reserve transfer requests when disconnecting
 		
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_source_account_id).zfill(12)
+		key_part3 = str(fint_target_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
 		if lds_source is None: return "error_source_id_not_valid"
 		# error if trying to disconnect from self
-		if fstr_source_account_id == fstr_target_account_id: return "error_cant_disconnect_from_self"
+		if fint_source_account_id == fint_target_account_id: return "error_cant_disconnect_from_self"
 		
-		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
@@ -1152,11 +1043,11 @@ class metric(object):
 		# 1 & 2 are benign changes and don't effect the graph, but cancelling an
 		# existing connection will require a graph process time window check.
 		
-		if fstr_target_account_id in lds_source.incoming_connection_requests:
+		if fint_target_account_id in lds_source.incoming_connection_requests:
 		
 			# benign change with respect to graph
-			lds_source.incoming_connection_requests.remove(fstr_target_account_id)
-			lds_target.outgoing_connection_requests.remove(fstr_source_account_id)
+			lds_source.incoming_connection_requests.remove(fint_target_account_id)
+			lds_target.outgoing_connection_requests.remove(fint_source_account_id)
 			lstr_source_tx_type = "INCOMING CONNECTION REQUEST DENIED"
 			lstr_source_tx_description = "INCOMING CONNECTION REQUEST DENIED"
 			lstr_target_tx_type = "OUTGOING CONNECTION REQUEST DENIED"
@@ -1167,15 +1058,15 @@ class metric(object):
 		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
 		
 			# benign change with respect to graph
-			lds_target.incoming_connection_requests.remove(fstr_source_account_id)
-			lds_source.outgoing_connection_requests.remove(fstr_target_account_id)
+			lds_target.incoming_connection_requests.remove(fint_source_account_id)
+			lds_source.outgoing_connection_requests.remove(fint_target_account_id)
 			lstr_source_tx_type = "OUTGOING CONNECTION REQUEST WITHDRAWN"
 			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST WITHDRAWN"
 			lstr_target_tx_type = "INCOMING CONNECTION REQUEST WITHDRAWN"
 			lstr_target_tx_description = "INCOMING CONNECTION REQUEST WITHDRAWN"
 			lstr_return_message = "success_withdrew_connection_request"
 		
-		elif fstr_target_account_id in lds_source.current_connections:
+		elif fint_target_account_id in lds_source.current_connections:
 		
 			# First thing we need to do-and probably should abstract this later STUB
 			# since we will need in other places-is we need to figure out our cutoff
@@ -1196,7 +1087,7 @@ class metric(object):
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_source.current_connections.remove(fstr_target_account_id)
+				lds_source.current_connections.remove(fint_target_account_id)
 				
 			else:
 			
@@ -1205,14 +1096,14 @@ class metric(object):
 				lds_source.last_connections = lds_source.current_connections
 				lds_source.last_reserve_balance = lds_source.current_reserve_balance
 				lds_source.last_network_balance = lds_source.current_network_balance
-				lds_source.current_connections.remove(fstr_target_account_id)				
+				lds_source.current_connections.remove(fint_target_account_id)				
 	
 			# update the target account
 			if lds_target.current_timestamp > t_cutoff:
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_target.current_connections.remove(fstr_source_account_id)
+				lds_target.current_connections.remove(fint_source_account_id)
 				
 			else:
 			
@@ -1221,7 +1112,7 @@ class metric(object):
 				lds_target.last_connections = lds_target.current_connections
 				lds_target.last_reserve_balance = lds_target.current_reserve_balance
 				lds_target.last_network_balance = lds_target.current_network_balance
-				lds_target.current_connections.remove(fstr_source_account_id)
+				lds_target.current_connections.remove(fint_source_account_id)
 				
 			# only update current_timestamp for graph dependent transactions??? STUB
 			lds_source.current_timestamp = datetime.datetime.now()
@@ -1237,7 +1128,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1249,15 +1140,15 @@ class metric(object):
 		source_lds_tx_log.description = lstr_source_tx_description 
 		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fstr_network_id
-		source_lds_tx_log.account_id = fstr_source_account_id
-		source_lds_tx_log.source_account = fstr_source_account_id 
-		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.network_id = fint_network_id
+		source_lds_tx_log.account_id = fint_source_account_id
+		source_lds_tx_log.source_account = fint_source_account_id 
+		source_lds_tx_log.target_account = fint_target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1271,10 +1162,10 @@ class metric(object):
 		target_lds_tx_log.description = lstr_target_tx_description 
 		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fstr_network_id
-		target_lds_tx_log.account_id = fstr_target_account_id
-		target_lds_tx_log.source_account = fstr_source_account_id 
-		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.network_id = fint_network_id
+		target_lds_tx_log.account_id = fint_target_account_id
+		target_lds_tx_log.source_account = fint_source_account_id 
+		target_lds_tx_log.target_account = fint_target_account_id
 		target_lds_tx_log.put()
 
 		lds_source.put()
@@ -1282,10 +1173,12 @@ class metric(object):
 		return lstr_return_message
 
 	@ndb.transactional(xg=True)
-	def _modify_reserve(self, fstr_network_id, fstr_source_account_id, fstr_type, fstr_amount):
+	def _modify_reserve(self, fint_network_id, fint_source_account_id, fstr_type, fstr_amount):
 
 		# First, get the source account.
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_source_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
@@ -1454,7 +1347,7 @@ class metric(object):
 
 		lds_source.tx_index += 1
 		# source transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
+		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1466,9 +1359,9 @@ class metric(object):
 		lds_tx_log.description = lstr_source_tx_description 
 		lds_tx_log.memo = ""
 		lds_tx_log.user_id_created = lds_source.user_id
-		lds_tx_log.network_id = fstr_network_id
-		lds_tx_log.account_id = fstr_source_account_id
-		lds_tx_log.source_account = fstr_source_account_id 
+		lds_tx_log.network_id = fint_network_id
+		lds_tx_log.account_id = fint_source_account_id
+		lds_tx_log.source_account = fint_source_account_id 
 		lds_tx_log.target_account = ""
 		lds_tx_log.put()
 		
@@ -1478,7 +1371,7 @@ class metric(object):
 		return lstr_return_message
 
 	@ndb.transactional(xg=True)
-	def _make_payment(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id, fstr_amount):
+	def _make_payment(self, fint_network_id, fint_source_account_id, fint_target_account_id, fstr_amount):
 	
 		# make a payment
 		# transfer network balance from one user to another
@@ -1486,15 +1379,18 @@ class metric(object):
 				
 		# get the source and target metric accounts
 		
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_source_account_id).zfill(12)
+		key_part3 = str(fint_target_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
 		if lds_source is None: return "error_source_id_not_valid"
 		# error if trying to connect to self
-		if fstr_source_account_id == fstr_target_account_id: return "error_cant_pay_self"
+		if fint_source_account_id == fint_target_account_id: return "error_cant_pay_self"
 		
-		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
@@ -1560,7 +1456,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1572,15 +1468,15 @@ class metric(object):
 		source_lds_tx_log.description = "PAYMENT MADE" 
 		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fstr_network_id
-		source_lds_tx_log.account_id = fstr_source_account_id
-		source_lds_tx_log.source_account = fstr_source_account_id 
-		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.network_id = fint_network_id
+		source_lds_tx_log.account_id = fint_source_account_id
+		source_lds_tx_log.source_account = fint_source_account_id 
+		source_lds_tx_log.target_account = fint_target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1594,10 +1490,10 @@ class metric(object):
 		target_lds_tx_log.description = "PAYMENT RECEIVED" 
 		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fstr_network_id
-		target_lds_tx_log.account_id = fstr_target_account_id
-		target_lds_tx_log.source_account = fstr_source_account_id 
-		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.network_id = fint_network_id
+		target_lds_tx_log.account_id = fint_target_account_id
+		target_lds_tx_log.source_account = fint_source_account_id 
+		target_lds_tx_log.target_account = fint_target_account_id
 		target_lds_tx_log.put()
 		
 		lds_source.put()
@@ -1605,7 +1501,7 @@ class metric(object):
 		return "success_payment_succeeded"
 
 	@ndb.transactional(xg=True)
-	def _process_reserve_transfer(self, fstr_network_id, fstr_source_account_id, fstr_target_account_id, fstr_amount, fstr_type):
+	def _process_reserve_transfer(self, fint_network_id, fint_source_account_id, fint_target_account_id, fstr_amount, fstr_type):
 	
 		# A "reserve transfer" is just what I'm calling a bilateral agreement to move
 		# some amount of reserve balance from an account with a positive amount equal
@@ -1623,15 +1519,18 @@ class metric(object):
 		# will be at a minimum overall, since the graph process is designed to suggest reserve transfers
 		# that balance out the network as a whole.		
 		
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_source_account_id))
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_source_account_id).zfill(12)
+		key_part3 = str(fint_target_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
 		if lds_source is None: return "error_source_id_not_valid"
 		# error if trying to write check to self
-		if fstr_source_account_id == fstr_target_account_id: return "error_source_and_target_ids_cannot_be_the_same"
+		if fint_source_account_id == fint_target_account_id: return "error_source_and_target_ids_cannot_be_the_same"
 		
-		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (fstr_network_id, fstr_target_account_id))
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
@@ -1643,7 +1542,7 @@ class metric(object):
 		except ValueError, ex:
 			return "error_invalid_amount_passed"
 			
-		if not fstr_target_account_id in lds_source.current_connections: return "error_source_and_target_not_connected"
+		if not fint_target_account_id in lds_source.current_connections: return "error_source_and_target_not_connected"
 		
 		# We don't do a lot of checks on the requesting a transfer side, because graph state changes, and users may
 		# be writing transfer requests in anticipation of balance updates.  So we only do the main checks when we
@@ -1653,13 +1552,13 @@ class metric(object):
 			
 			# This is a new suggestion from the graph process.  If any previous exist 
 			# that are in the inactive queue, delete them.
-			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
-			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fint_source_account_id,None)
+			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 			# create new request
-			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fint_target_account_id] = lint_amount
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests[fint_source_account_id] = lint_amount
 			
 			lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER STORED"
 			lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER STORED"
@@ -1672,28 +1571,28 @@ class metric(object):
 			# We're "activating" a suggested one.  So we move it to active queue.  This let's
 			# the other party know that they can authorize it.  But it's the web, so need to
 			# make sure that inactive request still exists
-			if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+			if not fint_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
 				return "error_activation_request_has_no_inactive_match_on_id"
 			# ...and has the same amount
-			if not lint_amount == lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id]:
+			if not lint_amount == lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fint_target_account_id]:
 				return "error_activation_request_has_no_inactive_match_on_amount"
 			# before inactive can be moved to active, any old activated, suggested transfers must be
 			# either cancelled or completed.  We don't automatically cancel an active one since it may
 			# be in process.
-			if fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+			if fint_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
 				return "error_active_must_be_completed_or_cancelled_before_new_activation"
-			if fstr_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
+			if fint_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
 				return "error_active_must_be_completed_or_cancelled_before_new_activation"
 				
 			# request is valid
 			# move inactive to active, leaving inactive empty
-			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
-			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_source.suggested_inactive_incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_source.suggested_inactive_outgoing_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_target.suggested_inactive_incoming_reserve_transfer_requests.pop(fint_source_account_id,None)
+			lds_target.suggested_inactive_outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 			# create new request
-			lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-			lds_target.suggested_active_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			lds_source.suggested_active_outgoing_reserve_transfer_requests[fint_target_account_id] = lint_amount
+			lds_target.suggested_active_incoming_reserve_transfer_requests[fint_source_account_id] = lint_amount
 			
 			lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER ACTIVATED"
 			lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER ACTIVATED"
@@ -1709,21 +1608,21 @@ class metric(object):
 			# as the system has already suggested a new one.
 			
 			# source is always the one doing the action, let's see which situation we're in first
-			if fstr_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
+			if fint_target_account_id in lds_source.suggested_active_outgoing_reserve_transfer_requests:
 				
 				# we are deactiving our own activation
 				# verify amount
-				if not lint_amount == lds_source.suggested_active_outgoing_reserve_transfer_requests[fstr_target_account_id]:
+				if not lint_amount == lds_source.suggested_active_outgoing_reserve_transfer_requests[fint_target_account_id]:
 					return "error_deactivation_request_has_no_active_match_on_amount"
 				# if inactive slot is empty, we move before deleting otherwise just delete
-				if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
-					if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+				if not fint_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+					if not fint_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
 						# ok to copy back to inactive
-						lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-						lds_target.suggested_inactive_incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+						lds_source.suggested_inactive_outgoing_reserve_transfer_requests[fint_target_account_id] = lint_amount
+						lds_target.suggested_inactive_incoming_reserve_transfer_requests[fint_source_account_id] = lint_amount
 				# delete the suggested active entries
-				lds_source.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_target.suggested_active_incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				lds_source.suggested_active_outgoing_reserve_transfer_requests.pop(fint_target_account_id,None)
+				lds_target.suggested_active_incoming_reserve_transfer_requests.pop(fint_source_account_id,None)
 				
 				lstr_source_tx_type = "SUGGESTED OUTGOING RESERVE TRANSFER DEACTIVATED"
 				lstr_source_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER DEACTIVATED"
@@ -1731,21 +1630,21 @@ class metric(object):
 				lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER DEACTIVATED"
 				lstr_return_message = "success_suggested_reserve_transfer_deactivated"
 			
-			elif fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+			elif fint_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
 			
 				# we are denying the targets activation
 				# verify amount
-				if not lint_amount == lds_source.suggested_active_incoming_reserve_transfer_requests[fstr_target_account_id]:
+				if not lint_amount == lds_source.suggested_active_incoming_reserve_transfer_requests[fint_target_account_id]:
 					return "error_denial_request_has_no_active_match_on_amount"
 				# if inactive slot is empty, we move before deleting otherwise just delete
-				if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
-					if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+				if not fint_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+					if not fint_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
 						# ok to copy back to inactive
-						lds_source.suggested_inactive_incoming_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-						lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+						lds_source.suggested_inactive_incoming_reserve_transfer_requests[fint_target_account_id] = lint_amount
+						lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fint_source_account_id] = lint_amount
 				# delete the suggested active entries
-				lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-				lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+				lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
+				lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 				
 				lstr_source_tx_type = "SUGGESTED INCOMING RESERVE TRANSFER DENIED"
 				lstr_source_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER DENIED"
@@ -1759,13 +1658,13 @@ class metric(object):
 		
 			# new outgoing transfer request from source
 			# must complete or cancel old ones before making a new one
-			if fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
+			if fint_target_account_id in lds_source.incoming_reserve_transfer_requests:
 				return "error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one"
 			if fstr_target_account_id in lds_source.outgoing_reserve_transfer_requests:
 				return "error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one"
 			# create new request
-			lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-			lds_target.incoming_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+			lds_source.outgoing_reserve_transfer_requests[fint_target_account_id] = lint_amount
+			lds_target.incoming_reserve_transfer_requests[fint_source_account_id] = lint_amount
 			
 			lstr_source_tx_type = "USER OUTGOING RESERVE TRANSFER REQUESTED"
 			lstr_source_tx_description = "USER OUTGOING RESERVE TRANSFER REQUESTED"
@@ -1777,13 +1676,13 @@ class metric(object):
 			
 			# creator of a transfer request is cancelling
 			# verify source actually has an outgoing for correct amount and if so delete it
-			if fstr_target_account_id in lds_source.outgoing_reserve_transfer_requests:
-				if not lint_amount == lds_source.outgoing_reserve_transfer_requests[fstr_target_account_id]:
+			if fint_target_account_id in lds_source.outgoing_reserve_transfer_requests:
+				if not lint_amount == lds_source.outgoing_reserve_transfer_requests[fint_target_account_id]:
 					return "error_cancellation_request_does_not_match_outgoing_amount"
 			else: return "error_cancel_request_does_not_have_match_in_outgoing_requests_for_source"
 			# delete the transfer request in question
-			lds_source.outgoing_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_target.incoming_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_source.outgoing_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_target.incoming_reserve_transfer_requests.pop(fint_source_account_id,None)
 			
 			lstr_source_tx_type = "USER OUTGOING RESERVE TRANSFER WITHDRAWN"
 			lstr_source_tx_description = "USER OUTGOING RESERVE TRANSFER WITHDRAWN"
@@ -1795,13 +1694,13 @@ class metric(object):
 			
 			# source is denying targets requested transfer
 			# verify source actually has an incoming request for correct amount and if so delete it
-			if fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
-				if not lint_amount == lds_source.incoming_reserve_transfer_requests[fstr_target_account_id]:
+			if fint_target_account_id in lds_source.incoming_reserve_transfer_requests:
+				if not lint_amount == lds_source.incoming_reserve_transfer_requests[fint_target_account_id]:
 					return "error_cancellation_request_does_not_match_incoming_amount"
 			else: return "error_cancel_request_does_not_have_match_in_incoming_requests_for_source"
 			# delete the transfer request in question
-			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
-			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_source.incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
+			lds_target.outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 			
 			lstr_source_tx_type = "USER INCOMING RESERVE TRANSFER DENIED"
 			lstr_source_tx_description = "USER INCOMING RESERVE TRANSFER DENIED"
@@ -1825,10 +1724,10 @@ class metric(object):
 			# 4. source and target are connected
 			
 			# make sure still an incoming suggested request from the target
-			if not fstr_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
+			if not fint_target_account_id in lds_source.suggested_active_incoming_reserve_transfer_requests:
 				return "error_no_request_in_active_suggested_incoming_for_target"
 			# make sure it's the same amount
-			if not lds_source.suggested_active_incoming_reserve_transfer_requests[fstr_target_account_id] == lint_amount:
+			if not lds_source.suggested_active_incoming_reserve_transfer_requests[fint_target_account_id] == lint_amount:
 				return "error_authorization_amount_does_not_match_incoming_request"
 			# make sure target still has enough to pay
 			if not lds_target.current_reserve_balance > lint_amount: return "error_target_has_insufficient_reserves_for_transfer"			
@@ -1850,7 +1749,7 @@ class metric(object):
 			
 			# update the source account
 			# delete the incoming request and add to reserve balance
-			lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.suggested_active_incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
 			lds_source.current_reserve_balance += lint_amount
 			lds_source.current_timestamp = datetime.datetime.now()
 
@@ -1865,14 +1764,14 @@ class metric(object):
 
 			# if inactive slot is empty, we move before deleting otherwise just delete
 			# one check is sufficient for both parties
-			if not fstr_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
-				if not fstr_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
+			if not fint_target_account_id in lds_source.suggested_inactive_outgoing_reserve_transfer_requests:
+				if not fint_target_account_id in lds_source.suggested_inactive_incoming_reserve_transfer_requests:
 					# ok to copy back to inactive
-					lds_source.suggested_inactive_incoming_reserve_transfer_requests[fstr_target_account_id] = lint_amount
-					lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fstr_source_account_id] = lint_amount
+					lds_source.suggested_inactive_incoming_reserve_transfer_requests[fint_target_account_id] = lint_amount
+					lds_target.suggested_inactive_outgoing_reserve_transfer_requests[fint_source_account_id] = lint_amount
 				
 			# update the target account
-			lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.suggested_active_outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 			lds_target.current_reserve_balance -= lint_amount
 			lds_target.current_timestamp = datetime.datetime.now()
 
@@ -1899,9 +1798,9 @@ class metric(object):
 			
 			# "authorizing" means the source in this request is authorizing an incoming request.  Therefore we need
 			# to validate it is still active and also need to make sure the target still has funds to pay.
-			if not fstr_target_account_id in lds_source.incoming_reserve_transfer_requests:
+			if not fint_target_account_id in lds_source.incoming_reserve_transfer_requests:
 				return "error_no_request_in_incoming_for_target"
-			if not lds_source.incoming_reserve_transfer_requests[fstr_target_account_id] == lint_amount:
+			if not lds_source.incoming_reserve_transfer_requests[fint_target_account_id] == lint_amount:
 				return "error_authorization_amount_does_not_match_incoming_request"
 			if not lds_target.current_reserve_balance > lint_amount: return "error_target_has_insufficient_reserves_for_transfer"			
 			
@@ -1924,7 +1823,7 @@ class metric(object):
 			
 			# update the source account
 			# delete the incoming request and add to reserve balance
-			lds_source.incoming_reserve_transfer_requests.pop(fstr_target_account_id,None)
+			lds_source.incoming_reserve_transfer_requests.pop(fint_target_account_id,None)
 			lds_source.current_reserve_balance += lint_amount
 			lds_source.current_timestamp = datetime.datetime.now()
 			
@@ -1938,7 +1837,7 @@ class metric(object):
 				lds_target.last_network_balance = lds_target.current_network_balance
 				
 			# update the target account
-			lds_target.outgoing_reserve_transfer_requests.pop(fstr_source_account_id,None)
+			lds_target.outgoing_reserve_transfer_requests.pop(fint_source_account_id,None)
 			lds_target.current_reserve_balance -= lint_amount
 			lds_target.current_timestamp = datetime.datetime.now()
 
@@ -1953,7 +1852,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_source_account_id,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1966,14 +1865,14 @@ class metric(object):
 		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
 		source_lds_tx_log.network_id = fstr_network_id
-		source_lds_tx_log.account_id = fstr_source_account_id
-		source_lds_tx_log.source_account = fstr_source_account_id 
-		source_lds_tx_log.target_account = fstr_target_account_id
+		source_lds_tx_log.account_id = fint_source_account_id
+		source_lds_tx_log.source_account = fint_source_account_id 
+		source_lds_tx_log.target_account = fint_target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_target_account_id,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1988,16 +1887,16 @@ class metric(object):
 		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
 		target_lds_tx_log.network_id = fstr_network_id
-		target_lds_tx_log.account_id = fstr_target_account_id
-		target_lds_tx_log.source_account = fstr_source_account_id 
-		target_lds_tx_log.target_account = fstr_target_account_id
+		target_lds_tx_log.account_id = fint_target_account_id
+		target_lds_tx_log.source_account = fint_source_account_id 
+		target_lds_tx_log.target_account = fint_target_account_id
 		target_lds_tx_log.put()
 		
 		lds_source.put()
 		lds_target.put()
 		return lstr_return_message
 
-	def _process_graph(self, fstr_network_id):
+	def _process_graph(self, fint_network_id):
 	
 		# So...we meet again.
 		
@@ -2022,11 +1921,14 @@ class metric(object):
 		# We use a transactional timelock mechanism to make sure one
 		# and only one process is processing each specific window
 		# of time, for each specific network id.
+		
+		key_network_part = str(fint_network_id).zfill(8)
+		
 		@ndb.transactional()
 		def process_lock():
 		
 			# get or create this networks master process entity
-			profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (fstr_network_id, profile_key_time_part))
+			profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (key_network_part, profile_key_time_part))
 			profile = profile_key.get()
 			if profile is None:
 			
@@ -2062,6 +1964,7 @@ class metric(object):
 			
 			if what_to_do == "NEW":
 			
+				profile.total_accounts = 0
 				profile.phase_cursor = 1
 				profile.step_cursor = 1
 				profile.count_cursor = 1
@@ -2105,9 +2008,30 @@ class metric(object):
 		
 			pass
 			
-		 
 		
+		# phase 1 is loading the staging chunks with the entities that
+		# we get by doing a "get_multi"
+		if profile.phase_cursor == 1:
 		
+			# figure out how many accounts there are
+			# if we haven't already
+			if profile.total_accounts == 0:
+			
+				network_cursor_key = ndb.Key("ds_mr_network_cursor",key_network_part)		
+				lds_network_cursor = network_cursor_key.get()
+				profile.total_accounts = lds_network_cursor.current_index
+				t_num = profile.total_accounts
+							
+			# the step_cursor tells us set of 1000 we're on
+			# create the key list from the step cursor
+			list_of_keys = []
+			for i in range(1,1001):
+				account_id = ((profile.step_cursor - 1) * 1000) + i
+				a_key = ndb.Key("ds_mr_metric_account","%s%s" % (key_network_part,str(account_id).zfill(12)))
+				list_of_keys.append(a_key)
+			list_of_metric_accounts = ndb.get_multi(list_of_keys)
+			# create the object that will be the contents of staging chunk
+			
 		
 		
 		
@@ -2354,7 +2278,9 @@ class ph_mob_s_network_summary(webapp2.RequestHandler):
 		
 		lobj_master.user.HAS_METRIC_ACCOUNT = False
 		# let's grab metric account for user so we can look at metric account in development
-		temp_source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (lobj_master.user.entity.metric_network_ids, lobj_master.user.entity.metric_account_ids))
+		key_part1 = str(lobj_master.user.entity.metric_network_ids).zfill(8)
+		key_part2 = str(lobj_master.user.entity.metric_account_ids).zfill(8)
+		temp_source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		temp_lds_source = temp_source_key.get()
 		
 		# if metric account loads, pass to template
@@ -2443,10 +2369,10 @@ class ph_mob_s_connect(webapp2.RequestHandler):
 		# Connect Page
 		# Get the current network profile
 		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
-		lstr_network_id = lobj_master.network_connecting.network_id
-		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
-		lstr_target_account_id = lobj_master.request.POST['form_target_id']
-		lstr_result = lobj_master.metric._connect(lstr_network_id, lstr_source_account_id, lstr_target_account_id)
+		lint_network_id = lobj_master.network_connecting.network_id
+		lint_source_account_id = lobj_master.user.entity.metric_account_ids
+		lint_target_account_id = int(lobj_master.request.POST['form_target_id'])
+		lstr_result = lobj_master.metric._connect(lint_network_id, lint_source_account_id, lint_target_account_id)
 		
 		lobj_master.request_handler.redirect('/mob_s_connect?form_result=%s' % lstr_result)	
 		
@@ -2483,10 +2409,10 @@ class ph_mob_s_disconnect(webapp2.RequestHandler):
 		# Disconnect Page
 		# Get the current network profile
 		lobj_master.network_connecting = lobj_master.metric._get_network_summary()
-		lstr_network_id = lobj_master.network_connecting.network_id
-		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
-		lstr_target_account_id = lobj_master.request.POST['form_target_id']
-		lstr_result = lobj_master.metric._disconnect(lstr_network_id, lstr_source_account_id, lstr_target_account_id)
+		lint_network_id = lobj_master.network_connecting.network_id
+		lint_source_account_id = lobj_master.user.entity.metric_account_ids
+		lint_target_account_id = int(lobj_master.request.POST['form_target_id'])
+		lstr_result = lobj_master.metric._disconnect(lint_network_id, lint_source_account_id, lint_target_account_id)
 		
 		lobj_master.request_handler.redirect('/mob_s_disconnect?form_result=%s' % lstr_result)
 
@@ -2523,8 +2449,8 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 		# modify_reserve Page
 		# Get the current network profile
 		lobj_master.network_current = lobj_master.metric._get_network_summary()		
-		lstr_network_id = lobj_master.network_current.network_id
-		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
+		lint_network_id = lobj_master.network_current.network_id
+		lint_source_account_id = lobj_master.user.entity.metric_account_ids
 		
 		lstr_submit_value = lobj_master.request.POST['submit']
 		
@@ -2542,7 +2468,7 @@ class ph_mob_s_modify_reserve(webapp2.RequestHandler):
 			lstr_amount = lobj_master.request.POST['form_subtract_override']
 		else: lstr_modify_type = "invalid"
 		
-		lstr_result = lobj_master.metric._modify_reserve(lstr_network_id, lstr_source_account_id, lstr_modify_type, lstr_amount)
+		lstr_result = lobj_master.metric._modify_reserve(lint_network_id, lint_source_account_id, lstr_modify_type, lstr_amount)
 		
 		lobj_master.request_handler.redirect('/mob_s_modify_reserve?form_result=%s' % lstr_result)
 		
@@ -2579,12 +2505,12 @@ class ph_mob_s_make_payment(webapp2.RequestHandler):
 		# make_payment Page
 		# Get the current network profile
 		lobj_master.network_current = lobj_master.metric._get_network_summary()		
-		lstr_network_id = lobj_master.network_current.network_id
-		lstr_source_account_id = lobj_master.user.entity.metric_account_ids
-		lstr_target_account_id = lobj_master.request.POST['form_target_id']
+		lint_network_id = lobj_master.network_current.network_id
+		lint_source_account_id = lobj_master.user.entity.metric_account_ids
+		lint_target_account_id = int(lobj_master.request.POST['form_target_id'])
 		lstr_amount = lobj_master.request.POST['form_amount']
 		
-		lstr_result = lobj_master.metric._make_payment(lstr_network_id, lstr_source_account_id, lstr_target_account_id, lstr_amount)
+		lstr_result = lobj_master.metric._make_payment(lint_network_id, lint_source_account_id, lint_target_account_id, lstr_amount)
 		
 		lobj_master.request_handler.redirect('/mob_s_make_payment?form_result=%s' % lstr_result)
 		
