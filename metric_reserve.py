@@ -48,6 +48,9 @@ REDO_FINISHED_GRAPH_PROCESS = True
 
 # How often do you want the application to process the graph?
 GRAPH_FREQUENCY_MINUTES = 15
+GRAPH_ITERATION_DURATION_SECONDS = 30
+GRAPH_ITERATION_WIGGLE_ROOM_SECONDS = 15
+GRAPH_ITERATION_HIJACK_DURATION_SECONDS = 10
 
 # $1 of value = 100,000
 MAX_RESERVE_MODIFY = 100000000
@@ -229,18 +232,6 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 #
 # ds = datastore class
 # mrgp = metric reserve graph processing related
-
-# *** the master entity ***
-#
-# This entity controls process locking to make sure only one process is
-# handling a specific networks graph processing iteration.  
-
-class ds_mrgp_master(ndb.Model):
-
-	status = ndb.StringProperty()
-	last_p_time = ndb.DateTimeProperty()
-	last_p_time = ndb.DateTimeProperty()
-	profile_id = ndb.IntegerProperty()
 	
 # *** the profile entity ***
 #
@@ -253,6 +244,7 @@ class ds_mrgp_master(ndb.Model):
 class ds_mrgp_profile(ndb.Model):
 
 	status = ndb.StringProperty()
+	deadline = ndb.DateTimeProperty()
 	phase_cursor = ndb.IntegerProperty()
 	step_cursor = ndb.IntegerProperty()
 	count_cursor = ndb.IntegerProperty()
@@ -2017,19 +2009,20 @@ class metric(object):
 		# first get the cutoff time
 		# It is from the cutoff time that we derive the entity key/id
 		# for the profile.  
-		# calculate cutoff time
 		t_now = datetime.datetime.now()
 		d_since = t_now - T_EPOCH
-		# this requests cutoff time
 		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-		
+		# make a nice string to serve as our key "YYYYMMDDHHMM"
 		profile_key_time_part = "%s%s%s%s%s" % (str(t_cutoff.year),
 			str(t_cutoff.month).zfill(2),
 			str(t_cutoff.day).zfill(2),
 			str(t_cutoff.hour).zfill(2),
 			str(t_cutoff.minute).zfill(2))
-		
-		@ndb.transactional(xg=True)
+			
+		# We use a transactional timelock mechanism to make sure one
+		# and only one process is processing each specific window
+		# of time, for each specific network id.
+		@ndb.transactional()
 		def process_lock():
 		
 			# get or create this networks master process entity
@@ -2039,26 +2032,96 @@ class metric(object):
 			
 				# This process is creating the profile. We can
 				# start a fresh process.
-				pass
-			else:
-				# profile loaded
-				pass
+				what_to_do = "NEW"
+				profile = ds_mrgp_master()
 				
+			else:
+			
+				# profile loaded
+				if profile.status == "IN PROCESS":
+				
+					# if the deadline has passed reboot
+					# the process, otherwise exit.
+					if t_now > profile.deadline:
+						what_to_do = "NEW"
+					else: return ("PROCESS LOCKED",None)
+						
+				if profile.status == "FINISHED":
+				
+					if not REDO_FINISHED_GRAPH_PROCESS:
+						return ("PROCESS FINISHED FOR CURRENT TIMEFRAME",None)
+					else: what_to_do = "NEW"
+					
+				if profile.status == "PAUSED":
+					
+					# We set status to "IN PROCESS" and
+					# set our new deadline but we leave
+					# all the cursors where they are and
+					# pick up where we left off.
+					what_to_do = "CONTINUE"
+			
+			if what_to_do == "NEW":
+			
+				profile.phase_cursor = 1
+				profile.step_cursor = 1
+				profile.count_cursor = 1
+				profile.key_chunks = 0
+				profile.tree_chunks = 0
+				profile.staging_chunks = 0
+				profile.map_chunks = 0
+				profile.index_chunks = 0
+				profile.read_needle = 0
+				profile.write_needle = 0
 		
+			profile.status = "IN PROCESS"
+			deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
+						GRAPH_ITERATION_WIGGLE_ROOM_SECONDS)
+			profile.deadline = t_now + datetime.timedelta(seconds=deadline_seconds_away)
+			profile.put()
+			return ("GOT THE LOCK",profile)
+						
+		result = process_lock()
+		
+		# If we didn't get the lock, we're done.
+		if not result[0] == "GOT THE LOCK": return result[0]
+		
+		# now the clock starts.  If we don't finish before the
+		# deadline, then we pause and wait for a different 
+		# request
+		def process_pause():
+		
+			pass
+			
+		def process_finish():
+		
+			pass
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		return lstr_return_message
 		"""
 		
 		REDO_FINISHED_GRAPH_PROCESS = True
 		
-		class ds_mrgp_master(ndb.Model):
-
-			status = ndb.StringProperty()
-			last_p_time = ndb.DateTimeProperty()
-			last_p_time = ndb.DateTimeProperty()
-			profile_id = ndb.IntegerProperty()
-
+		GRAPH_ITERATION_DURATION_SECONDS = 30
+		GRAPH_ITERATION_WIGGLE_ROOM_SECONDS = 15
+		GRAPH_ITERATION_HIJACK_DURATION_SECONDS = 10
+		
+		
 		class ds_mrgp_profile(ndb.Model):
 
 			status = ndb.StringProperty()
+			deadline = ndb.DateTimeProperty()
 			phase_cursor = ndb.IntegerProperty()
 			step_cursor = ndb.IntegerProperty()
 			count_cursor = ndb.IntegerProperty()
