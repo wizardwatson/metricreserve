@@ -4,6 +4,9 @@
 ###
 ##############################################################################
 
+
+
+
 # These are standard python libraries.
 import os
 import urllib
@@ -226,10 +229,7 @@ class ds_mrgp_profile(ndb.Model):
 	phase_cursor = ndb.IntegerProperty()
 	step_cursor = ndb.IntegerProperty()
 	count_cursor = ndb.IntegerProperty()
-	key_chunks = ndb.IntegerProperty()
 	tree_chunks = ndb.IntegerProperty()
-	staging_chunks = ndb.IntegerProperty()
-	map_chunks = ndb.IntegerProperty()
 	index_chunks = ndb.IntegerProperty()
 	read_needle = ndb.IntegerProperty()
 	write_needle = ndb.IntegerProperty()
@@ -298,13 +298,40 @@ class master(object):
 		
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		tree_index_test = ds_mrgp_big_pickle()
+		tree_index_test.stuff = {}
+		for i in range(1,100001):
+			tree_index_test.stuff[random.randint(10000000000,20000000000)] = None
+		self.TRACE.append("tree_index_test length at 100,000:%s" % str(len(tree_index_test._to_pb().Encode())))
+		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))		
 		
-		
-		
-		
-		
-		
-		
+		# staging chunk size testing
+		staging_test = ds_mrgp_staging_chunk()
+		staging_test.stuff = {}
+		for i in range(1,2501):
+			st_account_id = random.randint(10000000000,20000000000)
+			staging_test.stuff[st_account_id] = {}
+			# tree id
+			staging_test.stuff[st_account_id][1] = random.randint(10000000000,20000000000)
+			# connections * 20 
+			
+			staging_test.stuff[st_account_id][2] = []
+			
+			for x in range(1,21):
+				staging_test.stuff[st_account_id][2].append(random.randint(10000000000,20000000000))
+				
+			# suggestions * 20
+			staging_test.stuff[st_account_id][3] = []
+			for x in range(1,21):
+				# staging_test.stuff[st_account_id][3].append(0)
+				staging_test.stuff[st_account_id][3].append(random.randint(10000000000,20000000000))
+			# network balance
+			staging_test.stuff[st_account_id][4] = random.randint(10000000000,20000000000)
+			# reserves
+			staging_test.stuff[st_account_id][5] = random.randint(10000000000,20000000000)	
+			
+		self.TRACE.append("staging_test length at 1000:%s" % str(len(staging_test._to_pb().Encode())))
+		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		#DEBUG STUFF BEGIN
 		
 		some_obj = ds_mrgp_big_pickle()
@@ -1950,15 +1977,24 @@ class metric(object):
 			
 				profile.max_account = 0
 				profile.phase_cursor = 1
-				profile.step_cursor = 1
+				profile.step_cursor = 0
 				profile.count_cursor = 0
-				profile.key_chunks = 0
 				profile.tree_chunks = 0
-				profile.staging_chunks = 0
-				profile.map_chunks = 0
 				profile.index_chunks = 0
 				profile.read_needle = 0
 				profile.write_needle = 0
+		
+				"""
+				status = ndb.StringProperty()
+				deadline = ndb.DateTimeProperty()
+				max_account = ndb.IntegerProperty()
+				phase_cursor = ndb.IntegerProperty()
+				step_cursor = ndb.IntegerProperty()
+				count_cursor = ndb.IntegerProperty()
+				tree_chunks = ndb.IntegerProperty()
+				index_chunks = ndb.IntegerProperty()
+				read_needle = ndb.IntegerProperty()
+				write_needle = ndb.IntegerProperty()"""
 		
 			profile.status = "IN PROCESS"
 			deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
@@ -1981,10 +2017,6 @@ class metric(object):
 			pass
 			
 		def process_pause():
-		
-			pass
-			
-		def check_chunk():
 		
 			pass
 			
@@ -2012,10 +2044,10 @@ class metric(object):
 				# staging chunk object
 				s_chunk = {}
 				# the chunks id is the starting account id
-				# 1, 1001, 2001, etc.
+				# 1, 2501, 5001, etc.
 				chunk_id = profile.count_cursor + 1
 				
-				for i in range(1,1001):
+				for i in range(1,2501):
 
 					account_id = profile.count_cursor + i
 					a_key = ndb.Key("ds_mr_metric_account","%s%s" % (key_network_part,str(account_id).zfill(12)))
@@ -2024,9 +2056,9 @@ class metric(object):
 					# with this phase.
 					if account_id == profile.max_account:
 						break
-					# if i == 1000 and we didn't reach max account
-					# then add 1000 to our count cursor
-					if i == 1000: profile.count_cursor += 1000
+					# if i == 2500 and we didn't reach max account
+					# then add 2500 to our count cursor
+					if i == 2500: profile.count_cursor += 2500
 
 				list_of_metric_accounts = ndb.get_multi(list_of_keys)
 				something_in_chunk = False
@@ -2074,6 +2106,8 @@ class metric(object):
 				
 				if account_id == profile.max_account:
 					profile.phase_cursor == 2
+					profile.step_cursor == 0
+					profile.count_cursor == 0
 					if deadline_reached(): return None
 					break
 				
@@ -2081,7 +2115,7 @@ class metric(object):
 					break				
 		
 		# we have queried all the accounts in the network and they
-		# now reside in staging chunks of 1000 accounts each. In
+		# now reside in staging chunks of 2500 accounts each. In
 		# Phase 2 we build the tree hierarchy which creates a proof
 		# as to which sets of accounts have a "path" between them.
 		#
@@ -2104,11 +2138,21 @@ class metric(object):
 		
 		if profile.phase_cursor == 2: 
 		
-			pass
+			# get account info from the staging chunk
+			def get_acc_fsc(fint_acc_id):
+			
+				pass
+			
+			# check if account is in the tree index already
+			def chk_acc_idx(fint_acc_id):
+			
+				pass
 		 
+			def chk_chnk_sz():
+			
+				pass
 		
-		
-		
+			
 		
 		
 		
