@@ -17,6 +17,7 @@ import random
 import bisect
 
 # these are standard GAE imports
+from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.ext import ndb
 
@@ -230,6 +231,7 @@ class ds_mrgp_profile(ndb.Model):
 	step_cursor = ndb.IntegerProperty()
 	count_cursor = ndb.IntegerProperty()
 	tree_chunks = ndb.IntegerProperty()
+	tree_in_process = ndb.BooleanProperty()
 	index_chunks = ndb.IntegerProperty()
 	read_pointer = ndb.IntegerProperty()
 	write_pointer = ndb.IntegerProperty()
@@ -1985,6 +1987,7 @@ class metric(object):
 				profile.step_cursor = 0
 				profile.count_cursor = 0
 				profile.tree_chunks = 0
+				profile.tree_in_process = False
 				profile.index_chunks = 0
 				profile.read_pointer = 0
 				profile.write_pointer = 0
@@ -1997,6 +2000,7 @@ class metric(object):
 				step_cursor = ndb.IntegerProperty()
 				count_cursor = ndb.IntegerProperty()
 				tree_chunks = ndb.IntegerProperty()
+				tree_in_process = False
 				index_chunks = ndb.IntegerProperty()
 				read_pointer = ndb.IntegerProperty()
 				write_pointer = ndb.IntegerProperty()"""
@@ -2024,8 +2028,9 @@ class metric(object):
 		def process_pause():
 		
 			pass
-			
-		def deadline_reached():
+		
+		lint_deadline_compute_factor = 0
+		def deadline_reached(fbool_use_compute_factor=False):
 		
 			pass
 			
@@ -2111,9 +2116,9 @@ class metric(object):
 					s_chunk_entity.put()
 				
 				if account_id == profile.max_account:
-					profile.phase_cursor == 2
-					profile.step_cursor == 0
-					profile.count_cursor == 0
+					profile.phase_cursor = 2
+					profile.step_cursor = 0
+					profile.count_cursor = 0
 					if deadline_reached(): return None
 					break
 				
@@ -2257,23 +2262,90 @@ class metric(object):
 				write_chunk = read_chunk
 				
 			# Our step_cursor tracks which tree we are on
+			if profile.step_cursor == 0:
+				profile.step_cursor = 1
 			# Our count_cursor tracks which account_id we start new trees on
+			if profile.count_cursor == 0:
+				profile.count_cursor = 1
 			
+			# PHASE 2 PART 3
+			# our staging chunk(s) is/are ready
+			# our index chunk(s) is/are ready
+			# our tree chunk(s) is/are ready
+			# 
+			# we are ready to enter our main tree process loop
+			# let's define the functions it uses first
+			
+			# tree process function helper #1
 			# get account info from the staging chunk
-			def get_acc_fsc(fint_acc_id):
+			def get_acct_fsc(fint_acc_id):
 			
-				pass
+				chunk_id = (fint_acc_id - (fint_acc_id % 2500)) + 1
+				key_part1 = key_network_part
+				key_part2 = profile_key_time_part
+				key_part3 = str(chunk_id).zfill(12)
+				memcache_key = key_part1 + key_part2 + key_part3
+				data = memcache.get(memcache_key)
+				
+				if data is None:
+					s_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
+					s_chunk_entity = s_chunk_key.get()
+					data = s_chunk_entity.stuff
+					memcache.add(memcache_key, data, 60)
+				
+				if data.get(fint_acc_id) is None:
+					return None
+				else:
+					return data[fint_acc_id]
 			
+			# tree process function helper #2
 			# check if account is in the tree index already
-			def chk_acc_idx(fint_acc_id):
+			def acct_in_idx(fint_acc_id):
 		
-				pass
-		 
+				lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
+				lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
+		 		if index_chunk[lint_index_chunk_id][lint_index_we_want_in_chunk - 1]:
+		 			return True
+		 		else:
+		 			index_chunk[lint_index_chunk_id][lint_index_we_want_in_chunk - 1] = True
+		 			return False
+		 			
+		 	# tree process function helper #3
+		 	# see if our tree chunk is too big and we need to spawn another
 			def chk_chnk_sz():
 			
 				pass
 		
 			
+			# main tree process loop
+			while True:
+			
+				deadline_reached(True)
+			
+				if profile.tree_in_process:
+					# finish the tree we're on
+				
+				else:
+					# try to start a new tree
+					if acc_in_idx(profile.count_cursor = 1):
+						# already processed this account
+						pass						
+					else:
+						# account not yet processed
+						
+					if profile.count_cursor == profile.max_account:
+						# we're done with phase 2
+						profile.phase_cursor = 3
+						if deadline_reached(): return None
+						break
+					else:
+						profile.count_cursor += 1
+						lint_deadline_compute_factor += 1
+						continue
+						
+		if profile.phase_cursor == 3:
+		
+			pass
 		
 		
 		
@@ -2299,6 +2371,7 @@ class metric(object):
 			count_cursor = ndb.IntegerProperty()
 			key_chunks = ndb.IntegerProperty()
 			tree_chunks = ndb.IntegerProperty()
+			tree_in_process = False				
 			staging_chunks = ndb.IntegerProperty()
 			map_chunks = ndb.IntegerProperty()
 			index_chunks = ndb.IntegerProperty()
