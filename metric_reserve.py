@@ -2079,7 +2079,29 @@ class metric(object):
 				
 				if deadline_reached():
 					break				
-				
+		
+		# we have queried all the accounts in the network and they
+		# now reside in staging chunks of 1000 accounts each. In
+		# Phase 2 we build the tree hierarchy which creates a proof
+		# as to which sets of accounts have a "path" between them.
+		#
+		# I call each set a "tree".  The most populated tree is 
+		# assumed to me the main network.  The other trees are 
+		# considered off the main network.  An account with no 
+		# connections is called an "orphan".  
+		#
+		# key 1 in the staging chunk for each account is reserved
+		# for the "tree" value.  1 = orphan.  While building the 
+		# tree chunks we start with 2 and increment.
+		#
+		# Really, this is going to be the slowest part of the algorithm.
+		# This phase specifically, as we're accessing essne
+		# It's my hope that with 1,000,000 nodes, perhaps the use of 
+		# memcache and devoting sufficient RAM in GAE deployments will
+		# suffice and still allow the app to exist as a web application
+		# without using backends.
+		
+		
 		if profile.phase_cursor == 2: 
 		
 			pass
