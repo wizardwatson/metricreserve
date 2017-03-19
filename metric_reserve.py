@@ -234,29 +234,12 @@ class ds_mrgp_profile(ndb.Model):
 	read_needle = ndb.IntegerProperty()
 	write_needle = ndb.IntegerProperty()
 
-# *** the key chunk ***
+# *** the staging chunk ***
 #
-# Provides quick access to all the metric account keys so that
-# we not only save time accessing them all at once, but we also
-# avoid querying deleted accounts from the datastore. Each key
-# chunk is intended to hold 20,000 keys.  The network cursor 
-# keeps a count of the total key chunks for the network, and 
-# also a mapping of the start/stop indexes in each key chunk.
-#
-# The metric._join_network() and metric._leave_network functions
-# manipulate this chunk as new people join and leave the network.
 
-class ds_mrgp_key_chunk(ndb.Model):
+class ds_mrgp_staging_chunk(ndb.Model):
 
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_stuff = ndb.PickleProperty()
-	current_start_key = ndb.IntegerProperty()
-	current_stop_key = ndb.IntegerProperty()
-	current_total_keys = ndb.IntegerProperty()
-	last_stuff = ndb.PickleProperty()
-	last_start_key = ndb.IntegerProperty()
-	last_stop_key = ndb.IntegerProperty()
-	last_total_keys = ndb.IntegerProperty()
+	stuff = ndb.PickleProperty()
 	
 # *** 
 
@@ -1936,6 +1919,7 @@ class metric(object):
 				# start a fresh process.
 				what_to_do = "NEW"
 				profile = ds_mrgp_master()
+				profile.key = profile_key
 				
 			else:
 			
@@ -2027,6 +2011,9 @@ class metric(object):
 				list_of_keys = []
 				# staging chunk object
 				s_chunk = {}
+				# the chunks id is the starting account id
+				# 1, 1001, 2001, etc.
+				chunk_id = profile.count_cursor + 1
 				
 				for i in range(1,1001):
 
@@ -2073,8 +2060,17 @@ class metric(object):
 						
 				if something_in_chunk:
 					# put the chunk in the datastore
-					# STUB
-					pass
+					# if this chunk already exists because perhaps
+					# we're re-running this graph process overwrite it
+					key_part1 = profile_key_time_part
+					key_part2 = str(chunk_id).zfill(12)
+					s_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s" % (key_part1,key_part2))
+					s_chunk_entity = s_chunk_key.get()
+					if s_chunk_entity is None:
+						s_chunk_entity = ds_mrgp_staging_chunk()
+						s_chunk_entity.key = s_chunk_key
+					s_chunk_entity.stuff = s_chunk
+					s_chunk_entity.put()
 				
 				if account_id == profile.max_account:
 					profile.phase_cursor == 2
@@ -2122,17 +2118,6 @@ class metric(object):
 			read_needle = ndb.IntegerProperty()
 			write_needle = ndb.IntegerProperty()
 
-		class ds_mrgp_key_chunk(ndb.Model):
-
-			current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-			current_stuff = ndb.PickleProperty()
-			current_start_key = ndb.IntegerProperty()
-			current_stop_key = ndb.IntegerProperty()
-			current_total_keys = ndb.IntegerProperty()
-			last_stuff = ndb.PickleProperty()
-			last_start_key = ndb.IntegerProperty()
-			last_stop_key = ndb.IntegerProperty()
-			last_total_keys = ndb.IntegerProperty()
 		"""
 		
 		
