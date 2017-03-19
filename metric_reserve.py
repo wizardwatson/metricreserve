@@ -222,7 +222,7 @@ class ds_mrgp_profile(ndb.Model):
 
 	status = ndb.StringProperty()
 	deadline = ndb.DateTimeProperty()
-	total_accounts = ndb.IntegerProperty()
+	max_account = ndb.IntegerProperty()
 	phase_cursor = ndb.IntegerProperty()
 	step_cursor = ndb.IntegerProperty()
 	count_cursor = ndb.IntegerProperty()
@@ -1964,10 +1964,10 @@ class metric(object):
 			
 			if what_to_do == "NEW":
 			
-				profile.total_accounts = 0
+				profile.max_account = 0
 				profile.phase_cursor = 1
 				profile.step_cursor = 1
-				profile.count_cursor = 1
+				profile.count_cursor = 0
 				profile.key_chunks = 0
 				profile.tree_chunks = 0
 				profile.staging_chunks = 0
@@ -2004,7 +2004,7 @@ class metric(object):
 		
 			pass
 			
-		def check_deadline():
+		def deadline_reached():
 		
 			pass
 			
@@ -2019,21 +2019,75 @@ class metric(object):
 			
 				network_cursor_key = ndb.Key("ds_mr_network_cursor",key_network_part)		
 				lds_network_cursor = network_cursor_key.get()
-				profile.total_accounts = lds_network_cursor.current_index
-				t_num = profile.total_accounts
+				profile.max_account = lds_network_cursor.current_index
+				# STUB if total accounts = zero, just finish				
 							
-			# the step_cursor tells us set of 1000 we're on
-			# create the key list from the step cursor
-			list_of_keys = []
-			for i in range(1,1001):
-				account_id = ((profile.step_cursor - 1) * 1000) + i
-				a_key = ndb.Key("ds_mr_metric_account","%s%s" % (key_network_part,str(account_id).zfill(12)))
-				list_of_keys.append(a_key)
-			list_of_metric_accounts = ndb.get_multi(list_of_keys)
-			# create the object that will be the contents of staging chunk
+			while True:
 			
+				list_of_keys = []
+				# staging chunk object
+				s_chunk = {}
+				
+				for i in range(1,1001):
+
+					account_id = profile.count_cursor + i
+					a_key = ndb.Key("ds_mr_metric_account","%s%s" % (key_network_part,str(account_id).zfill(12)))
+					list_of_keys.append(a_key)
+					# when account id == the max account we are done
+					# with this phase.
+					if account_id == profile.max_account:
+						break
+					# if i == 1000 and we didn't reach max account
+					# then add 1000 to our count cursor
+					if i == 1000: profile.count_cursor += 1000
+
+				list_of_metric_accounts = ndb.get_multi(list_of_keys)
+				something_in_chunk = False
+				for metric_account in list_of_metric_accounts:
+					if metric_account is None: continue
+					if metric_account.account_status == "DELETED": continue
+					something_in_chunk = True
+					# add account data to staging dictionary
+					t_id = metric_account.account_id
+					s_chunk[t_id] = {}
+					# key 1 is tree
+					# ...value 1 is always orphan
+					# ...tree values then start 2, 3, 4, n...
+					# key 2 is connections 
+					# key 3 is suggestions [] in same order as connections
+					# key 4 is network balance
+					# key 5 is reserve balance
+					s_chunk[t_id][1] = 1
+					# default suggestions to 0
+					s_chunk[t_id][3] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+					if metric_account.current_timestamp <= t_cutoff:
+						# use current
+						s_chunk[t_id][2] = metric_account.current_connections
+						s_chunk[t_id][4] = metric_account.last_network_balance
+						s_chunk[t_id][5] = metric_account.last_reserve_balance
+					else:
+						# use last
+						s_chunk[t_id][2] = metric_account.last_connections
+						s_chunk[t_id][4] = metric_account.last_network_balance
+						s_chunk[t_id][5] = metric_account.last_reserve_balance
+						
+				if something_in_chunk:
+					# put the chunk in the datastore
+					# STUB
+					pass
+				
+				if account_id == profile.max_account:
+					profile.phase_cursor == 2
+					if deadline_reached(): return None
+					break
+				
+				if deadline_reached():
+					break				
+				
+		if profile.phase_cursor == 2: 
 		
-		
+			pass
+		 
 		
 		
 		
