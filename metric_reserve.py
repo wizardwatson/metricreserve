@@ -233,8 +233,8 @@ class ds_mrgp_profile(ndb.Model):
 	tree_chunks = ndb.IntegerProperty()
 	tree_in_process = ndb.BooleanProperty()
 	index_chunks = ndb.IntegerProperty()
-	read_pointer = ndb.IntegerProperty()
-	write_pointer = ndb.IntegerProperty()
+	parent_pointer = ndb.IntegerProperty()
+	child_pointer = ndb.IntegerProperty()
 
 # *** the staging chunk ***
 class ds_mrgp_staging_chunk(ndb.Model):
@@ -1989,8 +1989,8 @@ class metric(object):
 				profile.tree_chunks = 0
 				profile.tree_in_process = False
 				profile.index_chunks = 0
-				profile.read_pointer = 0
-				profile.write_pointer = 0
+				profile.parent_pointer = 0
+				profile.child_pointer = 0
 		
 				"""
 				status = ndb.StringProperty()
@@ -2002,8 +2002,8 @@ class metric(object):
 				tree_chunks = ndb.IntegerProperty()
 				tree_in_process = False
 				index_chunks = ndb.IntegerProperty()
-				read_pointer = ndb.IntegerProperty()
-				write_pointer = ndb.IntegerProperty()"""
+				parent_pointer = ndb.IntegerProperty()
+				child_pointer = ndb.IntegerProperty()"""
 		
 			profile.status = "IN PROCESS"
 			deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
@@ -2245,21 +2245,26 @@ class metric(object):
 				if tree_chunk is None:
 					tree_chunk = ds_mrgp_tree_chunk()
 					tree_chunk.key = tree_chunk_key
+					tree_chunk.stuff = {}
+					tree_chunk.stuff['LR'] = 1 # Level Reading
+					tree_chunk.stuff['LRI'] = 0 # Level Reading Index
+					tree_chunk.stuff['LWI'] = 0 # Level Writing Index
+					tree_chunk.stuff[1] = []		
 				return tree_chunk
 				
-			if profile.read_needle == 0:
+			if profile.parent_pointer == 0:
 				# this is our first iteration in PHASE 2
 				# we could do initialization stuff here
-				profile.read_pointer = 1
-				profile.write_pointer = 1
+				profile.parent_pointer = 1
+				profile.child_pointer = 1
 			
-			# First, get the tree chunk the read_pointer is using
-			read_chunk = get_tree_chunk(profile.read_pointer)
+			# First, get the tree chunk the parent_pointer is using
+			parent_chunk = get_tree_chunk(profile.parent_pointer)
 			# For small networks, they will be the same
-			if profile.read_pointer == profile.write_pointer:
-				write_chunk = get_tree_chunk(profile.write_pointer)
+			if profile.parent_pointer == profile.child_pointer:
+				child_chunk = get_tree_chunk(profile.child_pointer)
 			else:
-				write_chunk = read_chunk
+				child_chunk = parent_chunk
 				
 			# Our step_cursor tracks which tree we are on
 			if profile.step_cursor == 0:
@@ -2304,14 +2309,15 @@ class metric(object):
 		
 				lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
 				lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
-		 		if index_chunk[lint_index_chunk_id][lint_index_we_want_in_chunk - 1]:
+		 		if index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1]:
 		 			return True
 		 		else:
-		 			index_chunk[lint_index_chunk_id][lint_index_we_want_in_chunk - 1] = True
+		 			index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1] = True
 		 			return False
 		 			
 		 	# tree process function helper #3
 		 	# see if our tree chunk is too big and we need to spawn another
+		 	lint_tree_chunk_size_factor = 0
 			def chk_chnk_sz():
 			
 				pass
@@ -2320,10 +2326,18 @@ class metric(object):
 			# main tree process loop
 			while True:
 			
-				deadline_reached(True)
+				if deadline_reached(True): return None
 			
 				if profile.tree_in_process:
 					# finish the tree we're on
+					# do one full group at a time
+					key1 = profile.step_cursor # the tree number
+					key2 = child_chunk.stuff['LR'] # the tree level reading
+					idx1 = child_chunk.stuff['LRI'] # the index reading on that level
+					key3 = 2 # that accounts connections sequence
+					for connection in parent_chunk.stuff[key1][key2][idx1]][key3]:
+						# only do something with this account if we haven't already processed
+						if not acc_in_idx(connection):
 				
 				else:
 					# try to start a new tree
@@ -2341,13 +2355,19 @@ class metric(object):
 							pass
 						elif lresult[2] = []:
 							# no connections, so it's an orphan
-							# STUB
-							pass
+							child_chunk[1].append(profile.count_cursor)
+							lint_tree_chunk_size_factor += 1
 						else:
 							# has connections
 							# add seed to dict and start tree
-							# STUB
-							pass
+							profile.step_cursor += 1
+							child_chunk[profile.step_cursor] = {}
+							# make level one this new seed
+							child_chunk[profile.step_cursor][1] = []
+							# put the new account seed in level 1
+							child_chunk[profile.step_cursor][1].append(lresult)
+							profile.tree_in_process = True
+							lint_tree_chunk_size_factor += 10
 						
 					if profile.count_cursor == profile.max_account:
 						# we're done with phase 2
@@ -2391,8 +2411,8 @@ class metric(object):
 			staging_chunks = ndb.IntegerProperty()
 			map_chunks = ndb.IntegerProperty()
 			index_chunks = ndb.IntegerProperty()
-			read_pointer = ndb.IntegerProperty()
-			write_pointer = ndb.IntegerProperty()
+			parent_pointer = ndb.IntegerProperty()
+			child_pointer = ndb.IntegerProperty()
 
 		"""
 		
