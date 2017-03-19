@@ -241,6 +241,13 @@ class ds_mrgp_staging_chunk(ndb.Model):
 
 	stuff = ndb.PickleProperty()
 	
+# *** the index chunk ***
+# 
+
+class ds_mrgp_index_chunk(ndb.Model):
+
+	stuff = ndb.PickleProperty()
+	
 # *** 
 
 ##############################################################################
@@ -299,9 +306,13 @@ class master(object):
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		tree_index_test = ds_mrgp_big_pickle()
-		tree_index_test.stuff = {}
-		for i in range(1,100001):
-			tree_index_test.stuff[random.randint(10000000000,20000000000)] = None
+		tree_index_test.stuff = []
+		for i in range(1,800001):
+			if random.randint(1,2) == 1:
+				lbool_value = True
+			else:
+				lbool_value = False
+			tree_index_test.stuff.append(lbool_value)
 		self.TRACE.append("tree_index_test length at 100,000:%s" % str(len(tree_index_test._to_pb().Encode())))
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))		
 		
@@ -2094,9 +2105,10 @@ class metric(object):
 					# put the chunk in the datastore
 					# if this chunk already exists because perhaps
 					# we're re-running this graph process overwrite it
-					key_part1 = profile_key_time_part
-					key_part2 = str(chunk_id).zfill(12)
-					s_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s" % (key_part1,key_part2))
+					key_part1 = key_network_part
+					key_part2 = profile_key_time_part
+					key_part3 = str(chunk_id).zfill(12)
+					s_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
 					s_chunk_entity = s_chunk_key.get()
 					if s_chunk_entity is None:
 						s_chunk_entity = ds_mrgp_staging_chunk()
@@ -2136,8 +2148,63 @@ class metric(object):
 		# without using backends.
 		
 		
-		if profile.phase_cursor == 2: 
+		if profile.phase_cursor == 2:
 		
+			# PHASE 2 PART 1
+			#
+			# load the index chunk(s)
+			# each handles indexing for 500,000
+			# load all of them, they are small
+			
+			# define a function to intialize our empty indexes
+			def initialize_empty_index_chunk(fobj_index_chunk):
+			
+				# load our generic chunk or create
+				# if this is first time ever
+				generic_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_500_THOUSAND_FALSES_LIST")
+				generic_chunk = generic_key.get()
+				if generic_chunk is None:
+				
+					t_list = []
+					
+					for i in range(1,500001):
+						t_list.append(False)
+					
+					generic_chunk = ds_mrgp_index_chunk()
+					generic_chunk.stuff = t_list
+					generic_chunk.key = generic_key
+					generic_chunk.put()
+					
+				fobj_index_chunk.stuff = generic_chunk.stuff
+				return None
+				
+			# how many indexes to query/create?
+			# if we haven't figured it out yet in a previous
+			# iteration then calculate it
+			if profile.index_chunks == 0:				
+				t_num = profile.max_account
+				# one for every 500,000 accounts
+				profile.index_chunks = ((t_num - (t_num % 500000)) / 500000) + 1
+			
+			# load/create index chunks
+			index_chunk = {}
+			for i in range(1,profile.index_chunks + 1)
+				key_part1 = key_network_part
+				key_part2 = profile_key_time_part
+				key_part3 = str(i).zfill(12)
+				chunk_key = ndb.Key("ds_mrgp_index_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
+				index_chunk_member = chunk_key.get()
+				if index_chunk_member is None:
+					index_chunk_member = ds_mrgp_index_chunk()
+					index_chunk_member.key = chunk_key
+					initialize_empty_index_chunk(index_chunk_member)
+					# put() them later, when we close this iteration
+				index_chunk[i] = index_chunk_member
+					
+		
+			# PHASE 2 PART 2
+			
+			
 			# get account info from the staging chunk
 			def get_acc_fsc(fint_acc_id):
 			
