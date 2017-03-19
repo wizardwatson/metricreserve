@@ -2327,11 +2327,27 @@ class metric(object):
 				
 				else:
 					# try to start a new tree
-					if acc_in_idx(profile.count_cursor = 1):
+					if acc_in_idx(profile.count_cursor):
 						# already processed this account
 						pass						
 					else:
 						# account not yet processed
+						# try to get it from staging chunk
+						lresult = get_acct_fsc(profile.count_cursor)
+						if lresult is None:
+							# nothing to do
+							# let process fall through and 
+							# incrmement count_cursor
+							pass
+						elif lresult[2] = []:
+							# no connections, so it's an orphan
+							# STUB
+							pass
+						else:
+							# has connections
+							# add seed to dict and start tree
+							# STUB
+							pass
 						
 					if profile.count_cursor == profile.max_account:
 						# we're done with phase 2
