@@ -2100,7 +2100,10 @@ class metric(object):
 					tree_chunk_member.key = tree_chunk_key
 					tree_chunk_member.stuff = {}
 					tree_chunk_member.stuff['STATS'] = {}
+					tree_chunk_member.stuff['STATS']['LAST_TREE_LEVEL'] = {}
+					# LAST PARENT ON LEVEL ABOVE LAST LEVEL TREE CHUNK POINTER
 					tree_chunk_member.stuff['STATS']['TREE_RESERVE_TOTALS'] = {}
+					tree_chunk_member.stuff['STATS']['LP_WITH_KIDS'] = 1
 					tree_chunk_member.stuff['STATS']['TREE_NETWORK_TOTALS'] = {}
 					tree_chunk_member.stuff['STATS']['ORPHAN_RESERVE_TOTALS'] = 0
 					tree_chunk_member.stuff['STATS']['ORPHAN_NETWORK_TOTALS'] = 0
@@ -2466,23 +2469,27 @@ class metric(object):
 							child_chunk.stuff['STATS']['RESERVE_TOTALS'] += laccount[5]
 							child_chunk.stuff['STATS']['TREE_NETWORK_TOTALS'][key1] += laccount[4]
 							child_chunk.stuff['STATS']['NETWORK_TOTALS'] += laccount[4]
+							# Make this parent_chunk id the LP_WITH_KIDS
+							child_chunk.stuff['STATS']['LP_WITH_KIDS'] = profile.parent_pointer
 							if child_chunk.stuff[key1].get(key2 + 1) is None:
 								# create the level
+								child_chunk.stuff['STATS']['LAST_TREE_LEVEL'][key1] = key2 + 1
 								child_chunk.stuff[key1][key2 + 1] = []
 								child_chunk.stuff[key1][(key2 + 1) * -1] = []
+								child_chunk.stuff[key1][(key2 + 1) * -1].append(-1)
 							# lets store the parent reference in key 6 of child
 							# chunk.stuff[tree][-level array][account ids]
 							laccount[6] = parent_chunk.stuff[key1][key2 * -1][idx1]
 							child_chunk.stuff[key1][key2 + 1].append(laccount)
 							child_chunk.stuff[key1][(key2 + 1) * -1].append(connection)
-							lint_tree_chunk_size_factor += 10							
+							lint_tree_chunk_size_factor += 10
 					# if we haven't reached the end of this level we aren't done
 					this_id = parent_chunk.stuff[key1][key2 * -1][idx1]
 					final_id = parent_chunk.stuff[key1][key2 * -1][-1]
 					if this_id == final_id:
-						# ok, we've reached the end of this level.  But is
-						# there a level below this?  Check the child.
-						if child_chunk.stuff[key1].get(key2 + 1) is None:
+						# Ok, we've reached the end of this level.
+						# But is there a level below this?  Check the child stats
+						if child_chunk.stuff['STATS']['LAST_TREE_LEVEL'][key1] == child_chunk.stuff['LP']):
 							# no level below this, this tree is done
 							child_chunk.stuff['LP'] = 1
 							child_chunk.stuff['LPI'] = 0
@@ -2530,7 +2537,13 @@ class metric(object):
 							# put the new account seed in level 1 sequence
 							child_chunk.stuff[profile.tree_cursor][1].append(lresult)
 							# put the id of the seed in the negative level sequence
+							# the negative level let's us know the order of the positive
+							# level as well as mapping id's to indexes.  Having -1 as the
+							# first member and -2 as the last member let's our pointers
+							# know when they've reached the end/beginning of a level.
+							child_chunk.stuff[profile.tree_cursor][-1].append(-1)
 							child_chunk.stuff[profile.tree_cursor][-1].append(profile.count_cursor)
+							child_chunk.stuff[profile.tree_cursor][-1].append(-2)
 							profile.tree_in_process = True
 							lint_tree_chunk_size_factor += 10						
 					if profile.count_cursor == profile.max_account:
@@ -2570,21 +2583,29 @@ class metric(object):
 
 			# So let's get started.
 			
+			# Define the reserve even-ing (that which "evens") function.
+			def phz3_evener():
+			
+				pass
+			
 			# Still using the parent/child pointers.  The child_pointer should still be 
 			# pointing at the last tree chunk.  May or may not have any trees in that chunk.
 			# The parent pointer should still be pointed at the lowest level of that last
-			# tree completed.  There's no logic that would have modified it.
+			# tree completed.  There's no logic that would have modified it.  Don't really
+			# need to reference the parent unless we're evening a tree though.
 
 			child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
 			
 			# Main Loop
 			while True:
 			
-			
-				# While it's highly unlikely that a tree chunk contains nothing but an orphan 
-				# list, we still need to account for it, as it is fairly likely in the last chunk.
+				if deadline_reached(True): return process_stop()
 				
-				pass
+				# Tree cursor should reflect last tree we were working on
+				# or the first tree we need to work on if we've just started.
+				# Does the child chunk we're on have that tree in it?
+				
+				
 				
 				
 		
