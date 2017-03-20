@@ -2246,9 +2246,8 @@ class metric(object):
 					tree_chunk = ds_mrgp_tree_chunk()
 					tree_chunk.key = tree_chunk_key
 					tree_chunk.stuff = {}
-					tree_chunk.stuff['LR'] = 1 # Level Reading
-					tree_chunk.stuff['LRI'] = 0 # Level Reading Index
-					tree_chunk.stuff['LWI'] = 0 # Level Writing Index
+					tree_chunk.stuff['LP'] = 1 # Level Parent
+					tree_chunk.stuff['LPI'] = 0 # Level Parent Index
 					tree_chunk.stuff[1] = []		
 				return tree_chunk
 				
@@ -2318,9 +2317,37 @@ class metric(object):
 		 	# tree process function helper #3
 		 	# see if our tree chunk is too big and we need to spawn another
 		 	lint_tree_chunk_size_factor = 0
-			def chk_chnk_sz():
+			def chk_chnk_sz(fbool_use_size_factor=False):
 			
-				pass
+				if fbool_use_size_factor:
+					if lint_tree_chunk_size_factor < 1000:
+						return None
+				lint_tree_chunk_size_factor = 0
+				# if the size of the child chunk is too big 
+				# create the next one
+				len(child_chunk._to_pb().Encode()) > 900000:
+					
+					profile.child_pointer += 1
+					old_child_chunk = child_chunk
+					if profile.tree_in_process:					
+						old_child_chunk.stuff[profile.step_cursor][temp_LP + 1].append('X')
+						old_child_chunk.put()
+						temp_LP = old_child_chunk.stuff['LP']
+						temp_LPI = old_child_chunk.stuff['LPI']
+						child_chunk = get_tree_chunk(profile.child_pointer)
+						child_chunk.stuff['LP'] = temp_LP
+						child_chunk.stuff['LPI'] = temp_LPI
+						child_chunk.stuff[profile.step_cursor] = {}
+					else:
+						# we must have filled up from orphans
+						# still need to save our old one
+						old_child_chunk.put()
+						# defaults will suffice
+						child_chunk = get_tree_chunk(profile.child_pointer)
+						
+						
+				else: return None
+				
 		
 			
 			# main tree process loop
@@ -2331,14 +2358,74 @@ class metric(object):
 				if profile.tree_in_process:
 					# finish the tree we're on
 					# do one full group at a time
+					
 					key1 = profile.step_cursor # the tree number
-					key2 = child_chunk.stuff['LR'] # the tree level reading
-					idx1 = child_chunk.stuff['LRI'] # the index reading on that level
+					key2 = child_chunk.stuff['LP'] # the tree level parent
+					idx1 = child_chunk.stuff['LPI'] # the parent index on that level
 					key3 = 2 # that accounts connections sequence
-					for connection in parent_chunk.stuff[key1][key2][idx1]][key3]:
+					
+					
+					# Large trees cause the parent and child chunk references
+					# to possibly separate, but whenever we start a new tree
+					# the parent and child both should be referencing the same
+					# chunk.
+					
+					if key2 == 1 and idx1 = 0: parent_chunk = child_chunk
+					
+					# The child_chunk creates new tree chunks as it runs out of
+					# space and keeps all the important variables.  The parent_chunk
+					# just follows along.  Every time a child_chunk goes to a
+					# new chunk, it places a static 'X' where an account dict
+					# would have been in the previous chunk before it leaves
+					# So before trying to access the account info you think is at:
+					# ***chunk[tree_key][level_key][index_of_account_dict]***
+					# ...you need to make sure there isn't a big fat 'X' in that
+					# spot.  If there is, we need to transition to the next tree
+					# chunk before continuing.
+					if parent_chunk.stuff[key1][key2][idx1] == 'X':
+					
+						profile.parent_pointer += 1
+						parent_chunk = get_tree_chunk(profile.parent_pointer)
+						# Parent index on whatever level they are in the new
+						# chunk will always be zero. The start of the sequence.
+						child_chunk.stuff['LPI'] = 0
+					
+					for connection in parent_chunk.stuff[key1][key2][idx1][key3]:
 						# only do something with this account if we haven't already processed
 						if not acc_in_idx(connection):
-				
+							# lets put this connection on the level below
+							# after getting it from the staging chunk
+							laccount = get_acct_fsc(connection)
+							if child_chunk.stuff[key1].get(key2 + 1) is None:
+								# create the level
+								child_chunk.stuff[key1][key2 + 1] = []
+								child_chunk.stuff[key1][(key2 + 1) * -1] = []
+							child_chunk.stuff[key1][key2 + 1].append(laccount)
+							child_chunk.stuff[key1][(key2 + 1) * -1].append(connection)
+							lint_tree_chunk_size_factor += 10
+							
+					# if we haven't reached the end of this level we aren't done
+					this_id = parent_chunk.stuff[key1][key2 * -1][idx1]
+					final_id = parent_chunk.stuff[key1][key2 * -1][-1]
+					if this_id == final_id:
+						# ok, we've reached the end of this level.  But is
+						# there a level below this?  Check the child.
+						if child_chunk.stuff[key1].get(key2 + 1) is None:
+							# no level below this, this tree is done
+							child_chunk.stuff['LP'] = 1
+							child_chunk.stuff['LPI'] = 0
+							profile.tree_in_process = False
+						else:
+							# more levels, keep going
+							child_chunk.stuff['LP'] += 1
+							child_chunk.stuff['LPI'] = 0
+							lint_tree_chunk_size_factor += 1
+					else:
+						# more account(s) in this level, keep going
+						child_chunk.stuff['LPI'] += 1
+						lint_tree_chunk_size_factor += 1
+							
+							
 				else:
 					# try to start a new tree
 					if acc_in_idx(profile.count_cursor):
@@ -2355,17 +2442,20 @@ class metric(object):
 							pass
 						elif lresult[2] = []:
 							# no connections, so it's an orphan
-							child_chunk[1].append(profile.count_cursor)
+							child_chunk.stuff[1].append(profile.count_cursor)
 							lint_tree_chunk_size_factor += 1
 						else:
 							# has connections
 							# add seed to dict and start tree
 							profile.step_cursor += 1
-							child_chunk[profile.step_cursor] = {}
+							child_chunk.stuff[profile.step_cursor] = {}
 							# make level one this new seed
-							child_chunk[profile.step_cursor][1] = []
-							# put the new account seed in level 1
-							child_chunk[profile.step_cursor][1].append(lresult)
+							child_chunk.stuff[profile.step_cursor][1] = []
+							child_chunk.stuff[profile.step_cursor][-1] = []
+							# put the new account seed in level 1 sequence
+							child_chunk.stuff[profile.step_cursor][1].append(lresult)
+							# put the id of the seed in the negative level sequence
+							child_chunk.stuff[profile.step_cursor][-1].append(profile.count_cursor)
 							profile.tree_in_process = True
 							lint_tree_chunk_size_factor += 10
 						
