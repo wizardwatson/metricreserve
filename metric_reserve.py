@@ -2023,17 +2023,21 @@ class metric(object):
 		# deadline, then we pause and wait for a different 
 		# request
 		
+		# FOR FINISH AND PAUSE
+		# put() index chunks
+		# put() child chunk
+		# put() profile
 		def process_finish():
-				
+			#STUB	
 			pass
 			
 		def process_pause():
-		
+			#STUB
 			pass
 		
 		lint_deadline_compute_factor = 0
 		def deadline_reached(fbool_use_compute_factor=False):
-		
+			#STUB
 			pass
 			
 		
