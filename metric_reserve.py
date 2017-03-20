@@ -2099,6 +2099,13 @@ class metric(object):
 					tree_chunk_member = ds_mrgp_tree_chunk()
 					tree_chunk_member.key = tree_chunk_key
 					tree_chunk_member.stuff = {}
+					tree_chunk_member.stuff['STATS'] = {}
+					tree_chunk_member.stuff['STATS']['TREE_RESERVE_TOTALS'] = {}
+					tree_chunk_member.stuff['STATS']['TREE_NETWORK_TOTALS'] = {}
+					tree_chunk_member.stuff['STATS']['ORPHAN_RESERVE_TOTALS'] = 0
+					tree_chunk_member.stuff['STATS']['ORPHAN_NETWORK_TOTALS'] = 0
+					tree_chunk_member.stuff['STATS']['RESERVE_TOTALS'] = 0
+					tree_chunk_member.stuff['STATS']['NETWORK_TOTALS'] = 0
 					tree_chunk_member.stuff['LP'] = 1 # Level Parent
 					tree_chunk_member.stuff['LPI'] = 0 # Level Parent Index
 					tree_chunk_member.stuff[1] = []
@@ -2122,16 +2129,15 @@ class metric(object):
 		# put() profile
 		def process_stop():
 			#STUB	
-			pass
-			
-		
+			pass		
 		
 		lint_deadline_compute_factor = 0
 		def deadline_reached(fbool_use_compute_factor=False):
 			#STUB
 			pass
 			
-		
+		# PHASE 1
+		#
 		# phase 1 is loading the staging chunks with the entities that
 		# we get by doing a "get_multi"
 		if profile.phase_cursor == 1:		
@@ -2216,6 +2222,9 @@ class metric(object):
 				else:
 					# more time continue the tree process
 					pass
+		
+		# PHASE 2
+		#
 		# we have queried all the accounts in the network and they
 		# now reside in staging chunks of 2500 accounts each. In
 		# Phase 2 we build the tree hierarchy which creates a proof
@@ -2235,8 +2244,7 @@ class metric(object):
 		# It's my hope that with 1,000,000 nodes, perhaps the use of 
 		# memcache and devoting sufficient RAM in GAE deployments will
 		# suffice and still allow the app to exist as a web application
-		# without using backends.
-		
+		# without using backends.		
 		
 		if profile.phase_cursor == 2:
 		
@@ -2304,7 +2312,7 @@ class metric(object):
 			# For a large tree they may diverge in which tree 
 			# chunk they are pointing at
 			if profile.parent_pointer == profile.child_pointer:
-				child_chunk = get_tree_chunk(profile.child_pointer)
+				child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
 			else:
 				child_chunk = parent_chunk
 				
@@ -2325,30 +2333,30 @@ class metric(object):
 			
 			# tree process function helper #1
 			# get account info from the staging chunk
-			def get_acct_fsc(fint_acc_id):
-			
-				chunk_id = (fint_acc_id - (fint_acc_id % 2500)) + 1
+			def phz2_get_acct_fsc(fint_account_id):			
+				# We use memcache here, because we don't want to clog
+				# the RAM of the machine accessing the graph randomly.
+				# Especially if there are millions of accounts.
+				#
+				# Staging chunks in phase 2 are read only entities.
+				staging_chunk_id = (fint_account_id - (fint_account_id % 2500)) + 1
 				key_part1 = profile_key_network_part
 				key_part2 = profile_key_time_part
-				key_part3 = str(chunk_id).zfill(12)
+				key_part3 = str(staging_chunk_id).zfill(12)
 				memcache_key = key_part1 + key_part2 + key_part3
-				data = memcache.get(memcache_key)
-				
+				data = memcache.get(memcache_key)				
 				if data is None:
-					s_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
-					s_chunk_entity = s_chunk_key.get()
-					data = s_chunk_entity.stuff
-					memcache.add(memcache_key, data, 60)
-				
-				if data.get(fint_acc_id) is None:
+					staging_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
+					staging_chunk_entity = staging_chunk_key.get()
+					data = staging_chunk_entity.stuff
+					memcache.add(memcache_key, data, 60)				
+				if data.get(fint_account_id) is None:
 					return None
 				else:
-					return data[fint_acc_id]
-			
-			# tree process function helper #1
+					return data[fint_account_id]			
+			# tree process function helper #2
 			# check if account is in the tree index already
-			def phz2_acct_in_idx(fint_acc_id):
-		
+			def phz2_acct_in_idx(fint_acc_id):		
 				lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
 				lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
 		 		if index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1]:
@@ -2358,72 +2366,78 @@ class metric(object):
 		 			# Let the juggler know we need to save this index chunk since 
 		 			# we've modified it.
 		 			tell_juggler_modified("index",lint_index_chunk_id)
-		 			return False
-		 			
+		 			return False		 			
 		 	# tree process function helper #3
 		 	# see if our tree chunk is too big and we need to spawn another
 		 	lint_tree_chunk_size_factor = 0
-			def chk_chnk_sz(fbool_use_size_factor=False):
-			
+			def phz2_chk_chnk_sz(fbool_use_size_factor=False):			
 				if fbool_use_size_factor:
+					# This is a setting that makes it more flexible
+					# how often we waste resources redundantly encoding
+					# the tree chunk to check its size.
 					if lint_tree_chunk_size_factor < 1000:
 						return None
 				lint_tree_chunk_size_factor = 0
 				# if the size of the child chunk is too big 
 				# create the next one
 				if len(child_chunk._to_pb().Encode()) > 900000:
-					
+					# We're going to need to save the one that's full
+					# Let the juggler know.
+					tell_juggler_modified("tree",profile.child_pointer)
+					ldict_stats = child_chunk['STATS']
 					profile.child_pointer += 1
-					old_child_chunk = child_chunk
-					
-					if profile.tree_in_process:					
-						old_child_chunk.stuff[profile.tree_cursor][temp_LP + 1].append('X')
-						old_child_chunk.put()
-						temp_LP = old_child_chunk.stuff['LP']
-						temp_LPI = old_child_chunk.stuff['LPI']
-						child_chunk = get_tree_chunk(profile.child_pointer)
+					if profile.tree_in_process:
+						# Before we abandon the previous tree chunk, we need to leave
+						# a breadcrumb, so the parent knows when to leap to the next
+						# tree chunk.  Place an 'X' where the next entity info would
+						# have been.
+						child_chunk.stuff[profile.tree_cursor][temp_LP + 1].append('X')
+						temp_LP = child_chunk.stuff['LP']
+						temp_LPI = child_chunk.stuff['LPI']
+						# Now change reference for "child" to new chunk.
+						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
+						# Overwrite the default header info with current tree info.
 						child_chunk.stuff['LP'] = temp_LP
 						child_chunk.stuff['LPI'] = temp_LPI
 						child_chunk.stuff[profile.tree_cursor] = {}
 					else:
-						# we must have filled up from orphans
-						# still need to save our old one
-						old_child_chunk.put()
-						# defaults will suffice
-						child_chunk = get_tree_chunk(profile.child_pointer)						
-						
-				else: return None		
-			
-			# main tree process loop
+						# We must have filled up from orphans
+						# Defaults will suffice, since not working on a tree at the moment.
+						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
+					# copy stats from old child to new child
+					child_chunk['STATS'] = ldict_stats
+					return None
+				return None
+					
+
+			# MAIN PHASE 2 TREE PROCESS LOOP
 			while True:
-			
-				if deadline_reached(True): return None
-			
+
+				if deadline_reached(True): return process_stop()
+				phz2_chk_chnk_sz(True)
+
 				if profile.tree_in_process:
 					# finish the tree we're on
 					# do one full group at a time
-					
 					key1 = profile.tree_cursor # the tree number
 					key2 = child_chunk.stuff['LP'] # the tree level parent
 					idx1 = child_chunk.stuff['LPI'] # the parent index on that level
-					key3 = 2 # that accounts connections sequence
-					
-					
+					key3 = 2 # that accounts connections sequence					
 					# Large trees cause the parent and child chunk references
 					# to possibly separate, but whenever we start a new tree
 					# the parent and child both should be referencing the same
 					# chunk.
-					
-					if key2 == 1 and idx1 == 0: 
-					
+					if key2 == 1 and idx1 == 0: 					
 						parent_chunk = child_chunk
 						# Also, level one is the only level where we need to get tree
 						# statistics from the parent level too, all other times, we get
 						# them by only looking at child.
-						# STUB
-											
-					
-					
+						# get parents reserve total
+						lint_temp = parent_chunk.stuff[key1][key2][idx1][5]
+						child_chunk.stuff['STATS']['TREE_RESERVE_TOTALS'][key1] = lint_temp
+						child_chunk.stuff['STATS']['RESERVE_TOTALS'] += lint_temp
+						child_chunk.stuff['STATS']['TREE_NETWORK_TOTALS'][key1] = lint_temp
+						child_chunk.stuff['STATS']['NETWORK_TOTALS'] += lint_temp
 					# The child_chunk creates new tree chunks as it runs out of
 					# space and keeps all the important variables.  The parent_chunk
 					# just follows along.  Every time a child_chunk goes to a
@@ -2434,14 +2448,12 @@ class metric(object):
 					# ...you need to make sure there isn't a big fat 'X' in that
 					# spot.  If there is, we need to transition to the next tree
 					# chunk before continuing.
-					if parent_chunk.stuff[key1][key2][idx1] == 'X':
-					
+					if parent_chunk.stuff[key1][key2][idx1] == 'X':					
 						profile.parent_pointer += 1
 						parent_chunk = get_tree_chunk(profile.parent_pointer)
 						# Parent index on whatever level they are in the new
 						# chunk will always be zero. The start of the sequence.
 						child_chunk.stuff['LPI'] = 0
-					
 					for connection in parent_chunk.stuff[key1][key2][idx1][key3]:
 						# only do something with this account if we haven't already processed
 						if not phz2_acct_in_idx(connection):
@@ -2449,7 +2461,11 @@ class metric(object):
 							# after getting it from the staging chunk
 							laccount = get_acct_fsc(connection)
 							# Get tree statistics from this account
-							# STUB
+							# get childs reserve total
+							child_chunk.stuff['STATS']['TREE_RESERVE_TOTALS'][key1] += laccount[5]
+							child_chunk.stuff['STATS']['RESERVE_TOTALS'] += laccount[5]
+							child_chunk.stuff['STATS']['TREE_NETWORK_TOTALS'][key1] += laccount[4]
+							child_chunk.stuff['STATS']['NETWORK_TOTALS'] += laccount[4]
 							if child_chunk.stuff[key1].get(key2 + 1) is None:
 								# create the level
 								child_chunk.stuff[key1][key2 + 1] = []
@@ -2459,8 +2475,7 @@ class metric(object):
 							laccount[6] = parent_chunk.stuff[key1][key2 * -1][idx1]
 							child_chunk.stuff[key1][key2 + 1].append(laccount)
 							child_chunk.stuff[key1][(key2 + 1) * -1].append(connection)
-							lint_tree_chunk_size_factor += 10
-							
+							lint_tree_chunk_size_factor += 10							
 					# if we haven't reached the end of this level we aren't done
 					this_id = parent_chunk.stuff[key1][key2 * -1][idx1]
 					final_id = parent_chunk.stuff[key1][key2 * -1][-1]
@@ -2501,6 +2516,9 @@ class metric(object):
 							# no connections, so it's an orphan
 							child_chunk.stuff[1].append(profile.count_cursor)
 							lint_tree_chunk_size_factor += 1
+							tree_chunk_member.stuff['STATS']['ORPHAN_RESERVE_TOTALS'] += lresult[5]
+							tree_chunk_member.stuff['STATS']['ORPHAN_NETWORK_TOTALS'] += lresult[4]
+					
 						else:
 							# has connections
 							# add seed to dict and start tree
@@ -2514,8 +2532,7 @@ class metric(object):
 							# put the id of the seed in the negative level sequence
 							child_chunk.stuff[profile.tree_cursor][-1].append(profile.count_cursor)
 							profile.tree_in_process = True
-							lint_tree_chunk_size_factor += 10
-						
+							lint_tree_chunk_size_factor += 10						
 					if profile.count_cursor == profile.max_account:
 						# we're done with phase 2
 						profile.phase_cursor = 3
@@ -2558,25 +2575,7 @@ class metric(object):
 			# The parent pointer should still be pointed at the lowest level of that last
 			# tree completed.  There's no logic that would have modified it.
 
-			# (PHASE 3) Function to get the tree chunk
-			def phz3_get_tree_chunk(fint_chunk_id):
-			
-				key_part1 = profile_key_network_part
-				key_part2 = profile_key_time_part
-				key_part3 = str(fint_chunk_id).zfill(12)
-				tree_chunk_key = ndb.Key("ds_mrgp_tree_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
-				tree_chunk = tree_chunk_key.get()
-				# if the chunk we're trying to get doesn't exist, create it
-				if tree_chunk is None:
-					tree_chunk = ds_mrgp_tree_chunk()
-					tree_chunk.key = tree_chunk_key
-					tree_chunk.stuff = {}
-					tree_chunk.stuff['LP'] = 1 # Level Parent
-					tree_chunk.stuff['LPI'] = 0 # Level Parent Index
-					tree_chunk.stuff[1] = []		
-				return tree_chunk
-			
-			child_chunk = phz2_get_tree_chunk(profile.child_pointer)
+			child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
 			
 			# Main Loop
 			while True:
