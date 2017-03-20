@@ -301,6 +301,7 @@ class master(object):
 		
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		"""
 		tree_index_test = ds_mrgp_big_pickle()
 		tree_index_test.stuff = []
 		for i in range(1,800001):
@@ -339,6 +340,7 @@ class master(object):
 			
 		self.TRACE.append("staging_test length at 1000:%s" % str(len(staging_test._to_pb().Encode())))
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		"""
 		#DEBUG STUFF BEGIN
 		
 		some_obj = ds_mrgp_big_pickle()
@@ -2187,7 +2189,7 @@ class metric(object):
 			
 			# load/create index chunks
 			index_chunk = {}
-			for i in range(1,profile.index_chunks + 1)
+			for i in range(1,profile.index_chunks + 1):
 				key_part1 = key_network_part
 				key_part2 = profile_key_time_part
 				key_part3 = str(i).zfill(12)
@@ -2325,7 +2327,7 @@ class metric(object):
 				lint_tree_chunk_size_factor = 0
 				# if the size of the child chunk is too big 
 				# create the next one
-				len(child_chunk._to_pb().Encode()) > 900000:
+				if len(child_chunk._to_pb().Encode()) > 900000:
 					
 					profile.child_pointer += 1
 					old_child_chunk = child_chunk
@@ -2370,7 +2372,7 @@ class metric(object):
 					# the parent and child both should be referencing the same
 					# chunk.
 					
-					if key2 == 1 and idx1 = 0: parent_chunk = child_chunk
+					if key2 == 1 and idx1 == 0: parent_chunk = child_chunk
 					
 					# The child_chunk creates new tree chunks as it runs out of
 					# space and keeps all the important variables.  The parent_chunk
@@ -2440,7 +2442,7 @@ class metric(object):
 							# let process fall through and 
 							# incrmement count_cursor
 							pass
-						elif lresult[2] = []:
+						elif lresult[2] == []:
 							# no connections, so it's an orphan
 							child_chunk.stuff[1].append(profile.count_cursor)
 							lint_tree_chunk_size_factor += 1
