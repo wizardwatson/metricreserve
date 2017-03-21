@@ -235,6 +235,7 @@ class ds_mrgp_profile(ndb.Model):
 	index_chunks = ndb.IntegerProperty()
 	parent_pointer = ndb.IntegerProperty()
 	child_pointer = ndb.IntegerProperty()
+	report = ndb.PickleProperty()
 
 # *** the staging chunk ***
 class ds_mrgp_staging_chunk(ndb.Model):
@@ -1996,6 +1997,18 @@ class metric(object):
 				profile.index_chunks = 0
 				profile.parent_pointer = 0
 				profile.child_pointer = 0
+				profile.report = {}
+				profile.report['LAST_TREE_LEVEL'] = {}
+				# LAST PARENT ON LEVEL ABOVE LAST LEVEL TREE CHUNK POINTER PER TREE
+				profile.report['LP_WITH_KIDS'] = {}
+				profile.report['TREE_RESERVE_TOTALS'] = {}
+				profile.report['TREE_NETWORK_TOTALS'] = {}
+				profile.report['ORPHAN_RESERVE_TOTALS'] = 0
+				profile.report['ORPHAN_NETWORK_TOTALS'] = 0
+				profile.report['RESERVE_TOTALS'] = 0
+				profile.report['NETWORK_TOTALS'] = 0
+				profile.report['PARENT_LEVEL'] = 1 # Level Parent
+				profile.report['PARENT_LEVEL_IDX'] = 0 # Level Parent Index
 		
 			profile.status = "IN PROCESS"
 			deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
@@ -2007,7 +2020,7 @@ class metric(object):
 		process_lock_result = process_lock()
 		
 		# If we didn't get the lock, we're done.
-		if not result[0] == "GOT THE LOCK": return result[0]
+		if not process_lock_result[0] == "GOT THE LOCK": return process_lock_result[0]
 		
 		# now the clock starts.  If we don't finish before the
 		# deadline, then we pause and wait for a different 
@@ -2021,6 +2034,7 @@ class metric(object):
 		# times, and for large graphs we want to minimize our writes
 		# to the datastore.
 		
+		profile = process_lock_result[1]
 		juggler = {}
 		juggler_to_put = {}
 		
@@ -2099,18 +2113,6 @@ class metric(object):
 					tree_chunk_member = ds_mrgp_tree_chunk()
 					tree_chunk_member.key = tree_chunk_key
 					tree_chunk_member.stuff = {}
-					tree_chunk_member.stuff['STATS'] = {}
-					tree_chunk_member.stuff['STATS']['LAST_TREE_LEVEL'] = {}
-					# LAST PARENT ON LEVEL ABOVE LAST LEVEL TREE CHUNK POINTER
-					tree_chunk_member.stuff['STATS']['TREE_RESERVE_TOTALS'] = {}
-					tree_chunk_member.stuff['STATS']['LP_WITH_KIDS'] = 1
-					tree_chunk_member.stuff['STATS']['TREE_NETWORK_TOTALS'] = {}
-					tree_chunk_member.stuff['STATS']['ORPHAN_RESERVE_TOTALS'] = 0
-					tree_chunk_member.stuff['STATS']['ORPHAN_NETWORK_TOTALS'] = 0
-					tree_chunk_member.stuff['STATS']['RESERVE_TOTALS'] = 0
-					tree_chunk_member.stuff['STATS']['NETWORK_TOTALS'] = 0
-					tree_chunk_member.stuff['LP'] = 1 # Level Parent
-					tree_chunk_member.stuff['LPI'] = 0 # Level Parent Index
 					tree_chunk_member.stuff[1] = []
 					# we had to create this tree chunk
 					# make sure juggler knows it needs to save it later
@@ -2395,20 +2397,14 @@ class metric(object):
 						# tree chunk.  Place an 'X' where the next entity info would
 						# have been.
 						child_chunk.stuff[profile.tree_cursor][temp_LP + 1].append('X')
-						temp_LP = child_chunk.stuff['LP']
-						temp_LPI = child_chunk.stuff['LPI']
 						# Now change reference for "child" to new chunk.
 						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
 						# Overwrite the default header info with current tree info.
-						child_chunk.stuff['LP'] = temp_LP
-						child_chunk.stuff['LPI'] = temp_LPI
 						child_chunk.stuff[profile.tree_cursor] = {}
 					else:
 						# We must have filled up from orphans
 						# Defaults will suffice, since not working on a tree at the moment.
 						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
-					# copy stats from old child to new child
-					child_chunk['STATS'] = ldict_stats
 					return None
 				return None
 					
@@ -2423,8 +2419,8 @@ class metric(object):
 					# finish the tree we're on
 					# do one full group at a time
 					key1 = profile.tree_cursor # the tree number
-					key2 = child_chunk.stuff['LP'] # the tree level parent
-					idx1 = child_chunk.stuff['LPI'] # the parent index on that level
+					key2 = profile.report['PARENT_LEVEL'] # the tree level parent
+					idx1 = profile.report['PARENT_LEVEL_IDX'] # the parent index on that level
 					key3 = 2 # that accounts connections sequence					
 					# Large trees cause the parent and child chunk references
 					# to possibly separate, but whenever we start a new tree
@@ -2437,10 +2433,10 @@ class metric(object):
 						# them by only looking at child.
 						# get parents reserve total
 						lint_temp = parent_chunk.stuff[key1][key2][idx1][5]
-						child_chunk.stuff['STATS']['TREE_RESERVE_TOTALS'][key1] = lint_temp
-						child_chunk.stuff['STATS']['RESERVE_TOTALS'] += lint_temp
-						child_chunk.stuff['STATS']['TREE_NETWORK_TOTALS'][key1] = lint_temp
-						child_chunk.stuff['STATS']['NETWORK_TOTALS'] += lint_temp
+						profile.report['TREE_RESERVE_TOTALS'][key1] = lint_temp
+						profile.report['RESERVE_TOTALS'] += lint_temp
+						profile.report['TREE_NETWORK_TOTALS'][key1] = lint_temp
+						profile.report['NETWORK_TOTALS'] += lint_temp
 					# The child_chunk creates new tree chunks as it runs out of
 					# space and keeps all the important variables.  The parent_chunk
 					# just follows along.  Every time a child_chunk goes to a
@@ -2456,7 +2452,7 @@ class metric(object):
 						parent_chunk = get_tree_chunk(profile.parent_pointer)
 						# Parent index on whatever level they are in the new
 						# chunk will always be zero. The start of the sequence.
-						child_chunk.stuff['LPI'] = 0
+						profile.report['PARENT_LEVEL_IDX'] = 0
 					for connection in parent_chunk.stuff[key1][key2][idx1][key3]:
 						# only do something with this account if we haven't already processed
 						if not phz2_acct_in_idx(connection):
@@ -2465,15 +2461,15 @@ class metric(object):
 							laccount = get_acct_fsc(connection)
 							# Get tree statistics from this account
 							# get childs reserve total
-							child_chunk.stuff['STATS']['TREE_RESERVE_TOTALS'][key1] += laccount[5]
-							child_chunk.stuff['STATS']['RESERVE_TOTALS'] += laccount[5]
-							child_chunk.stuff['STATS']['TREE_NETWORK_TOTALS'][key1] += laccount[4]
-							child_chunk.stuff['STATS']['NETWORK_TOTALS'] += laccount[4]
+							profile.report['TREE_RESERVE_TOTALS'][key1] += laccount[5]
+							profile.report['RESERVE_TOTALS'] += laccount[5]
+							profile.report['TREE_NETWORK_TOTALS'][key1] += laccount[4]
+							profile.report['NETWORK_TOTALS'] += laccount[4]
 							# Make this parent_chunk id the LP_WITH_KIDS
-							child_chunk.stuff['STATS']['LP_WITH_KIDS'] = profile.parent_pointer
+							profile.report['LP_WITH_KIDS'][key1] = profile.parent_pointer
 							if child_chunk.stuff[key1].get(key2 + 1) is None:
 								# create the level
-								child_chunk.stuff['STATS']['LAST_TREE_LEVEL'][key1] = key2 + 1
+								profile.report['LAST_TREE_LEVEL'][key1] = key2 + 1
 								child_chunk.stuff[key1][key2 + 1] = []
 								child_chunk.stuff[key1][(key2 + 1) * -1] = []
 								child_chunk.stuff[key1][(key2 + 1) * -1].append(-1)
@@ -2489,19 +2485,19 @@ class metric(object):
 					if this_id == final_id:
 						# Ok, we've reached the end of this level.
 						# But is there a level below this?  Check the child stats
-						if child_chunk.stuff['STATS']['LAST_TREE_LEVEL'][key1] == child_chunk.stuff['LP']):
+						if profile.report['LAST_TREE_LEVEL'][key1] == profile.report['PARENT_LEVEL']):
 							# no level below this, this tree is done
-							child_chunk.stuff['LP'] = 1
-							child_chunk.stuff['LPI'] = 0
+							profile.report['PARENT_LEVEL'] = 1
+							profile.report['PARENT_LEVEL_IDX'] = 0
 							profile.tree_in_process = False
 						else:
 							# more levels, keep going
-							child_chunk.stuff['LP'] += 1
-							child_chunk.stuff['LPI'] = 0
+							profile.report['PARENT_LEVEL'] += 1
+							profile.report['PARENT_LEVEL_IDX'] = 0
 							lint_tree_chunk_size_factor += 1
 					else:
 						# more account(s) in this level, keep going
-						child_chunk.stuff['LPI'] += 1
+						profile.report['PARENT_LEVEL_IDX'] += 1
 						lint_tree_chunk_size_factor += 1
 							
 							
@@ -2523,8 +2519,8 @@ class metric(object):
 							# no connections, so it's an orphan
 							child_chunk.stuff[1].append(profile.count_cursor)
 							lint_tree_chunk_size_factor += 1
-							tree_chunk_member.stuff['STATS']['ORPHAN_RESERVE_TOTALS'] += lresult[5]
-							tree_chunk_member.stuff['STATS']['ORPHAN_NETWORK_TOTALS'] += lresult[4]
+							profile.report['ORPHAN_RESERVE_TOTALS'] += lresult[5]
+							profile.report['ORPHAN_NETWORK_TOTALS'] += lresult[4]
 					
 						else:
 							# has connections
@@ -2588,6 +2584,11 @@ class metric(object):
 			
 				pass
 			
+			# Define the reserve even-ing (that which "evens") function.
+			def phz3_decrement_child():
+						
+				pass
+				
 			# Still using the parent/child pointers.  The child_pointer should still be 
 			# pointing at the last tree chunk.  May or may not have any trees in that chunk.
 			# The parent pointer should still be pointed at the lowest level of that last
@@ -2601,9 +2602,63 @@ class metric(object):
 			
 				if deadline_reached(True): return process_stop()
 				
-				# Tree cursor should reflect last tree we were working on
-				# or the first tree we need to work on if we've just started.
-				# Does the child chunk we're on have that tree in it?
+				if profile.tree_in_process:
+				
+					# If there's a tree in process there must
+					# be another group to process.  Because when
+					# we process a group, we cue up the next group
+					# and if the group we processed had the seed
+					# as the parent, then we would have finished
+					# the tree.
+					
+				else:
+				
+					if profile.tree_cursor == 1:
+					
+						# Nothing left but orphans.
+						# But could (though slim chance) be on
+						# more than one tree chunk.
+						if profile.child_pointer == 1:
+							# We're done with phase 3.
+							profile.phase_cursor = 4
+						else:
+							phz3_decrement_child()
+						
+					else:
+					
+						# We have more tree(s) to process but 
+						# haven't yet started it.
+						#
+						# If the tree we need to work on doesn't
+						# end on this chunk, then finalize this
+						# chunk and decrement the child pointer.
+						#
+						# If the tree we need does end on this
+						# chunk, then we're ready to start on a 
+						# new tree.
+						
+						if child_chunk.stuff.get(profile.tree_cursor) is None:
+							# This chunk doesn't have the tree we need.
+							# Maybe the one previous does.
+							phz3_decrement_child()
+						else:
+							# This chunk has the tree_cursor key and we
+							# haven't processed.  This must be the end of
+							# the tree, and there must be at least one
+							# unprocessed group on this tree in this chunk.
+							#
+							# That means this will be the first group 
+							# processed for this tree so we must set our
+							# level and index on the parent_chunk.
+							profile.parent_pointer = profile.report['LP_WITH_KIDS'][profile.tree_cursor]
+							if profile.parent_pointer == profile.child_pointer:
+								parent_chunk = child_chunk
+							else:
+								parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)
+							# Parent chunk ready to go.  Now we need to set
+							# the parent index and level properly.
+							profile.report['PARENT_LEVEL'] = profile.report['LAST_TREE_LEVEL'][profile.tree_cursor]
+							profile.report['PARENT_LEVEL_IDX'] = 0
 				
 				
 				
