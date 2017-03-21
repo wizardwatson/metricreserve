@@ -2729,15 +2729,37 @@ class metric(object):
 							# 3. The current level started on this chunk
 							if not child_chunk.stuff[profile.tree_cursor].get(lint_p_lvl) is None:
 								# It's scenario 1.
-								
+								lint_child_idx = len(child_chunk.stuff[profile.tree_cursor][lint_p_lvl * -1]) - 1
+								profile.report['CHILD_LEVEL_IDX'] = lint_child_idx
+								profile.report['PARENT_LEVEL'] -= 1								
 							else:
 								# It's scenario 2 or 3.  Let's grab it and
 								# figure out what our child level and index needs
 								# to be.
-								
-						
-						
+								profile.child_pointer -= 1
+								child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
+								if not child_chunk.stuff[profile.tree_cursor].get(lint_p_lvl - 1) is None:
+									# It's scenario 2.
+									# There will be an 'X' in last position of level, but not 
+									# in the negative level, FYI.
+									lint_child_idx = len(child_chunk.stuff[profile.tree_cursor][(lint_p_lvl + 1) * -1]) - 1
+									profile.report['CHILD_LEVEL_IDX'] = lint_child_idx
+									# parent level remains the same
+								else:
+									# It's scenario 3.
+									lint_child_idx = len(child_chunk.stuff[profile.tree_cursor][lint_p_lvl * -1]) - 1
+									profile.report['CHILD_LEVEL_IDX'] = lint_child_idx
+									profile.report['PARENT_LEVEL'] -= 1						
 						# Now lets make sure our parent chunk and indexes are set.
+						# Everything else but that is good to go for the loop.
+						
+						
+						
+						
+						
+						
+						
+						
 					"""
 					profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
 					profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
