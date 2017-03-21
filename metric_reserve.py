@@ -2506,10 +2506,14 @@ class metric(object):
 							profile.report['PARENT_LEVEL'] = 1
 							profile.report['PARENT_LEVEL_IDX'] = 0
 							profile.report['CHILD_LEVEL_IDX'][key1] = idx1
+							# While we're ending the tree, lets take care of some reporting variables.
 							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][key1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 							lint_amt = profile.report['TREE_RESERVE_AMT_TOTAL'][key1]
 							lint_accounts = profile.report['TREE_MEMBER_TOTAL'][key1]
-							profile.report['TREE_RESERVE_AMT_AVERAGE'][key1] = lint_amt / lint_accounts
+							# drop the scintillions and also divide this way so that complies with 
+							# python 3? division if ever migrated.
+							lint_average = ((lint_amount - (lint_amount % lint_accounts)) / lint_accounts)
+							profile.report['TREE_RESERVE_AMT_AVERAGE'][key1] = lint_average
 							profile.tree_in_process = False
 						else:
 							# more levels, keep going
@@ -2641,17 +2645,38 @@ class metric(object):
 					ldict_account = child_chunk.stuff[lint_tree][lint_p_lvl + 1][lint_child_idx]
 					child_has_deficiency = False
 					while True:						
-						if ldict_account[6] == lint_p_id:
-							# This child belongs to our parent, add it
+						if not ldict_account[6] == lint_p_id:
+							# We're done, this child belongs to next parent
+							break						
+						if ldict_account[5] < profile.report['TREE_RESERVE_AMT_AVERAGE'][lint_tree]:
+							# This child belongs to our parent, and it has a 
+							# reserve deficiency from average.  Add it to list of
+							# candidates for parental-to-child reserve transfer.
 							lint_c_lvl = lint_p_lvl + 1
 							lint_c_idx = lint_child_idx
 							lint_c_id = child_chunk.stuff[lint_tree][lint_c_lvl * -1][lint_c_idx]
 							lint_c_rsrv = ldict_account[5]
 							list_tpl_kids.append((lint_c_idx, lint_c_id, lint_c_rsrv))
-							child_has_deficiency = True
+							child_has_deficiency = True						
+						if ldict_account[5] > profile.report['TREE_RESERVE_AMT_AVERAGE'][lint_tree]:
+							# Most of the complexity in this algorithm is deciding how
+							# parent should distribute its reserves to deficient children.
+							# Deciding what the child should do with excess reserves, 
+							# however, is easy.  It should give all the excess to the parent.
+							#
+							# We can take care of this right here in this logic branch. If
+							# we're here it means
+							################################################
+							################################################
+							################################################
+							# STUB transfer suggestions child to parent
+							################################################
+							################################################
+							################################################
+							pass
 						else:
-							# We're done, this child index belongs to next parent
-							break
+							# Notice if reserves are equal to average we ignore.
+							pass
 						if profile.report['CHILD_LEVEL_IDX'] > 0:						
 							profile.report['CHILD_LEVEL_IDX'] -= 1
 							lint_child_idx = profile.report['CHILD_LEVEL_IDX']
@@ -2661,9 +2686,58 @@ class metric(object):
 							# of child level on this tree chunk, which means end
 							# of this group.
 							break
-					
-					
-					
+					# We are done checking the children
+					if child_has_deficiency:
+							################################################
+							################################################
+							################################################
+							# STUB transfer suggestions parent to child
+							################################################
+							################################################
+							################################################
+							pass
+					# We are done processing this tree reserve group.  Set up
+					# pointers to the next one unless we are done with
+					# this tree.
+					if lint_p_lvl == 1:
+						# level 1 is the seed, we are done
+						# Decrement the tree cursor and break
+						profile.tree_cursor -= 1
+						break
+					else:
+						# So the child level is at least level 3.  To prepare
+						# the next group we need to find the next child.  Finding
+						# next parent is no good, because it may be an account
+						# on that level that had no unique children. So find the
+						# next child, even if we have to go up a level, or up 
+						# a chunk, and then find the right parent chunk as well.
+						# 
+						# Then we're set and can just continue this while loop.
+						#
+						# Let's get started.
+						#
+						# We decremented the child index unless it was zero, 
+						# meaning we are at the end of this level on this chunk.
+						# If we're not at zero, the child chunk is good to go.
+						if profile.report['CHILD_LEVEL_IDX'] == 0:
+							# A level can be split across two or more chunks
+							# but you'll never have the 2 distinct levels on two 
+							# different chunks for the same tree.  
+							# So either:
+							# 1. The level above exists on this chunk OR
+							# 2. The current level is continued from the previous chunk OR
+							# 3. The current level started on this chunk
+							if not child_chunk.stuff[profile.tree_cursor].get(lint_p_lvl) is None:
+								# It's scenario 1.
+								
+							else:
+								# It's scenario 2 or 3.  Let's grab it and
+								# figure out what our child level and index needs
+								# to be.
+								
+						
+						
+						# Now lets make sure our parent chunk and indexes are set.
 					"""
 					profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
 					profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
@@ -2679,7 +2753,7 @@ class metric(object):
 					# happens to be the seed, we've finished the tree.
 					# If it isn't, we then move the parent index as
 					# well.
-					
+					if 
 					
 				else:
 				
@@ -2720,10 +2794,7 @@ class metric(object):
 							# processed for this tree so we must set our
 							# level and index on the parent_chunk.
 							profile.parent_pointer = profile.report['LP_WITH_KIDS'][profile.tree_cursor]
-							if profile.parent_pointer == profile.child_pointer:
-								parent_chunk = child_chunk
-							else:
-								parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)
+							parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)
 							# Parent chunk ready to go.  Now we need to set
 							# the parent index and level properly.
 							# NOTE: We want -1 because the last-last level has no children.
@@ -2740,6 +2811,7 @@ class metric(object):
 							# The child index (CHILD_LEVEL_IDX) is only used in this phase so we set it
 							# in phase 2 when we complete a tree. It should be ready to use.
 							profile.tree_in_process = True
+							
 							
 		if profile.phase_cursor == 4:
 		
