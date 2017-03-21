@@ -2812,7 +2812,7 @@ class metric(object):
 									# parent, however, each time we make a suggestion.								
 									if ldict_p_account.get(7) is None:
 										# Not defined.  
-										ldict_p_account.get(7) = 1
+										ldict_p_account[7] = 1
 										# These two should only get incremented once for the parent.
 										profile.report['SUGGESTED_MEMBER_TOTAL'] += 1
 										profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][lint_tree] += 1
