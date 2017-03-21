@@ -2625,9 +2625,14 @@ class metric(object):
 					lint_p_id = parent_chunk.stuff[lint_tree][lint_p_lvl * -1][lint_p_idx]
 					lint_p_rsrv = parent_chunk.stuff[lint_tree][lint_p_lvl][lint_p_idx][5]
 					
-					# make a parent tuple for easy access
-					# id/index/reserves
-					tpl_parent = (lint_p_idx, lint_p_id, lint_p_rsrv)
+					# The only complicated part of this particular evening algorithm
+					# is deciding how a parent should spread out his reserves to the
+					# deficient children.  If he has no reserves, or none of the children
+					# are deficient, we don't do this part.
+					if lint_p_rsrv > 0:
+						parent_has_reserves = True
+					else:
+						parent_has_reserves = False
 					# make list of tuples for children
 					list_tpl_kids = []
 					
