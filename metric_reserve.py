@@ -2616,6 +2616,47 @@ class metric(object):
 					# as the parent, then we would have finished
 					# the tree.
 					
+					# get references to tree
+					lint_tree = profile.tree_cursor
+					
+					# get parent level/index/id/reserves					
+					lint_p_lvl = profile.report['PARENT_LEVEL']
+					lint_p_idx = profile.report['PARENT_LEVEL_IDX']
+					lint_p_id = parent_chunk.stuff[lint_tree][lint_p_lvl * -1][lint_p_idx]
+					lint_p_rsrv = parent_chunk.stuff[lint_tree][lint_p_lvl][lint_p_idx][5]
+					
+					# make a parent tuple for easy access
+					# id/index/reserves
+					tpl_parent = (lint_p_idx, lint_p_id, lint_p_rsrv)
+					# make list of tuples for children
+					list_tpl_kids = []
+					
+					# loop initialization variables
+					lint_child_idx = profile.report['CHILD_LEVEL_IDX']
+					ldict_account = child_chunk.stuff[lint_tree][lint_p_lvl + 1][lint_child_idx]
+					while True:						
+						if ldict_account[6] == lint_p_id:
+							# This child belongs to our parent, add it
+							lint_c_lvl = lint_p_lvl + 1
+							lint_c_idx = lint_child_idx
+							lint_c_id = child_chunk.stuff[lint_tree][lint_c_lvl * -1][lint_c_idx]
+							lint_c_rsrv = ldict_account[5]
+							list_tpl_kids.append((lint_c_idx, lint_c_id, lint_c_rsrv))
+						else:
+							# We're done, this child index belongs to next parent
+							break
+						if profile.report['CHILD_LEVEL_IDX'] > 0:						
+							profile.report['CHILD_LEVEL_IDX'] -= 1
+							lint_child_idx = profile.report['CHILD_LEVEL_IDX']
+							ldict_account = child_chunk.stuff[lint_tree][lint_c_lvl][lint_child_idx]
+						else:
+							# We're done, child index is 0, must be at beginning 
+							# of child level on this tree chunk, which means end
+							# of this group.
+							break
+					
+					
+					
 					"""
 					profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
 					profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
@@ -2687,7 +2728,7 @@ class metric(object):
 							profile.report['PARENT_LEVEL'] = lint_temp
 							# So we know we got the right chunk, and we know we got the right
 							# level to start the parent on.  But we still need the index.
-							lint_temp = profile.report['LP_WITH_KIDS'][profile.tree_cursor]
+							lint_temp = profile.report['LP_WITH_KIDS_IDX'][profile.tree_cursor]
 							profile.report['PARENT_LEVEL_IDX'] = lint_temp
 							# The child index (CHILD_LEVEL_IDX) is only used in this phase so we set it
 							# in phase 2 when we complete a tree. It should be ready to use.
