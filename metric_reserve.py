@@ -2501,7 +2501,7 @@ class metric(object):
 					if this_id == final_id:
 						# Ok, we've reached the end of this level.
 						# But is there a level below this?  Check the child stats
-						if profile.report['LAST_TREE_LEVEL'][key1] == profile.report['PARENT_LEVEL']):
+						if profile.report['LAST_TREE_LEVEL'][key1] == profile.report['PARENT_LEVEL']:
 							# no level below this, this tree is done
 							profile.report['PARENT_LEVEL'] = 1
 							profile.report['PARENT_LEVEL_IDX'] = 0
