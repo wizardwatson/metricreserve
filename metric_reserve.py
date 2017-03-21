@@ -15,6 +15,7 @@ import re
 import pickle
 import random
 import bisect
+from operator import itemgetter
 
 # these are standard GAE imports
 from google.appengine.api import memcache
@@ -2637,7 +2638,7 @@ class metric(object):
 					# is deciding how a parent should spread out his reserves to the
 					# deficient children.  If he has no reserves, or none of the children
 					# are deficient, we don't do this part.
-					if lint_p_rsrv > 20:
+					if lint_p_rsrv > 19:
 						parent_has_reserves = True
 					else:
 						parent_has_reserves = False
@@ -2688,20 +2689,29 @@ class metric(object):
 							if ldict_c_account.get(7) is None:
 								# Not defined.  This account only has this
 								# one suggestion.
-								lint_suggestions = 1
+								# global report variables
+								profile.report['SUGGESTED_COUNT_TOTAL'] += 1
+								profile.report['SUGGESTED_MEMBER_TOTAL'] += 1
+								profile.report['SUGGESTED_TX_COUNT_TOTAL'][0] += 1 
+								profile.report['SUGGESTED_AMT_TOTAL'] += lint_overage
+								# tree report variables
+								profile.report['SUGGESTED_TREE_COUNT_TOTAL'][lint_tree] += 1
+								profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][lint_tree] += 1
+								profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][lint_tree][0] += 1 
+								profile.report['SUGGESTED_TREE_AMT_TOTAL'][lint_tree] += lint_overage
 							else:
 								# Defined.  This account has (key 7) + 1 suggestions.
-								lint_suggestions = ldict_c_account[7] + 1
-							# global report variables
-							profile.report['SUGGESTED_COUNT_TOTAL'] += lint_suggestions
-							profile.report['SUGGESTED_MEMBER_TOTAL'] += 1
-							profile.report['SUGGESTED_TX_COUNT_TOTAL'][lint_suggestions - 1] += 1 
-							profile.report['SUGGESTED_AMT_TOTAL'] += lint_overage
-							# tree report variables
-							profile.report['SUGGESTED_TREE_COUNT_TOTAL'][lint_tree] += lint_suggestions
-							profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][lint_tree] += 1
-							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][lint_tree][lint_suggestions - 1] += 1 
-							profile.report['SUGGESTED_TREE_AMT_TOTAL'][lint_tree] += lint_overage
+								lint_total_suggestions = ldict_c_account[7] + 1
+								# global report variables
+								profile.report['SUGGESTED_COUNT_TOTAL'] += 1
+								# already included in SUGGESTED_MEMBER_TOTAL in processing as parent
+								profile.report['SUGGESTED_TX_COUNT_TOTAL'][lint_total_suggestions - 1] += 1 
+								profile.report['SUGGESTED_AMT_TOTAL'] += lint_overage
+								# tree report variables
+								profile.report['SUGGESTED_TREE_COUNT_TOTAL'][lint_tree] += 1
+								# already included in SUGGESTED_TREE_MEMBER_TOTAL in processing as parent
+								profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][lint_tree][lint_total_suggestions - 1] += 1 
+								profile.report['SUGGESTED_TREE_AMT_TOTAL'][lint_tree] += lint_overage
 							# We updated parent and child chunks.  Let the juggler know.
 							tell_juggler_modified("tree",profile.child_pointer)
 							tell_juggler_modified("tree",profile.parent_pointer)
@@ -2718,49 +2728,124 @@ class metric(object):
 							# of child level on this tree chunk, which means end
 							# of this group.
 							break
-					# We are done checking the children
-					if child_has_deficiency and parent_has_reserves:
-					
-							# first sort the deficient accounts in ascending order
-							
-							# create a mutable list to hold our suggestion values
-							sugg_values = []
-							for i in range(len(list_tpl_kids_sorted)):
-								sugg_values.append(0)
+					# We are done checking the children.
+					# Now see if we need to make parent suggestions.
+					if child_has_deficiency and parent_has_reserves:					
+							# create new reference to parents total reserves
+							lint_amount_left_to_use = lint_p_rsrv
+							# create a sorted version of our list of child tuples
+							list_tpl_kids_sorted = sorted(list_tpl_kids, key=itemgetter(2))
+							# Instead of populating the suggestion list with values
+							# as we go, we'll keep track of fill line.  The fill line
+							# should start at the level of the lowest child.
+							lint_fill_line = list_tpl_kids_sorted[0][2]
 							# now loop from first to last
-							even_group_index = 0
+							# THIS IS THE PRIMARY LOGIC OF GROUP RESERVE EVENING
 							for i in range(len(list_tpl_kids_sorted)):
 								# tuple list member is (index,id,amt)
 								# is this the last one?
 								if i == (len(list_tpl_kids_sorted) - 1):
-									# we are on the last
+									# We are on the last (or only) index.
+									# That means all the children are either
+									# even or there's only one, and we still 
+									# are below average.  So see if we have
+									# enough to make all average or make fill
+									# line whatever evenly distributing remaining
+									# gets us.
+									lint_average = profile.report['TREE_RESERVE_AMT_AVERAGE'][lint_tree]
+									lint_difference = lint_average - list_tpl_kids_sorted[i][2]
+									lint_needed_to_get_avg = lint_difference * (i + 1)
+									if amount_left_to_use < lint_needed_to_get_avg:
+										lint_fill_line = lint_fill_line + ((amount_left_to_use - (amount_left_to_use % (i + 1))) / (i + 1))
+										break
+									else:
+										lint_fill_line = lint_average
+										break
 								if list_tpl_kids_sorted[i][2] == list_tpl_kids_sorted[i + 1][2]:
-									# next account has same as this one
+									# Next account has same as this one.
+									# Continue until we find one with more
+									# or we're on the last one.
+									continue
 								else:
 									# Next account has more than this one.
-									# Distribute between i and previous accounts
-									# enough to make ourselves even with i + 1 
-									# then continue.
+									# If we have enough to make 0 to i that much
+									# then make next's amount our fill line.
 									#
-									# If we don't have enough for that then distribute 
-									# everything we have left between i and previous
-									# then break out as we are done.
-									
-							################################################
-							################################################
-							################################################
-							# STUB transfer suggestions parent to child
-							################################################
-							################################################
-							################################################
-							pass
+									# If we don't have enough for that then figure out
+									# what the fill line would be by spreading remaining
+									# between 0 and i and break.
+									lint_difference = list_tpl_kids_sorted[i + 1][2] - list_tpl_kids_sorted[i][2]
+									lint_needed_to_even = lint_difference * (i + 1)
+									if amount_left_to_use < lint_needed_to_even:
+										# not enough to make even with next, get our fill line and break
+										lint_fill_line = lint_fill_line + ((amount_left_to_use - (amount_left_to_use % (i + 1))) / (i + 1))
+										break
+									else:
+										# enough to make even with next
+										lint_fill_line = list_tpl_kids_sorted[i + 1][2]
+										amount_left_to_use = amount_left_to_use - lint_needed_to_even
+										# break if we have less than 20 scintillions
+										if amount_left_to_use < 20: 
+											break
+										else:
+											continue
+											
+							# Create suggestions in the parent to bring any deficient 
+							# children under the fill line, to the fill line.
+							for i in range(len(list_tpl_kids_sorted)):
+								if list_tpl_kids_sorted[i][2] < lint_fill_line:
+									lint_suggestion_amount = lint_fill_line - list_tpl_kids_sorted[i][2]
+									# do the childs suggestion (+)
+									# list_tpl_kids_sorted member is (index,id,amt)
+									ldict_c_account = child_chunk.stuff[lint_tree][lint_p_lvl + 1][list_tpl_kids_sorted[i][0]]
+									lint_target_sugg_idx = ldict_c_account[2].index(lint_p_id)
+									ldict_c_account[3][lint_target_sugg_idx] = (lint_suggestion_amount)
+									# do the parents suggestion (-)
+									lint_target_sugg_idx = ldict_p_account[2].index(list_tpl_kids_sorted[i][1])
+									ldict_p_account[3][lint_target_sugg_idx] = (lint_suggestion_amount * -1)
+									# increment/modify reporting variables
+									#
+									# Store our total suggestions in key 7 as we only
+									# add to reporting variables when processing
+									# as child because that could be one more transaction.
+									# we do store all the other transaction info for the
+									# parent, however, each time we make a suggestion.								
+									if ldict_p_account.get(7) is None:
+										# Not defined.  
+										ldict_p_account.get(7) = 1
+										# These two should only get incremented once for the parent.
+										profile.report['SUGGESTED_MEMBER_TOTAL'] += 1
+										profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][lint_tree] += 1
+									else:
+										ldict_p_account[7] += 1
+										
+									# global report variables
+									profile.report['SUGGESTED_COUNT_TOTAL'] += 1
+									profile.report['SUGGESTED_AMT_TOTAL'] += lint_suggestion_amount
+									# tree report variables
+									profile.report['SUGGESTED_TREE_COUNT_TOTAL'][lint_tree] += 1
+									profile.report['SUGGESTED_TREE_AMT_TOTAL'][lint_tree] += lint_suggestion_amount
+										
+									# We updated parent and child chunks.  Let the juggler know.
+									tell_juggler_modified("tree",profile.child_pointer)
+									tell_juggler_modified("tree",profile.parent_pointer)
+								else:
+									continue
 					# We are done processing this tree reserve group.  Set up
 					# pointers to the next one unless we are done with
 					# this tree.
 					if lint_p_lvl == 1:
-						# level 1 is the seed, we are done
+						# level 1 is the seed, we are done with this tree
 						# Decrement the tree cursor and break
+						
+						# Also, being that the parent is on the seed, let's 
+						# record the final report variables we don't get to
+						# since the seed is never processed as a child.
+						if not ldict_p_account.get(7) is None:
+							profile.report['SUGGESTED_TX_COUNT_TOTAL'][ldict_p_account[7] - 1] += 1 
+							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][profile.tree_cursor][ldict_p_account[7] - 1] += 1						
 						profile.tree_cursor -= 1
+						profile.tree_in_process = False						
 						break
 					else:
 						# So the child level is at least level 3.  To prepare
