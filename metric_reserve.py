@@ -2003,6 +2003,7 @@ class metric(object):
 				profile.report['LP_WITH_KIDS'] = {}
 				profile.report['LP_WITH_KIDS_IDX'] = {}
 				profile.report['TREE_RESERVE_AMT_TOTAL'] = {}
+				profile.report['TREE_RESERVE_AMT_AVERAGE'] = {}
 				profile.report['TREE_NETWORK_AMT_TOTAL'] = {}
 				profile.report['TREE_MEMBER_TOTAL'] = {}
 				profile.report['ORPHAN_RESERVE_AMT_TOTAL'] = 0
@@ -2505,6 +2506,10 @@ class metric(object):
 							profile.report['PARENT_LEVEL'] = 1
 							profile.report['PARENT_LEVEL_IDX'] = 0
 							profile.report['CHILD_LEVEL_IDX'][key1] = idx1
+							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][key1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+							lint_amt = profile.report['TREE_RESERVE_AMT_TOTAL'][key1]
+							lint_accounts = profile.report['TREE_MEMBER_TOTAL'][key1]
+							profile.report['TREE_RESERVE_AMT_AVERAGE'][key1] = lint_amt / lint_accounts
 							profile.tree_in_process = False
 						else:
 							# more levels, keep going
@@ -2589,11 +2594,6 @@ class metric(object):
 
 			# So let's get started.
 			
-			# Define the reserve even-ing (that which "evens") function.
-			def phz3_evener():
-			
-				pass
-			
 			# Still using the parent/child pointers.  The child_pointer should still be 
 			# pointing at the last tree chunk.  May or may not have any trees in that chunk.
 			# The parent pointer should still be pointed at the lowest level of that last
@@ -2639,6 +2639,7 @@ class metric(object):
 					# loop initialization variables
 					lint_child_idx = profile.report['CHILD_LEVEL_IDX']
 					ldict_account = child_chunk.stuff[lint_tree][lint_p_lvl + 1][lint_child_idx]
+					child_has_deficiency = False
 					while True:						
 						if ldict_account[6] == lint_p_id:
 							# This child belongs to our parent, add it
@@ -2647,6 +2648,7 @@ class metric(object):
 							lint_c_id = child_chunk.stuff[lint_tree][lint_c_lvl * -1][lint_c_idx]
 							lint_c_rsrv = ldict_account[5]
 							list_tpl_kids.append((lint_c_idx, lint_c_id, lint_c_rsrv))
+							child_has_deficiency = True
 						else:
 							# We're done, this child index belongs to next parent
 							break
@@ -2738,8 +2740,7 @@ class metric(object):
 							# The child index (CHILD_LEVEL_IDX) is only used in this phase so we set it
 							# in phase 2 when we complete a tree. It should be ready to use.
 							profile.tree_in_process = True
-							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][profile.tree_cursor] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-								
+							
 		if profile.phase_cursor == 4:
 		
 			pass
