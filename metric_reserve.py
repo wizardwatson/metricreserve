@@ -16,6 +16,8 @@ import pickle
 import random
 import bisect
 from operator import itemgetter
+# for debugging on dev_appserver.py only
+import pdb
 
 # these are standard GAE imports
 from google.appengine.api import memcache
@@ -370,6 +372,7 @@ class master(object):
 		
 		# Calculate the graph process cutoff time for this request
 		t_now = datetime.datetime.now()
+		pdb.set_trace()
 		d_since = t_now - T_EPOCH
 		# this requests cutoff time
 		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
