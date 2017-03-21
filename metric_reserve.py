@@ -2002,19 +2002,22 @@ class metric(object):
 				# LAST PARENT ON LEVEL ABOVE LAST LEVEL TREE CHUNK POINTER PER TREE
 				profile.report['LP_WITH_KIDS'] = {}
 				profile.report['LP_WITH_KIDS_IDX'] = {}
-				profile.report['TREE_RESERVE_TOTAL'] = {}
-				profile.report['TREE_NETWORK_TOTAL'] = {}
+				profile.report['TREE_RESERVE_AMT_TOTAL'] = {}
+				profile.report['TREE_NETWORK_AMT_TOTAL'] = {}
 				profile.report['TREE_MEMBER_TOTAL'] = {}
-				profile.report['ORPHAN_RESERVE_TOTAL'] = 0
-				profile.report['ORPHAN_NETWORK_TOTAL'] = 0
+				profile.report['ORPHAN_RESERVE_AMT_TOTAL'] = 0
+				profile.report['ORPHAN_NETWORK_AMT_TOTAL'] = 0
+				profile.report['ORPHAN_MEMBER_TOTAL'] = 0
 				profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
 				profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
-				profile.report['SUGGESTED_TREE_TX_TOTAL'] = {}
+				profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'] = {}
 				profile.report['SUGGESTED_TREE_AMT_TOTAL'] = {}
 				profile.report['SUGGESTED_COUNT_TOTAL'] = 0
+				profile.report['SUGGESTED_MEMBER_TOTAL'] = {}
+				profile.report['SUGGESTED_TX_COUNT_TOTAL'] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 				profile.report['SUGGESTED_AMT_TOTAL'] = 0
-				profile.report['RESERVE_TOTAL'] = 0
-				profile.report['NETWORK_TOTAL'] = 0
+				profile.report['RESERVE_AMT_TOTAL'] = 0
+				profile.report['NETWORK_AMT_TOTAL'] = 0
 				profile.report['PARENT_LEVEL'] = 1 # Level Parent
 				profile.report['PARENT_LEVEL_IDX'] = 0 # Level Parent Index
 				profile.report['CHILD_LEVEL_IDX'] = 0 # Level Parent Index
@@ -2442,10 +2445,11 @@ class metric(object):
 						# them by only looking at child.
 						# get parents reserve total
 						lint_temp = parent_chunk.stuff[key1][key2][idx1][5]
-						profile.report['TREE_RESERVE_TOTAL'][key1] = lint_temp
-						profile.report['RESERVE_TOTAL'] += lint_temp
-						profile.report['TREE_NETWORK_TOTAL'][key1] = lint_temp
-						profile.report['NETWORK_TOTAL'] += lint_temp
+						profile.report['TREE_RESERVE_AMT_TOTAL'][key1] = lint_temp
+						profile.report['TREE_NETWORK_AMT_TOTAL'][key1] = lint_temp
+						profile.report['TREE_MEMBER_TOTAL'][key1] = 1
+						profile.report['RESERVE_AMT_TOTAL'] += lint_temp
+						profile.report['NETWORK_AMT_TOTAL'] += lint_temp
 					# The child_chunk creates new tree chunks as it runs out of
 					# space and keeps all the important variables.  The parent_chunk
 					# just follows along.  Every time a child_chunk goes to a
@@ -2470,10 +2474,11 @@ class metric(object):
 							laccount = get_acct_fsc(connection)
 							# Get tree statistics from this account
 							# get childs reserve total
-							profile.report['TREE_RESERVE_TOTAL'][key1] += laccount[5]
-							profile.report['RESERVE_TOTAL'] += laccount[5]
-							profile.report['TREE_NETWORK_TOTALS'][key1] += laccount[4]
-							profile.report['NETWORK_TOTAL'] += laccount[4]
+							profile.report['TREE_RESERVE_AMT_TOTAL'][key1] += laccount[5]
+							profile.report['TREE_NETWORK_AMT_TOTAL'][key1] += laccount[4]
+							profile.report['TREE_MEMBER_TOTAL'] += 1
+							profile.report['RESERVE_AMT_TOTAL'] += laccount[5]
+							profile.report['NETWORK_AMT_TOTAL'] += laccount[4]
 							# Make this parent_chunk id the LP_WITH_KIDS
 							profile.report['LP_WITH_KIDS'][key1] = profile.parent_pointer
 							profile.report['LP_WITH_KIDS_IDX'][key1] = idx1
@@ -2530,8 +2535,9 @@ class metric(object):
 							# no connections, so it's an orphan
 							child_chunk.stuff[1].append(profile.count_cursor)
 							lint_tree_chunk_size_factor += 1
-							profile.report['ORPHAN_RESERVE_TOTAL'] += lresult[5]
-							profile.report['ORPHAN_NETWORK_TOTAL'] += lresult[4]
+							profile.report['ORPHAN_RESERVE_AMT_TOTAL'] += lresult[5]
+							profile.report['ORPHAN_NETWORK_AMT_TOTAL'] += lresult[4]
+							profile.report['ORPHAN_MEMBER_TOTAL'] += 1
 					
 						else:
 							# has connections
@@ -2610,6 +2616,23 @@ class metric(object):
 					# as the parent, then we would have finished
 					# the tree.
 					
+					"""
+					profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
+					profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
+					profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'] = {}
+					profile.report['SUGGESTED_TREE_AMT_TOTAL'] = {}
+					profile.report['SUGGESTED_COUNT_TOTAL'] = 0
+					profile.report['SUGGESTED_MEMBER_TOTAL'] = {}
+					profile.report['SUGGESTED_TX_COUNT_TOTAL'] = []
+					profile.report['SUGGESTED_AMT_TOTAL'] = 0
+					"""
+					# Set up the next group by setting the child
+					# index on the next one.  If the new child index
+					# happens to be the seed, we've finished the tree.
+					# If it isn't, we then move the parent index as
+					# well.
+					
+					
 				else:
 				
 					if profile.tree_cursor == 1:
@@ -2669,11 +2692,8 @@ class metric(object):
 							# The child index (CHILD_LEVEL_IDX) is only used in this phase so we set it
 							# in phase 2 when we complete a tree. It should be ready to use.
 							profile.tree_in_process = True
-							
-				
-				
-				
-		
+							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][profile.tree_cursor] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+								
 		if profile.phase_cursor == 4:
 		
 			pass
