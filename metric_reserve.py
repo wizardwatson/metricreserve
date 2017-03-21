@@ -2752,10 +2752,32 @@ class metric(object):
 									profile.report['PARENT_LEVEL'] -= 1						
 						# Now lets make sure our parent chunk and indexes are set.
 						# Everything else but that is good to go for the loop.
-						
-						
-						
-						
+						#
+						# Parent account id we're looking for
+						lint_child_idx = profile.report['CHILD_LEVEL_IDX']
+						lint_child_lvl = profile.report['PARENT_LEVEL'] + 1
+						lint_parent_lvl = profile.report['PARENT_LEVEL']
+						p_looking_id = child_chunk.stuff[profile.tree_cursor][lint_child_lvl][lint_child_idx][6]
+						#
+						# Is the parent level we need on this chunk?
+						while True:							
+							if parent.stuff[profile.tree_cursor].get(profile.report['PARENT_LEVEL']) is None:
+								# no - need a new chunk
+								profile.parent_pointer -= 1
+								parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)
+							else:
+								# yes - but is the parent account id we're looking for on this chunk?
+								if not p_looking_id in parent.stuff[profile.tree_cursor][lint_parent_lvl * -1]:
+									# no - need a new chunk
+									profile.parent_pointer -= 1
+									parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)									
+								else:
+									# found it!
+									lint_idx = parent.stuff[profile.tree_cursor][lint_parent_lvl * -1].index(p_looking_id)
+									profile.report['PARENT_LEVEL_IDX'] = lint_idx
+									# our parent chunk and id are now set to the next group
+									# ready to continue the outer loop.
+									break
 						
 						
 						
@@ -2770,13 +2792,6 @@ class metric(object):
 					profile.report['SUGGESTED_TX_COUNT_TOTAL'] = []
 					profile.report['SUGGESTED_AMT_TOTAL'] = 0
 					"""
-					# Set up the next group by setting the child
-					# index on the next one.  If the new child index
-					# happens to be the seed, we've finished the tree.
-					# If it isn't, we then move the parent index as
-					# well.
-					if 
-					
 				else:
 				
 					if profile.tree_cursor == 1:
