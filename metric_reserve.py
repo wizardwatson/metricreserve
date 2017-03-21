@@ -2984,11 +2984,6 @@ class metric(object):
 			pass
 			# here we sort the tree chunk data to prepare for staging
 
-		if profile.phase_cursor == 5:
-		
-			pass
-			# here we update the staging chunks
-	
 		if profile.phase_cursor == 6:
 		
 			pass
