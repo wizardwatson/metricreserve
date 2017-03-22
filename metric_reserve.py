@@ -330,7 +330,11 @@ class master(object):
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
 		self.DEBUG_VARS = {}
-		lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80d=identicon" 
+		
+		
+		
+		# GRAVATAR/IDENTICON TESTING
+		lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80d=identiconf=y" 
 		#d=identicon"
 		self.DEBUG_VARS["gravatar_test"] = ('https://www.gravatar.com/avatar/%s' % lstr_gravatar_url)
 		
