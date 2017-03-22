@@ -23,7 +23,6 @@ gravatar_url += urllib.urlencode({'d':default, 's':str(size)})
 # These are standard python libraries.
 import os
 import urllib
-import hashlib
 import datetime
 import re
 import pickle
@@ -334,9 +333,11 @@ class master(object):
 		
 		
 		# GRAVATAR/IDENTICON TESTING
-		lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80&d=identicon&f=y" 
-		#d=identicon"
-		self.DEBUG_VARS["gravatar_test"] = ('https://www.gravatar.com/avatar/%s' % lstr_gravatar_url)
+		#lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80&d=identicon&f=y" 
+		#d=identicon
+		#f=y  ...means force the default
+		#s is size
+		#self.DEBUG_VARS["gravatar_test"] = ('https://www.gravatar.com/avatar/%s' % lstr_gravatar_url)
 		
 
 		# Start with what time it is:
