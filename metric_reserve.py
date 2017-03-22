@@ -332,7 +332,7 @@ class master(object):
 		self.DEBUG_VARS = {}
 		lstr_gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=40" 
 		#d=identicon"
-		self.DEBUG_VARS[gravatar_test] = ('<img src="https://www.gravatar.com/avatar/%s" />' % lstr_gravatar_url)
+		self.DEBUG_VARS["gravatar_test"] = ('<img src="https://www.gravatar.com/avatar/%s" />' % lstr_gravatar_url)
 		
 
 		# Start with what time it is:
