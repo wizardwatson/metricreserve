@@ -5,11 +5,25 @@
 ##############################################################################
 
 
+"""
 
+
+ 
+# Set your variables here
+email = "someone@somewhere.com"
+default = "https://www.example.com/default.jpg"
+size = 40
+ 
+# construct the url
+gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(email.lower()).hexdigest() + "?s=40"
+gravatar_url += urllib.urlencode({'d':default, 's':str(size)})
+
+"""
 
 # These are standard python libraries.
 import os
 import urllib
+import hashlib
 import datetime
 import re
 import pickle
@@ -92,6 +106,8 @@ class ds_mr_user(ndb.Model):
 	name_middle = ndb.StringProperty()
 	name_last = ndb.StringProperty()
 	name_suffix = ndb.StringProperty()
+	
+	gravatar_url = ndb.StringProperty()
 	
 	metric_network_ids = ndb.PickleProperty(default=[])
 	metric_account_ids = ndb.PickleProperty(default=[])
@@ -313,6 +329,10 @@ class master(object):
 		self.IS_DEBUG = IS_DEBUG
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
+		self.DEBUG_VARS = {}
+		lstr_gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=40" 
+		#d=identicon"
+		self.DEBUG_VARS[gravatar_test] = ('<img src="https://www.gravatar.com/avatar/%s" />' % lstr_gravatar_url)
 		
 
 		# Start with what time it is:
@@ -528,6 +548,8 @@ class user(object):
 			ldata_user = ds_mr_user()
 			ldata_user.user_id = fobj_google_account.user_id()
 			ldata_user.user_status = 'VERIFIED'
+			gravatar_email = fobj_google_account.email()
+			ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 			ldata_user.key = ldata_user_key	
 			ldata_user.put()
 			
