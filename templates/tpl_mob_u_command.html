@@ -1,0 +1,37 @@
+{% extends "templates/tpl_base_mobile.html" %}
+{% block title %}Metric Reserve - Home{% endblock %}
+{% block content %}
+<div data-role="page" id="mob_u_home">
+	<div data-role="header" data-position="inline">
+		{% if master.user.IS_LOGGED_IN %}
+		<a href="/mob_s_menu" data-icon="grid">Menu</a>
+		{% else %}
+		<a href="/mob_u_menu" data-icon="grid">Menu</a>
+		{% endif %}
+		<h1>METRIC RESERVE</h1>
+		{% include 'templates/tpl_partial_login.html' %}
+	</div>
+	<div data-role="content">
+		<form action="/mob_u_command" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+		  <fieldset>
+			<div data-role="fieldcontain">
+			  <label for="command">CMD:</label>
+				<input type="text" name="form_username" id="command" value=""  />
+			</div>
+			<button type="submit" data-theme="b" name="submit" value="submit_command">FEEDER</button>
+		  </fieldset>
+		</form>
+		<h2>Command</h2>
+		{% if master.request.GET.form_result == "error" %}
+		<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Some error.</font></p>
+		{% endif %}
+		{% if master.request.GET.form_result == "success" %}
+		<p class="ui-body ui-body-e"><strong>You did it!</strong></p>
+		<p>Some result content.</p>
+		{% else %}
+		<p>Command start content.</p>
+		{% endif %}
+		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
+	</div>
+</div>
+{% endblock %}
