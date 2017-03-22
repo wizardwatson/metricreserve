@@ -116,7 +116,7 @@ class ds_mr_network_profile(ndb.Model):
 	active_user_count = ndb.IntegerProperty()
 	orphan_count = ndb.IntegerProperty()
 	total_trees = ndb.IntegerProperty()
-	last_graph_process = ndb.DateTimeProperty()
+	last_graph_process = ndb.StringProperty(default="EMPTY")
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	
 # network cursor: this entity maintains the index of network accounts
@@ -240,6 +240,9 @@ class ds_mrgp_profile(ndb.Model):
 	index_chunks = ndb.IntegerProperty()
 	parent_pointer = ndb.IntegerProperty()
 	child_pointer = ndb.IntegerProperty()
+	index_chunk_counter = ndb.IntegerProperty()
+	tree_chunk_counter = ndb.IntegerProperty()
+	map_chunk_counter = ndb.IntegerProperty()
 	report = ndb.PickleProperty()
 
 # *** the staging chunk ***
@@ -1965,6 +1968,15 @@ class metric(object):
 		
 		profile_key_network_part = str(fint_network_id).zfill(8)
 		
+		""" 
+		**************************************************
+		**************************************************
+		
+		LOCAL FUNCTION: process_lock()
+		
+		**************************************************
+		**************************************************
+		"""
 		@ndb.transactional()
 		def process_lock():
 		
@@ -2015,6 +2027,13 @@ class metric(object):
 				profile.index_chunks = 0
 				profile.parent_pointer = 0
 				profile.child_pointer = 0
+				# Chunk counters are used to track 
+				# if we should overwrite when restarting
+				# a previous graph process.
+				profile.staging_chunk_counter = 0
+				profile.index_chunk_counter = 0
+				profile.tree_chunk_counter = 0
+				profile.map_chunk_counter = 0
 				profile.report = {}
 				profile.report['LAST_TREE_LEVEL'] = {}
 				# LAST PARENT ON LEVEL ABOVE LAST LEVEL TREE CHUNK POINTER PER TREE
@@ -2037,6 +2056,7 @@ class metric(object):
 				profile.report['SUGGESTED_AMT_TOTAL'] = 0
 				profile.report['RESERVE_AMT_TOTAL'] = 0
 				profile.report['NETWORK_AMT_TOTAL'] = 0
+				profile.report['TOTAL_TREES'] = 0
 				profile.report['PARENT_LEVEL'] = 1 # Level Parent
 				profile.report['PARENT_LEVEL_IDX'] = 0 # Level Parent Index
 				profile.report['CHILD_LEVEL_IDX'] = 0 # Level Parent Index
@@ -2068,7 +2088,15 @@ class metric(object):
 		profile = process_lock_result[1]
 		juggler = {}
 		juggler_to_put = {}
+		""" 
+		**************************************************
+		**************************************************
 		
+		LOCAL FUNCTION: get_chunk_from_juggler()
+		
+		**************************************************
+		**************************************************
+		"""
 		def get_chunk_from_juggler(fstr_type,fint_index,fbool_new=False):
 		
 			if fstr_type == "staging":
@@ -2102,7 +2130,8 @@ class metric(object):
 				key_part2 = profile_key_time_part
 				key_part3 = str(fint_index).zfill(12)
 				index_chunk_key = ndb.Key("ds_mrgp_index_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
-				if not fbool_new: index_chunk_member = index_chunk_key.get()
+				# overwrite if new process, don't even try to retrieve
+				if fint_index > profile.index_chunk_counter: index_chunk_member = index_chunk_key.get()
 				if index_chunk_member is None:
 					index_chunk_member = ds_mrgp_index_chunk()
 					index_chunk_member.key = index_chunk_key
@@ -2124,6 +2153,7 @@ class metric(object):
 					# we had to create this index chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
+					profile.index_chunk_counter += 1
 				# create a reference in the juggler
 				juggler[juggler_key] = index_chunk_member
 				return index_chunk_member		
@@ -2138,7 +2168,8 @@ class metric(object):
 				key_part2 = profile_key_time_part
 				key_part3 = str(fint_index).zfill(12)
 				tree_chunk_key = ndb.Key("ds_mrgp_tree_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
-				tree_chunk_member = tree_chunk_key.get()
+				# overwrite if new process, don't even try to retrieve
+				if fint_index > profile.tree_chunk_counter: tree_chunk_member = tree_chunk_key.get()
 				# if the chunk we're trying to get doesn't exist, create it
 				if tree_chunk_member is None:
 					tree_chunk_member = ds_mrgp_tree_chunk()
@@ -2148,9 +2179,7 @@ class metric(object):
 					# we had to create this tree chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
-					# Increment our tree_chunk counter in profile, 
-					# we will need this in phase 4 to know when to
-					# stop.
+					profile.tree_chunk_counter += 1
 					if profile.tree_chunks < fint_index:
 						profile.tree_chunks = fint_index
 				# create a reference in the juggler
@@ -2167,7 +2196,8 @@ class metric(object):
 				key_part2 = profile_key_time_part
 				key_part3 = str(fint_index).zfill(12)
 				map_chunk_key = ndb.Key("ds_mrgp_map_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
-				map_chunk_member = map_chunk_key.get()
+				# overwrite if new process, don't even try to retrieve
+				if fint_index > profile.map_chunk_counter: map_chunk_member = map_chunk_key.get()
 				if map_chunk_member is None:
 					map_chunk_member = ds_mrgp_map_chunk()
 					map_chunk_member.key = map_chunk_key
@@ -2189,31 +2219,111 @@ class metric(object):
 					# we had to create this index chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
+					profile.map_chunk_counter += 1
 				# create a reference in the juggler
 				juggler[juggler_key] = map_chunk_member
 				return map_chunk_member
 
+		""" 
+		**************************************************
+		**************************************************
+		
+		LOCAL FUNCTION: tell_juggler_modified()
+		
+		**************************************************
+		**************************************************
+		"""
 		def tell_juggler_modified(fstr_type,fint_index):
 			
 			juggler_key = ("%s_%s" % (fstr_type, str(fint_index)))
 			if not juggler_key in juggler_to_put:
 				juggler_to_put[juggler_key] = True
 			return None
-			
-		# FOR FINISH AND PAUSE
-		# put() index chunks
-		# put() child chunk
-		# put() profile
-		def process_stop():
-			#STUB	
-			pass		
+
+		""" 
+		**************************************************
+		**************************************************
 		
+		LOCAL FUNCTION: do_juggler_puts()
+		
+		**************************************************
+		**************************************************
+		"""
+		@ndb.transactional(xg=True)
+		def do_juggler_puts():
+		
+			# always put() the profile
+			profile.put()
+			# every chunk object should have a reference in the juggler
+			for juggler_to_put_key in juggler_to_put:
+				juggler[juggler_to_put_key].put()
+				del juggler_to_put[juggler_to_put_key]
+
+		""" 
+		**************************************************
+		**************************************************
+		
+		LOCAL FUNCTION: process_stop()
+		
+		**************************************************
+		**************************************************
+		"""	
+		def process_stop(fbool_is_finished=False):
+			if fbool_is_finished:
+				profile.status = "FINISHED"
+			else:
+				profile.status = "PAUSED"		
+			do_juggler_puts()
+			
+			@ndb.transactional
+			def final_save_for_network_profile
+				network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
+				network_profile = network_key.get()
+				network_profile.orphan_count = profile.report['ORPHAN_MEMBER_TOTAL']
+				network_profile.total_trees = profile.report['TOTAL_TREES']
+				network_profile.last_graph_process = profile_key_time_part
+				network_profile.put()
+			
+		""" 
+		**************************************************
+		**************************************************
+		
+		LOCAL FUNCTION: deadline_reached()
+		
+		**************************************************
+		**************************************************
+		"""
 		lint_deadline_compute_factor = 0
 		def deadline_reached(fbool_use_compute_factor=False):
-			#STUB
-			pass
+			# If the compute factor is > 1000 then we do a check, otherwise
+			# wait until it is.
+			if fbool_use_compute_factor:
+				if lint_deadline_compute_factor > 1000:
+					lint_deadline_compute_factor = 0
+				else:
+					return False
+			# If we've passed the deadline do our puts
+			if datetime.datetime.now() > process.deadline:
+				do_juggler_puts()
+				return True
+			else:
+				# else do our puts if 10 or more entites in juggler put
+				if len(juggler_to_put) > 9:
+					do_juggler_puts()
+				return False
 			
-		# PHASE 1
+		
+		""" 
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		
+		PHASE 1: CREATE THE STAGING CHUNKS FROM ACCOUNTS
+		
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		"""
 		#
 		# phase 1 is loading the staging chunks with the entities that
 		# we get by doing a "get_multi"
@@ -2224,13 +2334,8 @@ class metric(object):
 				network_cursor_key = ndb.Key("ds_mr_network_cursor",profile_key_network_part)		
 				lds_network_cursor = network_cursor_key.get()
 				profile.max_account = lds_network_cursor.current_index
-				################################################
-				################################################
-				################################################
-				# STUB if total accounts = zero, just finish
-				################################################
-				################################################
-				################################################				
+				# quit if no accounts yet
+				if profile.max_account == 0: return process_stop(True)
 			while True:			
 				list_of_keys = []
 				# staging chunk object
@@ -2284,7 +2389,8 @@ class metric(object):
 					# we're re-running this graph process overwrite it
 					this_staging_chunk = get_chunk_from_juggler("staging",chunk_id)
 					this_staging_chunk.stuff = chunk_stuff
-					this_staging_chunk.put()				
+					this_staging_chunk.put()
+					profile.staging_chunk_counter += 1
 				if account_id == profile.max_account:
 					profile.phase_cursor = 2
 					profile.tree_cursor = 0
@@ -2300,7 +2406,119 @@ class metric(object):
 					# more time continue the tree process
 					pass
 		
-		# PHASE 2
+		""" 
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		
+		PHASE 2: BUILD THE TREE CHUNKS FROM CONNECTIONS
+		
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		"""
+		
+		""" 
+		**************************************************
+		**************************************************
+
+		PHASE 2 FUNCTION: phz2_get_acct_fsc()
+
+		**************************************************
+		**************************************************
+		"""
+		# tree process function helper #1
+		# get account info from the staging chunk
+		def phz2_get_acct_fsc(fint_account_id):			
+			# We use memcache here, because we don't want to clog
+			# the RAM of the machine accessing the graph randomly.
+			# Especially if there are millions of accounts.
+			#
+			# Staging chunks in phase 2 are read only entities.
+			staging_chunk_id = (fint_account_id - (fint_account_id % 2500)) + 1
+			key_part1 = profile_key_network_part
+			key_part2 = profile_key_time_part
+			key_part3 = str(staging_chunk_id).zfill(12)
+			memcache_key = key_part1 + key_part2 + key_part3
+			data = memcache.get(memcache_key)				
+			if data is None:
+				staging_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
+				staging_chunk_entity = staging_chunk_key.get()
+				data = staging_chunk_entity.stuff
+				memcache.add(memcache_key, data, 60)				
+			if data.get(fint_account_id) is None:
+				return None
+			else:
+				return data[fint_account_id]	
+
+		""" 
+		**************************************************
+		**************************************************
+
+		PHASE 2 FUNCTION: phz2_acct_in_idx()
+
+		**************************************************
+		**************************************************
+		"""
+		# tree process function helper #2
+		# check if account is in the tree index already
+		def phz2_acct_in_idx(fint_acc_id):		
+			lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
+			lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
+			if index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1]:
+				return True
+			else:
+				index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1] = True
+				# Let the juggler know we need to save this index chunk since 
+				# we've modified it.
+				# *** INDEX CHUNK MODIFICATION ***
+				tell_juggler_modified("index",lint_index_chunk_id)
+				return False		 			
+		""" 
+		**************************************************
+		**************************************************
+
+		PHASE 2 FUNCTION: phz2_chk_chnk_sz()
+
+		**************************************************
+		**************************************************
+		"""
+		# tree process function helper #3
+		# see if our tree chunk is too big and we need to spawn another
+		def phz2_chk_chnk_sz(fbool_use_size_factor=False):			
+			if fbool_use_size_factor:
+				# This is a setting that makes it more flexible
+				# how often we waste resources redundantly encoding
+				# the tree chunk to check its size.
+				if lint_tree_chunk_size_factor < 1000:
+					return None
+			lint_tree_chunk_size_factor = 0
+			# if the size of the child chunk is too big 
+			# create the next one
+			if len(child_chunk._to_pb().Encode()) > 900000:
+				profile.child_pointer += 1
+				if profile.tree_in_process:
+					# Before we abandon the previous tree chunk, we need to leave
+					# a breadcrumb, so the parent knows when to leap to the next
+					# tree chunk.  Place an 'X' where the next entity info would
+					# have been.
+					child_chunk.stuff[profile.tree_cursor][temp_LP + 1].append('X')
+					# *** TREE CHUNK MODIFICATION ***
+					tell_juggler_modified("tree",profile.child_pointer - 1)
+					# Now change reference for "child" to new chunk.
+					child_chunk = get_chunk_from_juggler("tree",profile.child_pointer,True)
+					# Overwrite the default header info with current tree info.
+					child_chunk.stuff[profile.tree_cursor] = {}
+					# *** TREE CHUNK MODIFICATION ***
+					tell_juggler_modified("tree",profile.child_pointer)
+				else:
+					# We must have filled up from orphans
+					# Defaults will suffice, since not working on a tree at the moment.
+					child_chunk = get_chunk_from_juggler("tree",profile.child_pointer,True)
+				return None
+			return None
+		
+		# PHASE 2 DESCRIPTION:
 		#
 		# we have queried all the accounts in the network and they
 		# now reside in staging chunks of 2500 accounts each. In
@@ -2308,11 +2526,11 @@ class metric(object):
 		# as to which sets of accounts have a "path" between them.
 		#
 		# I call each set a "tree".  The most populated tree is 
-		# assumed to me the main network.  The other trees are 
+		# assumed to be the main network.  The other trees are 
 		# considered off the main network.  An account with no 
 		# connections is called an "orphan".  
 		#
-		# key 1 in the staging chunk for each account is reserved
+		# key [1] in the staging chunk for each account is reserved
 		# for the "tree" value.  1 = orphan.  While building the 
 		# tree chunks we start with 2 and increment.
 		#
@@ -2321,7 +2539,13 @@ class metric(object):
 		# It's my hope that with 1,000,000 nodes, perhaps the use of 
 		# memcache and devoting sufficient RAM in GAE deployments will
 		# suffice and still allow the app to exist as a web application
-		# without using backends.		
+		# without using backends.
+		
+		# Network could have all deleted accounts and still have gotten
+		# to this point.  Make sure the staging chunk counter actually
+		# had an active account to where at least one staging chunk was
+		# actually created before proceeding.
+		if profile.staging_chunk_counter = 0: return process_stop(True)
 		
 		if profile.phase_cursor == 2:
 		
@@ -2341,10 +2565,8 @@ class metric(object):
 			
 			# load index chunks
 			index_chunk = {}
-			lbool_new = False
-			if profile.status == "NEW": lbool_new = True
 			for i in range(1,profile.index_chunks + 1):
-				index_chunk[i] = get_chunk_from_juggler("index",i,lbool_new)
+				index_chunk[i] = get_chunk_from_juggler("index",i)
 						
 			# PHASE 2 PART 2
 			# 
@@ -2401,6 +2623,8 @@ class metric(object):
 			# Our count_cursor tracks which account_id we start new trees on
 			if profile.count_cursor == 0:
 				profile.count_cursor = 1
+			# used by chunk creator function phz2_chk_chnk_sz()
+			lint_tree_chunk_size_factor = 0
 			
 			# PHASE 2 PART 3
 			# our staging chunk(s) is/are ready
@@ -2408,81 +2632,7 @@ class metric(object):
 			# our tree chunk(s) is/are ready
 			# 
 			# we are ready to enter our main tree process loop
-			# let's define the functions it uses first
-			
-			# tree process function helper #1
-			# get account info from the staging chunk
-			def phz2_get_acct_fsc(fint_account_id):			
-				# We use memcache here, because we don't want to clog
-				# the RAM of the machine accessing the graph randomly.
-				# Especially if there are millions of accounts.
-				#
-				# Staging chunks in phase 2 are read only entities.
-				staging_chunk_id = (fint_account_id - (fint_account_id % 2500)) + 1
-				key_part1 = profile_key_network_part
-				key_part2 = profile_key_time_part
-				key_part3 = str(staging_chunk_id).zfill(12)
-				memcache_key = key_part1 + key_part2 + key_part3
-				data = memcache.get(memcache_key)				
-				if data is None:
-					staging_chunk_key = ndb.Key("ds_mrgp_staging_chunk","%s%s%s" % (key_part1,key_part2,key_part3))
-					staging_chunk_entity = staging_chunk_key.get()
-					data = staging_chunk_entity.stuff
-					memcache.add(memcache_key, data, 60)				
-				if data.get(fint_account_id) is None:
-					return None
-				else:
-					return data[fint_account_id]			
-			# tree process function helper #2
-			# check if account is in the tree index already
-			def phz2_acct_in_idx(fint_acc_id):		
-				lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
-				lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
-		 		if index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1]:
-		 			return True
-		 		else:
-		 			index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1] = True
-		 			# Let the juggler know we need to save this index chunk since 
-		 			# we've modified it.
-		 			# *** INDEX CHUNK MODIFICATION ***
-		 			tell_juggler_modified("index",lint_index_chunk_id)
-		 			return False		 			
-		 	# tree process function helper #3
-		 	# see if our tree chunk is too big and we need to spawn another
-		 	lint_tree_chunk_size_factor = 0
-			def phz2_chk_chnk_sz(fbool_use_size_factor=False):			
-				if fbool_use_size_factor:
-					# This is a setting that makes it more flexible
-					# how often we waste resources redundantly encoding
-					# the tree chunk to check its size.
-					if lint_tree_chunk_size_factor < 1000:
-						return None
-				lint_tree_chunk_size_factor = 0
-				# if the size of the child chunk is too big 
-				# create the next one
-				if len(child_chunk._to_pb().Encode()) > 900000:
-					profile.child_pointer += 1
-					if profile.tree_in_process:
-						# Before we abandon the previous tree chunk, we need to leave
-						# a breadcrumb, so the parent knows when to leap to the next
-						# tree chunk.  Place an 'X' where the next entity info would
-						# have been.
-						child_chunk.stuff[profile.tree_cursor][temp_LP + 1].append('X')
-						# *** TREE CHUNK MODIFICATION ***
-						tell_juggler_modified("tree",profile.child_pointer - 1)
-						# Now change reference for "child" to new chunk.
-						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer,True)
-						# Overwrite the default header info with current tree info.
-						child_chunk.stuff[profile.tree_cursor] = {}
-						# *** TREE CHUNK MODIFICATION ***
-						tell_juggler_modified("tree",profile.child_pointer)
-					else:
-						# We must have filled up from orphans
-						# Defaults will suffice, since not working on a tree at the moment.
-						child_chunk = get_chunk_from_juggler("tree",profile.child_pointer,True)
-					return None
-				return None
-					
+			# let's define the functions it uses first		
 
 			# MAIN PHASE 2 TREE PROCESS LOOP
 			while True:
@@ -2621,6 +2771,7 @@ class metric(object):
 							# has connections
 							# add seed to dict and start tree
 							profile.tree_cursor += 1
+							profile.report["TOTAL_TREES"] += 1
 							child_chunk.stuff[profile.tree_cursor] = {}
 							# make level one this new seed
 							child_chunk.stuff[profile.tree_cursor][1] = []
@@ -2641,7 +2792,19 @@ class metric(object):
 						profile.count_cursor += 1
 						lint_deadline_compute_factor += 1
 						continue
-						
+
+		""" 
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		
+		PHASE 3: DO RESERVE EVENING ON TREE CHUNKS
+		
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		"""
+		
 		if profile.phase_cursor == 3:
 		
 			# PHASE 3
@@ -3050,15 +3213,33 @@ class metric(object):
 							# The child index (CHILD_LEVEL_IDX) is only used in this phase so we set it
 							# in phase 2 when we complete a tree. It should be ready to use.
 							profile.tree_in_process = True
-							
-							
+
+
+		""" 
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		
+		PHASE 4: CREATE MAP CHUNKS FROM IDS TO TREE RESULTS
+		
+		--------------------------------------------------------
+		--------------------------------------------------------
+		--------------------------------------------------------
+		"""
+		
 		if profile.phase_cursor == 4:
 		
 			# Create a map index, that points account ids implicitly to tree chunks
 			# so when users load there account, there's a way to point at tree data.
 
-			lbool_new = False
-			if profile.status == "NEW": lbool_new = True
+			# how many maps to query/create?
+			# one for every 150,000 accounts
+			t_num = ((profile.max_account - (profile.max_account % 150000)) / 150000) + 1			
+			# initialize map chunks if not already done
+			if not profile.map_chunk_counter == t_num:
+				for i in range(profile.map_chunk_counter + 1,t_num + 1):
+					index_chunk[i] = get_chunk_from_juggler("map",i)
+					if deadline_reached(True): return process_stop()
 
 			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker)
 			
