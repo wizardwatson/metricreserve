@@ -2276,7 +2276,7 @@ class metric(object):
 			do_juggler_puts()
 			
 			@ndb.transactional
-			def final_save_for_network_profile
+			def final_save_for_network_profile():
 				network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
 				network_profile = network_key.get()
 				network_profile.orphan_count = profile.report['ORPHAN_MEMBER_TOTAL']
