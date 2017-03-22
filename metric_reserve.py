@@ -254,6 +254,9 @@ class ds_mrgp_tree_chunk(ndb.Model):
 # *** the report chunk ***
 class ds_mrgp_report_chunk(ndb.Model):
 	stuff = ndb.PickleProperty()
+# *** the map chunk ***
+class ds_mrgp_map_chunk(ndb.Model):
+	stuff = ndb.PickleProperty()
 	
 ##############################################################################
 ###
@@ -308,20 +311,17 @@ class master(object):
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
 		
+
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
-		"""
+
 		tree_index_test = ds_mrgp_big_pickle()
 		tree_index_test.stuff = []
-		for i in range(1,800001):
-			if random.randint(1,2) == 1:
-				lbool_value = True
-			else:
-				lbool_value = False
-			tree_index_test.stuff.append(lbool_value)
+		for i in range(1,150001):
+			tree_index_test.stuff.append(random.randint(1,9000000))
 		self.TRACE.append("tree_index_test length at 100,000:%s" % str(len(tree_index_test._to_pb().Encode())))
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))		
-		
+		"""
 		# staging chunk size testing
 		staging_test = ds_mrgp_staging_chunk()
 		staging_test.stuff = {}
@@ -349,6 +349,18 @@ class master(object):
 			
 		self.TRACE.append("staging_test length at 1000:%s" % str(len(staging_test._to_pb().Encode())))
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
+		tree_index_test = ds_mrgp_big_pickle()
+		tree_index_test.stuff = []
+		for i in range(1,800001):
+			if random.randint(1,2) == 1:
+				lbool_value = True
+			else:
+				lbool_value = False
+				tree_index_test.stuff.append(lbool_value)
+		self.TRACE.append("tree_index_test length at 100,000:%s" % str(len(tree_index_test._to_pb().Encode())))
+		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
 		"""
 		#DEBUG STUFF BEGIN
 		
@@ -2093,12 +2105,12 @@ class metric(object):
 				index_chunk_member = index_chunk_key.get()
 				if index_chunk_member is None:
 					index_chunk_member = ds_mrgp_index_chunk()
-					index_chunk_member.key = chunk_key
+					index_chunk_member.key = index_chunk_key
 					# Load our generic chunk or create so
 					# that we don't have to wait for a 100,000
 					# list loop to happen. If this is first time
 					# ever, create the generic index.
-					generic_index_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_500_THOUSAND_FALSES_LIST")
+					generic_index_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_INDEX_CHUNK_500_THOUSAND_FALSES_LIST")
 					generic_index_chunk = generic_index_key.get()
 					if generic_index_chunk is None:
 						t_list = []
@@ -2136,9 +2148,50 @@ class metric(object):
 					# we had to create this tree chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
+					# Increment our tree_chunk counter in profile, 
+					# we will need this in phase 4 to know when to
+					# stop.
+					if profile.tree_chunks < fint_index:
+						profile.tree_chunks = fint_index
 				# create a reference in the juggler
 				juggler[juggler_key] = tree_chunk_member
 				return tree_chunk_member
+
+			if fstr_type == "map":
+			
+				# first see if it's already in the juggler
+				juggler_key = ("%s_%s" % (fstr_type, str(fint_index)))
+				if juggler_key in juggler: return juggler[juggler_key]
+				# not there, get or create
+				key_part1 = profile_key_network_part
+				key_part2 = profile_key_time_part
+				key_part3 = str(fint_index).zfill(12)
+				map_chunk_key = ndb.Key("ds_mrgp_map_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
+				map_chunk_member = map_chunk_key.get()
+				if map_chunk_member is None:
+					map_chunk_member = ds_mrgp_map_chunk()
+					map_chunk_member.key = map_chunk_key
+					# Load our generic chunk or create so
+					# that we don't have to wait for a 150,000
+					# list loop to happen. If this is first time
+					# ever, create the generic index.
+					generic_map_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_MAP_CHUNK_150_THOUSAND_0_LIST")
+					generic_map_chunk = generic_map_key.get()
+					if generic_map_chunk is None:
+						t_list = []
+						for i in range(1,150001):
+							t_list.append(0)
+						generic_map_chunk = ds_mrgp_map_chunk()
+						generic_map_chunk.stuff = t_list
+						generic_map_chunk.key = generic_map_key
+						generic_map_chunk.put()					
+					map_chunk_member.stuff = generic_map_chunk.stuff
+					# we had to create this index chunk
+					# make sure juggler knows it needs to save it later
+					juggler_to_put[juggler_key] = True
+				# create a reference in the juggler
+				juggler[juggler_key] = map_chunk_member
+				return map_chunk_member
 
 		def tell_juggler_modified(fstr_type,fint_index):
 			
@@ -2408,7 +2461,6 @@ class metric(object):
 					# We're going to need to save the one that's full
 					# Let the juggler know.
 					tell_juggler_modified("tree",profile.child_pointer)
-					ldict_stats = child_chunk['STATS']
 					profile.child_pointer += 1
 					if profile.tree_in_process:
 						# Before we abandon the previous tree chunk, we need to leave
@@ -2936,6 +2988,8 @@ class metric(object):
 						if profile.child_pointer == 1:
 							# We're done with phase 3.
 							profile.phase_cursor = 4
+							profile.count_cursor = 0
+							break
 						else:
 							profile.child_pointer -= 1
 							child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
@@ -2986,13 +3040,82 @@ class metric(object):
 							
 		if profile.phase_cursor == 4:
 		
-			pass
-			# here we sort the tree chunk data to prepare for staging
+			# Create a map index, that points account ids implicitly to tree chunks
+			# so when users load there account, there's a way to point at tree data.
 
-		if profile.phase_cursor == 6:
-		
-			pass
-			# finalize
+			def load_map_for_id(fint_id):
+			
+				pass
+				
+			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker)
+			
+				ldict_blocked_ids = {}
+				tree_chunk = get_chunk_from_juggler("tree",fint_chunk_id)
+				raw_list = []
+				for tree_key in tree_chunk.stuff:
+					# Ignore orphans, map default value is orphan.
+					# Also, ignore blocks we've already processed.
+					if tree_key == 1: continue
+					for level_key in tree_chunk.stuff[tree_key]:
+						if level_key < 0:
+							for i in range(len(tree_chunk.stuff[tree_key][level_key])):
+								account_id = tree_chunk.stuff[tree_key][level_key][i]
+								raw_list.append(account_id)
+				raw_list.sort()
+				marker = (fint_start_marker * 150000) + 150000
+				map_chunk_id = 1
+				for account_id in raw_list:
+					if account_id <= marker:
+						if ldict_blocked_ids.get(map_chunk_id) is None:
+							ldict_blocked_ids[map_chunk_id] = []
+						ldict_blocked_ids[map_chunk_id].append(account_id)							
+					else:
+						marker = marker + 150000
+						map_chunk_id = map_chunk_id + 1				
+				return ldict_blocked_ids
+				
+			while True:
+			
+				# Use ***profile.child_pointer*** for position.
+				# It should have been set to 1 after phase 3.
+				# ***profile.tree_chunks*** was incremented each time
+				# ...a tree chunk was created so that tells us
+				# ...when to stop.
+				# We will use ***profile.count_cursor*** to tell us 
+				# which map chunk we are currently updating. So
+				# it's fine if we don't finish a complete tree
+				# chunk in one iteration.  We will at least finish
+				# one map chunk for whatever id's for the current
+				# tree chunk were assigned to that map chunk.
+				
+				# get our blocked ids
+				ldict_blocked_ids = scan_tree_chunk_for_ids(profile.child_pointer,profile.count_cursor)
+				
+				for block_key in ldict_blocked_ids:			
+					if deadline_reached(True): return process_stop()
+					# This if statement below allows the process to stop
+					# in the middle of processing this chunk.  If
+					# we stop, the profile.count_cursor will still
+					# be set to where the correct block_key gets 
+					# done first.
+					if block_key < profile.count_cursor: continue
+					map_chunk = get_chunk_from_juggler("map",block_key)
+					# loop through accounts in this block of ids
+					for account_id in ldict_blocked_ids[block_key]:
+						# set account position in map chunk to tree value
+						map_chunk.stuff[(account_id % 150000) - 1] = profile.child_pointer
+					# make the profile.count_cursor the current block key
+					profile.count_cursor = block_key
+					
+				profile.child_pointer += 1
+				if profile.child_pointer > profile.tree_chunks:
+					# we're done
+					break
+				else:
+					# keep going
+					profile.count_cursor = 0
+				
+					
 		
 		return lstr_return_message
 		"""
