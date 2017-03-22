@@ -485,7 +485,7 @@ class master(object):
 			# STUB: haven't built the error page yet.
 			pass		
 
-	def _process_command(fbool_secured,fstr_command):
+	def _process_command(self,fbool_secured,fstr_command):
 	
 			lstr_return_message = "success"
 			
