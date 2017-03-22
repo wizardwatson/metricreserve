@@ -3852,8 +3852,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_disconnect', ph_mob_s_disconnect),
 	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
 	('/mob_s_make_payment', ph_mob_s_make_payment),
-	('/mobile_scaffold1', ph_mob_s_scaffold1),
-	('/mobile_test_form1', ph_mob_s_test_form1)
+	('/mob_u_command', ph_mob_u_command)
 	],debug=True)
 
 ##########################################################################
