@@ -3800,7 +3800,7 @@ class ph_mob_u_command(webapp2.RequestHandler):
 		lobj_master.TRACE.append("ph_mob_u_command.post(): in u_command POST function")
 		
 		# unsecured command form
-		lstr_command_text = int(lobj_master.request.POST['form_command_text'])
+		lstr_command_text = lobj_master.request.POST['form_command_text']
 		
 		lbool_secured = False
 		lstr_result = lobj_master._process_command(lbool_secured, lstr_command_text)
