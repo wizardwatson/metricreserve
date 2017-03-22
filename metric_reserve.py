@@ -334,7 +334,7 @@ class master(object):
 		
 		
 		# GRAVATAR/IDENTICON TESTING
-		lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80d=identiconf=y" 
+		lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80&d=identicon&f=y" 
 		#d=identicon"
 		self.DEBUG_VARS["gravatar_test"] = ('https://www.gravatar.com/avatar/%s' % lstr_gravatar_url)
 		
