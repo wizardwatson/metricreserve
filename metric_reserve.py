@@ -3241,7 +3241,7 @@ class metric(object):
 					index_chunk[i] = get_chunk_from_juggler("map",i)
 					if deadline_reached(True): return process_stop()
 
-			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker)
+			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker):
 			
 				ldict_blocked_ids = {}
 				tree_chunk = get_chunk_from_juggler("tree",fint_chunk_id)
