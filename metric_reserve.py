@@ -485,6 +485,11 @@ class master(object):
 			# STUB: haven't built the error page yet.
 			pass		
 
+	def _process_command(fbool_secured,fstr_command):
+	
+			lstr_return_message = "success"
+			
+			return lstr_return_message
 # this is the user class specifically designed for using google user authentication
 class user(object):
 
@@ -3767,7 +3772,41 @@ class ph_mob_s_make_payment(webapp2.RequestHandler):
 		lstr_result = lobj_master.metric._make_payment(lint_network_id, lint_source_account_id, lint_target_account_id, lstr_amount)
 		
 		lobj_master.request_handler.redirect('/mob_s_make_payment?form_result=%s' % lstr_result)
+
+# page handler class for "/mob_u_command"
+class ph_mob_u_command(webapp2.RequestHandler):
+
+	def get(self):
 		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_u_command.get(): in u_command GET function")
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_command.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_u_command.post(): in u_command POST function")
+		
+		# unsecured command form
+		lstr_command_text = int(lobj_master.request.POST['form_command_text'])
+		
+		lbool_secured = False
+		lstr_result = lobj_master._process_command(lbool_secured, lstr_command_text)
+		
+		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
+
 		
 ################################################################
 ###
