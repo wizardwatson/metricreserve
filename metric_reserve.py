@@ -3043,10 +3043,6 @@ class metric(object):
 			# Create a map index, that points account ids implicitly to tree chunks
 			# so when users load there account, there's a way to point at tree data.
 
-			def load_map_for_id(fint_id):
-			
-				pass
-				
 			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker)
 			
 				ldict_blocked_ids = {}
