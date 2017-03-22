@@ -2545,7 +2545,7 @@ class metric(object):
 		# to this point.  Make sure the staging chunk counter actually
 		# had an active account to where at least one staging chunk was
 		# actually created before proceeding.
-		if profile.staging_chunk_counter = 0: return process_stop(True)
+		if profile.staging_chunk_counter == 0: return process_stop(True)
 		
 		if profile.phase_cursor == 2:
 		
