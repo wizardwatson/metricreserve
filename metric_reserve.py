@@ -559,7 +559,7 @@ class user(object):
 			ldata_user.user_id = fobj_google_account.user_id()
 			ldata_user.user_status = 'VERIFIED'
 			gravatar_email = fobj_google_account.email()
-			ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
+			#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 			ldata_user.key = ldata_user_key	
 			ldata_user.put()
 			
@@ -574,10 +574,10 @@ class user(object):
 			lds_tx_log.description = "A new user object was created." 
 			lds_tx_log.memo = ""
 			lds_tx_log.user_id_created = fobj_google_account.user_id()
-			lds_tx_log.network_id = ""
-			lds_tx_log.account_id = ""
-			lds_tx_log.source_account = "" 
-			lds_tx_log.target_account = ""
+			lds_tx_log.network_id = 0
+			lds_tx_log.account_id = 0
+			lds_tx_log.source_account = 0 
+			lds_tx_log.target_account = 0
 			lds_tx_log.put()			
 
 		return ldata_user
@@ -612,10 +612,10 @@ class user(object):
 		lds_tx_log.description = "A new username was chosen by a user." 
 		lds_tx_log.memo = fstr_name
 		lds_tx_log.user_id_created = self.PARENT.user.user_id
-		lds_tx_log.network_id = ""
-		lds_tx_log.account_id = ""
-		lds_tx_log.source_account = "" 
-		lds_tx_log.target_account = ""
+		lds_tx_log.network_id = 0
+		lds_tx_log.account_id = 0
+		lds_tx_log.source_account = 0 
+		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
@@ -653,10 +653,10 @@ class user(object):
 		lds_tx_log.description = "A user changed their username." 
 		lds_tx_log.memo = fstr_name
 		lds_tx_log.user_id_created = self.PARENT.user.user_id
-		lds_tx_log.network_id = ""
-		lds_tx_log.account_id = ""
-		lds_tx_log.source_account = "" 
-		lds_tx_log.target_account = ""
+		lds_tx_log.network_id = 0
+		lds_tx_log.account_id = 0
+		lds_tx_log.source_account = 0 
+		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
@@ -713,9 +713,9 @@ class metric(object):
 			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
 			lds_tx_log.user_id_created = self.PARENT.user.user_id
 			lds_tx_log.network_id = fint_network_id
-			lds_tx_log.account_id = ""
-			lds_tx_log.source_account = "" 
-			lds_tx_log.target_account = ""
+			lds_tx_log.account_id = 0
+			lds_tx_log.source_account = 0 
+			lds_tx_log.target_account = 0
 			lds_tx_log.put()
 
 			return new_network_profile
@@ -795,7 +795,7 @@ class metric(object):
 		lds_tx_log.network_id = fstr_network_id
 		lds_tx_log.account_id = fstr_user_id
 		lds_tx_log.source_account = fstr_user_id 
-		lds_tx_log.target_account = ""
+		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		# save the transaction
@@ -890,7 +890,7 @@ class metric(object):
 		lds_tx_log.network_id = fint_network_id
 		lds_tx_log.account_id = fint_account_id
 		lds_tx_log.source_account = fint_account_id 
-		lds_tx_log.target_account = ""
+		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		# don't delete an account, just set it's status to "deleted", and delete it along with
@@ -1438,7 +1438,7 @@ class metric(object):
 		lds_tx_log.network_id = fint_network_id
 		lds_tx_log.account_id = fint_source_account_id
 		lds_tx_log.source_account = fint_source_account_id 
-		lds_tx_log.target_account = ""
+		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		# only update current_timestamp for graph dependent transactions??? STUB
