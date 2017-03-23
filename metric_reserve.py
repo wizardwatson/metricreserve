@@ -165,6 +165,20 @@ class ds_mr_metric_account(ndb.Model):
 	last_network_balance = ndb.IntegerProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
+# metric account: this is the subordinate account information
+class ds_mr_metric_sub_account(ndb.Model):
+
+	account_id = ndb.IntegerProperty()
+	network_id = ndb.IntegerProperty()
+	user_id = ndb.StringProperty()
+	tx_index = ndb.IntegerProperty()
+	account_status = ndb.StringProperty()
+	account_sub_type = ndb.StringProperty()
+	account_sub_parent = ndb.IntegerProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_network_balance = ndb.IntegerProperty()	
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
