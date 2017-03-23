@@ -342,14 +342,14 @@ class master(object):
 
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
-
+		"""
 		tree_index_test = ds_mrgp_big_pickle()
 		tree_index_test.stuff = []
 		for i in range(1,150001):
 			tree_index_test.stuff.append(random.randint(1,9000000))
 		self.TRACE.append("tree_index_test length at 100,000:%s" % str(len(tree_index_test._to_pb().Encode())))
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))		
-		"""
+		
 		# staging chunk size testing
 		staging_test = ds_mrgp_staging_chunk()
 		staging_test.stuff = {}
