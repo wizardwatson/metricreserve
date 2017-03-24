@@ -108,8 +108,13 @@ class ds_mr_user(ndb.Model):
 	
 	gravatar_url = ndb.StringProperty()
 	
+	# metric_reserve_accounts STUB
 	metric_network_ids = ndb.PickleProperty(default=[])
 	metric_account_ids = ndb.PickleProperty(default=[])
+	
+	metric_client_accounts = ndb.PickleProperty(default=[])# [(network_id,account_id,type),...] # type = joint|client
+	metric_joint_accounts = ndb.PickleProperty(default=[])# [(network_id,account_id,type),...] # type = joint|client
+	metric_alternate_accounts = ndb.PickleProperty(default=[]) # [(network_id,account_id,username),...]
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -148,6 +153,11 @@ class ds_mr_metric_account(ndb.Model):
 	user_id = ndb.StringProperty()
 	tx_index = ndb.IntegerProperty()
 	account_status = ndb.StringProperty()
+	account_type = ndb.StringProperty()
+	account_parent = ndb.IntegerProperty()
+	account_grandparent = ndb.PickleProperty()
+	account_sub_children = ndb.PickleProperty()
+	account_client_children =  = ndb.PickleProperty()
 	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
