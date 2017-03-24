@@ -29,7 +29,10 @@
 		<p class="ui-body ui-body-e"><strong>You did it!</strong></p>
 		<p>Some result content.</p>
 		{% else %}
-		<p>Command start content.</p>
+		<p>Hello, {{ master.request.remote_addr }}.</p>
+		<p>If you're new here it is recommended you read the introduction.</p>
+		<p>If you are returning, somewhat familar, or need a refresher try the quickstart guide.</p>
+		<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
 		{% endif %}
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
