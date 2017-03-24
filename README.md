@@ -3,6 +3,7 @@ Metric Reserve Stuff
 
 
 
+
 To Do List:
 	Last Login?  Activity counters, counters, counters, counters...
 	remove transfer requests on disconnects
@@ -46,9 +47,10 @@ COMMANDS
 		split|by|pipe = mutually exclusive elements
 		<anglebrackets> = variable argument
 
-	CONTEXT: root AS user
+	CONTEXT: home AS user
 		invoice [<user>] <amount>
 		pay <user>|<invoice> [<amount>] [<gratuity>]
+		
 		connect <user>
 		disconnect <user>
 		join <network>
@@ -59,13 +61,61 @@ COMMANDS
 		summary [<network>]
 		
 		
+		ROOT
+			using(network)
+		
+		CONTEXT: user
+			COMMAND: username change(desired username)
+			COMMAND: username alias add(desired alias)
+			COMMAND: username alias del(desired alias)
+			COMMAND: gravatar email(email to use)
+			COMMAND: gravatar type(email|identicon|monstercon|anonymous|metric)
+			COMMAND: bio
+			COMMAND: location
+			
+
+		CONTEXT:network:username
+				COMMAND:joint
+					CONTEXT:parent(client|reserve)
+						COMMAND:give(amount)
+						COMMAND:take(amount)
+						COMMAND:add(child username)
+						COMMAND:del(child username)
+					CONTEXT:child
+						COMMAND:ask(parent username)
+						COMMAND:del(parent username)
+				COMMAND:sub
+					CONTEXT:parent(client|reserve)
+						COMMAND:give(amount)
+						COMMAND:take(amount)
+						COMMAND:add(child username)
+						COMMAND:del(child username)
+				COMMAND:client
+					CONTEXT:parent(reserve)
+						COMMAND:add(child username)
+						COMMAND:del(child username)
+						COMMAND:give(amount)
+					CONTEXT:child
+						COMMAND:del
+				COMMAND:reserve
+					COMMAND:add
+					COMMAND:connect
+					COMMAND:disconnect
+					COMMAND:modify up|down|create|destroy(amount)
+					COMMAND:transfer
+					COMMAND:del
+		
+		
+		
+		# reserve accounts can have client, joint, and sub accounts.  20 maximum across all networks.
+		# client accounts can have joint, and sub accounts in that network.  20 maximum across all networks.
+		
+		
 		# reserve transfers
-		# conversion updating
 		# map
 		# transaction views
 		# subaccounts and cash accounts
 		# multi-network
-		# polling for pellets
 		# message
 		
 			message wizardwatson [<text>]
@@ -117,4 +167,32 @@ COMMANDS
 		
 		
 		
+
+
+
+CONTEXTS
+	root
+		introduction
+		quickstart
+	home
+		
+	admin
+		CreateNetwork
+		DeleteNetwork
+			# Only if no connections
+		RenameNetwork
+
+
+COMMANDS
+	
+	
+	
+	
+VIEWS
+
+	home
+		your networks
+		your sub accounts
+		your client accounts
+		available networks
 		
