@@ -21,7 +21,6 @@
 			<button type="submit" data-theme="b" name="submit" value="submit_command">FEEDER BAR</button>
 		  </fieldset>
 		</form>
-		<h2>Command</h2>
 		{% if master.request.GET.form_result == "error" %}
 		<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Some error.</font></p>
 		{% endif %}
@@ -29,6 +28,7 @@
 		<p class="ui-body ui-body-e"><strong>You did it!</strong></p>
 		<p>Some result content.</p>
 		{% else %}
+		<h5>CONTEXT: root As {{ master.request.remote_addr }}</h5>
 		<p>Hello, {{ master.request.remote_addr }}.</p>
 		<p>If you're new here it is recommended you read the introduction.</p>
 		<p>If you are returning, somewhat familar, or need a refresher try the quickstart guide.</p>
