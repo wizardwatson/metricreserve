@@ -61,7 +61,18 @@ COMMANDS
 		summary [<network>]
 		
 		
-		ROOT
+		
+		
+		CONTEXT: admin	
+				COMMAND:network
+					COMMAND: add
+					COMMAND: del
+					COMMAND: name
+					COMMAND: type
+					COMMAND: describe
+				
+		
+		CONTEXT: root
 			using(network)
 		
 		CONTEXT: user
@@ -104,6 +115,9 @@ COMMANDS
 					COMMAND:modify up|down|create|destroy(amount)
 					COMMAND:transfer
 					COMMAND:del
+				(all accounts)
+				COMMAND:pay
+				COMMAND:invoice
 		
 		
 		
@@ -195,4 +209,14 @@ VIEWS
 		your sub accounts
 		your client accounts
 		available networks
-		
+
+
+
+
+
+VIEW TYPES
+
+	error
+	success
+	confirm
+	
