@@ -45,6 +45,7 @@ import jinja2
 
 # These are my custom modules.
 # [example]: from [directory] import [some py file without extension]
+from library import mdetect
 
 # Setup jinja environment: we are using jinja for processing templates
 JINJA_ENVIRONMENT = jinja2.Environment(
@@ -157,7 +158,7 @@ class ds_mr_metric_account(ndb.Model):
 	account_parent = ndb.IntegerProperty()
 	account_grandparent = ndb.PickleProperty()
 	account_sub_children = ndb.PickleProperty()
-	account_client_children =  = ndb.PickleProperty()
+	account_client_children = ndb.PickleProperty()
 	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
@@ -346,7 +347,7 @@ class master(object):
 			self.IS_POST = True		
 		else:		
 			self.IS_POST = False
-		
+			
 		# This is used for page debugging, placing helper debug references in page code.
 		# Different from the WSGI "debug_mode" which tells app to spit out the call stack.
 		self.IS_DEBUG = IS_DEBUG
@@ -354,7 +355,19 @@ class master(object):
 		self.TRACE = []
 		self.DEBUG_VARS = {}
 		
-		
+		# see if this site is being viewed on mobile browser
+		self.IS_MOBILE = False
+		user_agent = self.request.headers["User-Agent"]
+		http_accept = self.request.headers["Accept"]
+		if user_agent and http_accept:
+			agent = mdetect.UAgentInfo(userAgent=user_agent, httpAccept=http_accept)
+			is_tablet = agent.detectTierTablet()
+			is_phone = agent.detectTierIphone()
+			if is_tablet or is_phone or agent.detectMobileQuick():
+				self.IS_MOBILE = True
+				self.TRACE.append("mobile detected")
+			else:
+				self.TRACE.append("mobile not detected")
 		
 		# GRAVATAR/IDENTICON TESTING
 		#lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80&d=identicon&f=y" 
@@ -514,6 +527,7 @@ class master(object):
 			lstr_return_message = "success"
 			
 			return lstr_return_message
+			
 # this is the user class specifically designed for using google user authentication
 class user(object):
 
@@ -693,6 +707,16 @@ class metric(object):
 	
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
+		
+	# process command form
+	def _process_command(self,fstr_command):
+	
+		# first parse the command
+		parsed_command = fstr_command.split()
+		
+		
+	
+		return None
 	
 	@ndb.transactional(xg=True)
 	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
@@ -3831,7 +3855,41 @@ class ph_mob_u_command(webapp2.RequestHandler):
 		
 		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
 
+# page handler class for "/mob_s_command"
+class ph_mob_s_root(webapp2.RequestHandler):
+
+	def get(self):
 		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_u_command.get(): in u_command GET function")
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_command.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		lobj_master.TRACE.append("ph_mob_u_command.post(): in u_command POST function")
+		
+		# unsecured command form
+		lstr_command_text = lobj_master.request.POST['form_command_text']
+		
+		lbool_secured = False
+		lstr_result = lobj_master._process_command(lbool_secured, lstr_command_text)
+		
+		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
+
+				
 ################################################################
 ###
 ###  END: Page Handler Classes
