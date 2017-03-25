@@ -368,6 +368,11 @@ class master(object):
 				self.TRACE.append("mobile detected")
 			else:
 				self.TRACE.append("mobile not detected")
+				
+		# mobile QR link for debug
+		qr_link = "https://chart.googleapis.com/chart?cht=qr&chs=100&chl="
+		self.QR1_DEBUG = qr_link + urllib.quote_plus(self.request.host_url + self.request.path)
+				
 		
 		# GRAVATAR/IDENTICON TESTING
 		#lstr_gravatar_url = hashlib.md5("wizardwatson@gmail.com".lower()).hexdigest() + "?s=80&d=identicon&f=y" 
@@ -379,6 +384,9 @@ class master(object):
 
 		# Start with what time it is:
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
+		
+		
 		"""
 		tree_index_test = ds_mrgp_big_pickle()
 		tree_index_test.stuff = []
