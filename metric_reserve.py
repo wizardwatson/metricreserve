@@ -371,7 +371,7 @@ class master(object):
 				
 		# mobile QR link for debug
 		qr_link = "https://chart.googleapis.com/chart?cht=qr&chs=100&chl="
-		self.QR1_DEBUG = qr_link + urllib.quote_plus(self.request.host_url + self.request.path)
+		self.QR1_DEBUG = qr_link + urllib.quote_plus("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path)
 				
 		
 		# GRAVATAR/IDENTICON TESTING
