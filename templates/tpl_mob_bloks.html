@@ -1,10 +1,30 @@
 {% for blok in master.bloks %}
-	{% if blok.type == "one" %}
-
-	{% elif blok.type == "two" %}
-
-	{% elif blok.type == "three" %}
-
+	{% if blok.type == "menu" %}
+		<ul data-role="listview">
+		{% for link in blok.menuitems %}
+			<li><a href="{{ link.href }}">{{ link.label }}</a></li>
+		{% endfor %}
+		</ul>
+	{% elif blok.type == "home" %}
+		{% if master.user.IS_LOGGED_IN %}
+			<p>Hello, <b>{{ master.page.username }}</b>.</p>
+			<p>You are currently signed in to the application and on the root page.</p>
+		{% else %}
+			<p>Hello, <b>{{ master.page.username }}</b>.</p>
+			<p>If you're new here it is recommended you read the introduction.</p>
+			<p>If you are returning, somewhat familar, or need a refresher, try the quickstart guide.</p>
+			<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
+		{% endif %}
+	{% elif blok.type == "error" %}
+		{% if blok.error_code == "1001" %}
+			<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Command keyword(s) unrecognized.</font><br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1002" %}
+			<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong> Context not recognized.</font><br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% else %}
+			<p>Unrecognized Error Code</p>
+		{% endif %}
 	{% else %}
 
 	{% endif %}
