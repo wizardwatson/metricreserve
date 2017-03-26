@@ -96,18 +96,18 @@ T_EPOCH = datetime.datetime(2017, 3, 13, 8, 0, 0, 0)
 # this is the user Model.  Not to be confused with the account model
 class ds_mr_user(ndb.Model):
 
-	user_id = ndb.StringProperty()
-	username = ndb.StringProperty()
-	email = ndb.StringProperty()
+	user_id = ndb.StringProperty(indexed=False)
+	username = ndb.StringProperty(indexed=False,default="EMPTY")
+	email = ndb.StringProperty(indexed=False)
 	
-	user_status = ndb.StringProperty()
+	user_status = ndb.StringProperty(indexed=False)
 	
-	name_first = ndb.StringProperty()
-	name_middle = ndb.StringProperty()
-	name_last = ndb.StringProperty()
-	name_suffix = ndb.StringProperty()
+	name_first = ndb.StringProperty(indexed=False)
+	name_middle = ndb.StringProperty(indexed=False)
+	name_last = ndb.StringProperty(indexed=False)
+	name_suffix = ndb.StringProperty(indexed=False)
 	
-	gravatar_url = ndb.StringProperty()
+	gravatar_url = ndb.StringProperty(indexed=False)
 	
 	# metric_reserve_accounts STUB
 	metric_network_ids = ndb.PickleProperty(default=[])
@@ -117,34 +117,37 @@ class ds_mr_user(ndb.Model):
 	metric_joint_accounts = ndb.PickleProperty(default=[])# [(network_id,account_id,type),...] # type = joint|client
 	metric_alternate_accounts = ndb.PickleProperty(default=[]) # [(network_id,account_id,username),...]
 	
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
 # to enforce a unique constraint
 class ds_mr_unique_dummy_entity(ndb.Model):
 
-	unique_name = ndb.StringProperty()
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	unique_name = ndb.StringProperty(indexed=False)
+	name_type = ndb.StringProperty(indexed=False)
+	id_pointer_int = ndb.IntegerProperty(indexed=False)
+	id_pointer_str = ndb.StringProperty(indexed=False)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
 # network profile: this entity contains information about specific graph
 class ds_mr_network_profile(ndb.Model):
 
-	network_name = ndb.StringProperty()
-	network_id = ndb.IntegerProperty()
-	network_status = ndb.StringProperty()
-	network_type = ndb.StringProperty()
-	active_user_count = ndb.IntegerProperty()
-	orphan_count = ndb.IntegerProperty()
-	total_trees = ndb.IntegerProperty()
-	last_graph_process = ndb.StringProperty(default="EMPTY")
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	network_name = ndb.StringProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	network_status = ndb.StringProperty(indexed=False)
+	network_type = ndb.StringProperty(indexed=False)
+	active_user_count = ndb.IntegerProperty(indexed=False)
+	orphan_count = ndb.IntegerProperty(indexed=False)
+	total_trees = ndb.IntegerProperty(indexed=False)
+	last_graph_process = ndb.StringProperty(default="EMPTY",indexed=False)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	
 # network cursor: this entity maintains the index of network accounts
 class ds_mr_network_cursor(ndb.Model):
 
-	network_id = ndb.StringProperty()
-	current_index = ndb.IntegerProperty()
+	network_id = ndb.StringProperty(indexed=False)
+	current_index = ndb.IntegerProperty(indexed=False)
 
 # metric account: this is the main account information
 class ds_mr_metric_account(ndb.Model):
@@ -368,9 +371,15 @@ class master(object):
 				self.TRACE.append("mobile detected")
 			else:
 				self.TRACE.append("mobile not detected")
-				
+		
+		###############################################
+		###############################################
+		#DEBUG STUFF BEGIN
+		###############################################
+		###############################################
+		
 		# mobile QR link for debug
-		qr_link = "https://chart.googleapis.com/chart?cht=qr&chs=100&chl="
+		qr_link = "https://chart.googleapis.com/chart?cht=qr&chs=200&chl="
 		self.QR1_DEBUG = qr_link + urllib.quote_plus("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path)
 				
 		
@@ -435,7 +444,7 @@ class master(object):
 		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
 		
 		"""
-		#DEBUG STUFF BEGIN
+		
 		
 		some_obj = ds_mrgp_big_pickle()
 		
@@ -472,10 +481,11 @@ class master(object):
 		
 		
 		
-		
-		
+		###############################################
+		###############################################
 		#DEBUG STUFF END
-		
+		###############################################
+		###############################################
 		
 		
 		
@@ -536,6 +546,12 @@ class master(object):
 			
 			return lstr_return_message
 			
+	def _parse_command(self,fbool_secured,fstr_command):
+	
+			lstr_return_message = "success"
+			
+			return lstr_return_message
+			
 # this is the user class specifically designed for using google user authentication
 class user(object):
 
@@ -551,9 +567,6 @@ class user(object):
 		self.IS_LOGGED_IN = False
 		self.IS_ADMIN = False
 		self.IS_REGISTERED = False
-		
-		# declare an empty entity for now, will load or create one
-		self.entity = None
 		
 		# see if this requestor is logged in via google
 		lgoogle_account = users.get_current_user()
@@ -576,10 +589,13 @@ class user(object):
 		
 			self.PARENT.TRACE.append("user.init(): google account not loaded")
 			# No google account retrieved, user is not logged in
-			self.entity = None
+			# So that our entity references resolve in function definitions
+			# when not logged in, go ahead and assign self.entity to the class
+			# even though we never reference in logic if not logged in.
+			self.entity = ds_mr_user()
 		
 		# GAE Authentication Variables
-		self.LOG_IN_GAE_HREF = users.create_login_url('/mob_s_home')
+		self.LOG_IN_GAE_HREF = users.create_login_url(self.PARENT.request.path)
 		self.LOG_IN_GAE_LINKTEXT = 'Login'
 		self.LOG_OUT_GAE_HREF = users.create_logout_url('/')
 		self.LOG_OUT_GAE_LINKTEXT = 'Logout'
@@ -602,35 +618,25 @@ class user(object):
 			
 			# create a new user
 			ldata_user = ds_mr_user()
-			ldata_user.user_id = fobj_google_account.user_id()
+			ldata_user.user_id = fobj_google_account.user_id()			
 			ldata_user.user_status = 'VERIFIED'
 			gravatar_email = fobj_google_account.email()
 			#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 			ldata_user.key = ldata_user_key	
-			ldata_user.put()
 			
-			# transaction log:  think "bank statements"
-			lds_tx_log = ds_mr_tx_log()
-			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-			# tx_index should be based on incremented metric_account value
-			lds_tx_log.tx_index = 0
-			lds_tx_log.tx_type = "USER CREATED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-			lds_tx_log.amount = 0
-			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-			lds_tx_log.description = "A new user object was created." 
-			lds_tx_log.memo = ""
-			lds_tx_log.user_id_created = fobj_google_account.user_id()
-			lds_tx_log.network_id = 0
-			lds_tx_log.account_id = 0
-			lds_tx_log.source_account = 0 
-			lds_tx_log.target_account = 0
-			lds_tx_log.put()			
-
+			# new users get temporary username automatically upon first login
+			some_letters = "abcdefghijkmnprstuvwxyz"
+			first_int = str(random.randint(1,999)).zfill(3)
+			second_int = str(random.randint(1,999)).zfill(3)
+			temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)
+			while True:
+				if self._save_unique_name(temp_username,ldata_user):
+					break			
 		return ldata_user
 		
 	@ndb.transactional(xg=True)
-	def _save_unique_username(self,fstr_name):
-
+	def _save_unique_name(self,fstr_name,fobj_user=None,fstr_name_type="EMPTY",fint_id_pointer_int=0,fstr_id_pointer_str="EMPTY"):
+	
 		# new name check
 		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
 		maybe_dummy_entity = maybe_new_key.get()
@@ -642,22 +648,33 @@ class user(object):
 		new_entity.unique_name = fstr_name
 		new_entity.key = maybe_new_key
 		new_entity.put()
+		# This function is called from user initialization
+		# as well.  Make sure we have correct reference to
+		# user entity.
+		if not fobj_user is None:
+			user_entity = fobj_user
+			lstr_tx_type = "NEW USER CREATED"
+			lstr_tx_description = "A new user was created in the application."
+		else:
+			user_entity = self.entity
+			lstr_tx_type = "NEW USERNAME CREATED"
+			lstr_tx_description = "A new username was chosen by a user."
 		# assign new username to user
-		self.PARENT.user.entity.user_status = "ACTIVE"
-		self.PARENT.user.entity.username = fstr_name
-		self.PARENT.user.entity.put()
+		user_entity.user_status = "ACTIVE"
+		user_entity.username = fstr_name
+		user_entity.put()
 		
 		# transaction log:  think "bank statements"
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
 		lds_tx_log.tx_index = 0
-		lds_tx_log.tx_type = "NEW USERNAME CREATED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.tx_type = lstr_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		lds_tx_log.amount = 0
 		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-		lds_tx_log.description = "A new username was chosen by a user." 
+		lds_tx_log.description = lstr_tx_description
 		lds_tx_log.memo = fstr_name
-		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.user_id_created = user_entity.user_id # google id
 		lds_tx_log.network_id = 0
 		lds_tx_log.account_id = 0
 		lds_tx_log.source_account = 0 
@@ -3412,6 +3429,17 @@ class metric(object):
 ###
 ################################################################
 
+# page handler for all command based pages
+class ph_command(webapp2.RequestHandler):
+
+	def get(self):
+	
+		pass
+		
+	def post(self):
+	
+		pass
+
 # page handler class for "/" (web root/home page)
 class ph_home(webapp2.RequestHandler):
 
@@ -3497,34 +3525,6 @@ class ph_mob_s_menu(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_menu.html')
 		self.response.write(template.render(master=lobj_master))
 
-# page handler class for "/mob_s_scaffold1"
-class ph_mob_s_scaffold1(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","secured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_scaffold1.html')
-		self.response.write(template.render(master=lobj_master))
-		
-# page handler class for "/mob_s_test_form1"
-class ph_mob_s_test_form1(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","secured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_test_form1.html')
-		self.response.write(template.render(master=lobj_master))
-		
 # page handler class for "/mob_s_register"
 class ph_mob_s_register(webapp2.RequestHandler):
 
@@ -3897,7 +3897,132 @@ class ph_mob_s_root(webapp2.RequestHandler):
 		
 		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
 
+
+# page handler class for command based pages
+class ph_command(webapp2.RequestHandler):
+
+	# command
+	# 
+	# This "command" pattern I've chosen is basically a command line/
+	# web page hybrid.  Tried to make it as "REST"y as possible for 
+	# simplicity.  Every page that uses it comes in as a GET or a POST.
+	# The GET requests use the "context", which is the url path and 
+	# query string key/values, as the means to decide what to display.
+	# Whereas the POST requests use the command text to decide what
+	# to "do" and the "context" can be a requirement, or unnecessary.
+	# 
+	# For instance a GET request for "menu" would return the menu "page"
+	# from any context, but a "connect()" command would be required 
+	# to be called from "/network/account?netid=mynetwork&accid=bob" as a
+	# requirement.
+	#
+	# If the user hits the submit button with no command in it, it
+	# simply turns the request into a redirect back to itself (refresh).
+	# In fact the FORM action always targets the current path/context
+	# but a command could have a different context target implied.
+	#
+	# For instance you could be on the home page (root context) and 
+	# then directly type the command "pay bob 3.50" then the command
+	# (assuming you are logged in and you and bob share a network)
+	# would automatically target the context 
+	# "/network/account?netid=mynetwork&accid=bob"
+	
+	def get(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"get","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+		
+		# get the context
+		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
+		
+		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
+		
+		# create shorter references to our objects
+		lobj_master.bloks = []
+		lobj_master.page = {}
+		context = lobj_master.PATH_CONTEXT
+		bloks = lobj_master.bloks
+		page = lobj_master.page
+		if lobj_master.user.IS_LOGGED_IN:
+			page["username"] = lobj_master.user.entity.username
+		else:
+			# if running locally in development show a made-up IP
+			if lobj_master.request.host[:9] == "localhost":
+				page["username"] = "127.0.0.1"			
+			else:
+				page["username"] = lobj_master.request.remote_addr
 				
+		page["context"] = "<u>CONTEXT</u>: (<b>%s</b>) <u>AS</u>: (<b>%s</b>)" % (context,page["username"])
+		
+		# make bloks from context
+		if context == "root":
+			page["title"] = "HOME"
+			blok = {}
+			blok["type"] = "home"
+			bloks.append(blok)
+		
+		
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
+		self.response.write(template.render(master=lobj_master))
+		
+	def post(self):
+		
+		# Instantiate the master object, do security and other app checks. If
+		# there's an interruption return from this function without processing
+		# further.
+		lobj_master = master(self,"post","unsecured")
+		if lobj_master.IS_INTERRUPTED:return
+
+		# get the context
+		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+		
+		# unsecured command form
+		lstr_command_text = lobj_master.request.POST['form_command_text']
+		if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
+			# no command passed, just treat as a refresh
+			lobj_master.request_handler.redirect(lobj_master.request.path_qs)
+		else:
+			# create a shorter reference to the request handler
+			r = lobj_master.request_handler
+			# parse the command and make sure all lowercase
+			command_tokens = lstr_command_text.lower().split()
+			
+			def url_path(new_vars=None,new_path=None):
+				if new_vars is None:
+					if new_path is None:
+						return lobj_master.request.path_qs
+					else:
+						# If we're sending to new path we
+						# don't use old query string.
+						return new_path
+				else:
+					if new_path is None:
+						path_part = lobj_master.request.path_qs
+					else:
+						path_part = new_path
+				if "?" not in path_part:
+					path_string = path_part + "?"
+				else:
+					path_string = path_part + "&"
+				if isinstance(new_vars, dict):
+					for key in new_vars:
+						path_string += key + "=" + urllib.quote_plus(str(new_vars[key])) + "&"
+					if path_string.endswith("&"): path_string = path_string[:-1]
+				else:
+					# we assume a string was passed like 'queryvar=queryvalue'
+					path_string += new_vars			
+				return path_string				
+			
+			if command_tokens[0] == "menu" and len(command_tokens) == 1:
+				r.redirect(url_path(new_path="/menu"))
+			else:
+				# command not recognized
+				r.redirect(url_path(new_vars="form_result=error_1001"))
+	
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -3930,7 +4055,9 @@ class ph_mob_s_root(webapp2.RequestHandler):
 # 3. Create the class you designate below up above like the others with a get/post
 
 application = webapp2.WSGIApplication([
-	('/', ph_home),
+	('/', ph_command),
+	('/network', ph_command),
+	('/network/account', ph_command),
 	('/mob_u_home', ph_mob_u_home),
 	('/mob_u_menu', ph_mob_u_menu),
 	('/mob_s_home', ph_mob_s_home),
