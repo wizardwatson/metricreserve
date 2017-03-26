@@ -3927,12 +3927,46 @@ class ph_command(webapp2.RequestHandler):
 	# would automatically target the context 
 	# "/network/account?netid=mynetwork&accid=bob"
 	
+	def url_path(self,new_vars={},new_path=None,error_code=None):
+
+		if not error_code is None:
+			path_part = self.master.request.path
+			new_vars["error_code"] = error_code
+			new_vars["last_view"] = urllib.quote_plus(self.master.request.path_qs)
+		else:
+			if new_vars == {}:
+				if new_path is None:
+					return self.master.request.path_qs
+				else:
+					# If we're sending to new path we
+					# don't use old query string.
+					return new_path
+			else:
+				if new_path is None:
+					path_part = self.master.request.path_qs
+				else:
+					path_part = new_path
+
+		if "?" not in path_part:
+			path_string = path_part + "?"
+		else:
+			path_string = path_part + "&"
+		if isinstance(new_vars, dict):
+			for key in new_vars:
+				path_string += key + "=" + urllib.quote_plus(str(new_vars[key])) + "&"
+			if path_string.endswith("&"): path_string = path_string[:-1]
+		else:
+			# we assume a string was passed like 'queryvar=queryvalue'
+			path_string += new_vars			
+		return path_string	
+	
 	def get(self):
 		
 		# Instantiate the master object, do security and other app checks. If
 		# there's an interruption return from this function without processing
 		# further.
 		lobj_master = master(self,"get","unsecured")
+		self.master = lobj_master
 		if lobj_master.IS_INTERRUPTED:return
 		
 		# get the context
@@ -3958,13 +3992,53 @@ class ph_command(webapp2.RequestHandler):
 				
 		page["context"] = "<u>CONTEXT</u>: (<b>%s</b>) <u>AS</u>: (<b>%s</b>)" % (context,page["username"])
 		
+		# lets get the non-default view if there is one
+		if "view" in lobj_master.request.GET:
+			view = lobj_master.request.GET["view"]
+		else:
+			view = "default"
+			
+		# first check our error/success/confirm requests
+		if "error_code" in lobj_master.request.GET:
+			page["title"] = "ERROR"
+			blok = {}
+			blok["type"] = "error"
+			blok["error_code"] = lobj_master.request.GET["error_code"]
+			blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["last_view"])
+			blok["last_view_link_text"] = "Link to last View"
+			bloks.append(blok)		
+		
 		# make bloks from context
-		if context == "root":
-			page["title"] = "HOME"
+		elif context == "root" and view == "default":
+			page["title"] = "ROOT"
 			blok = {}
 			blok["type"] = "home"
 			bloks.append(blok)
-		
+
+		elif context == "root" and view == "menu":
+			page["title"] = "MENU ROOT"
+			blok = {}
+			blok["type"] = "menu"
+			blok["menuitems"] = []
+			menuitem1 = {}
+			menuitem1["href"] = "/"
+			menuitem1["label"] = "Root"
+			blok["menuitems"].append(menuitem1)
+			menuitem2 = {}
+			menuitem2["href"] = "/"
+			menuitem2["label"] = "Introduction"
+			blok["menuitems"].append(menuitem2)
+			bloks.append(blok)	
+		else:
+			# context not recognized
+			# show error
+			page["title"] = "ERROR"
+			blok = {}
+			blok["type"] = "error"
+			blok["error_code"] = "1002"
+			blok["last_view_link"] = "/"
+			blok["last_view_link_text"] = "Link to ROOT"
+			bloks.append(blok)			
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
 		self.response.write(template.render(master=lobj_master))
@@ -3975,6 +4049,7 @@ class ph_command(webapp2.RequestHandler):
 		# there's an interruption return from this function without processing
 		# further.
 		lobj_master = master(self,"post","unsecured")
+		self.master = lobj_master
 		if lobj_master.IS_INTERRUPTED:return
 
 		# get the context
@@ -3989,39 +4064,13 @@ class ph_command(webapp2.RequestHandler):
 			# create a shorter reference to the request handler
 			r = lobj_master.request_handler
 			# parse the command and make sure all lowercase
-			command_tokens = lstr_command_text.lower().split()
-			
-			def url_path(new_vars=None,new_path=None):
-				if new_vars is None:
-					if new_path is None:
-						return lobj_master.request.path_qs
-					else:
-						# If we're sending to new path we
-						# don't use old query string.
-						return new_path
-				else:
-					if new_path is None:
-						path_part = lobj_master.request.path_qs
-					else:
-						path_part = new_path
-				if "?" not in path_part:
-					path_string = path_part + "?"
-				else:
-					path_string = path_part + "&"
-				if isinstance(new_vars, dict):
-					for key in new_vars:
-						path_string += key + "=" + urllib.quote_plus(str(new_vars[key])) + "&"
-					if path_string.endswith("&"): path_string = path_string[:-1]
-				else:
-					# we assume a string was passed like 'queryvar=queryvalue'
-					path_string += new_vars			
-				return path_string				
-			
+			command_tokens = lstr_command_text.lower().split()			
+			# process the command
 			if command_tokens[0] == "menu" and len(command_tokens) == 1:
-				r.redirect(url_path(new_path="/menu"))
+				r.redirect(self.url_path(new_vars="view=menu"))
 			else:
 				# command not recognized
-				r.redirect(url_path(new_vars="form_result=error_1001"))
+				r.redirect(self.url_path(error_code="1001"))
 	
 ################################################################
 ###
