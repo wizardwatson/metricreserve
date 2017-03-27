@@ -539,18 +539,6 @@ class master(object):
 			# Admin page is special case. Send them to error page if they are not admin.
 			# STUB: haven't built the error page yet.
 			pass		
-
-	def _process_command(self,fbool_secured,fstr_command):
-	
-			lstr_return_message = "success"
-			
-			return lstr_return_message
-			
-	def _parse_command(self,fbool_secured,fstr_command):
-	
-			lstr_return_message = "success"
-			
-			return lstr_return_message
 			
 # this is the user class specifically designed for using google user authentication
 class user(object):
@@ -630,12 +618,12 @@ class user(object):
 			second_int = str(random.randint(1,999)).zfill(3)
 			temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)
 			while True:
-				if self._save_unique_name(temp_username,ldata_user):
+				if self._save_unique_username(temp_username,ldata_user):
 					break			
 		return ldata_user
 		
 	@ndb.transactional(xg=True)
-	def _save_unique_name(self,fstr_name,fobj_user=None,fstr_name_type="EMPTY",fint_id_pointer_int=0,fstr_id_pointer_str="EMPTY"):
+	def _save_unique_username(self,fstr_name,fobj_user=None,fstr_name_type="EMPTY",fint_id_pointer_int=0,fstr_id_pointer_str="EMPTY"):
 	
 		# new name check
 		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
@@ -647,6 +635,7 @@ class user(object):
 		new_entity = ds_mr_unique_dummy_entity()
 		new_entity.unique_name = fstr_name
 		new_entity.key = maybe_new_key
+ 
 		new_entity.put()
 		# This function is called from user initialization
 		# as well.  Make sure we have correct reference to
@@ -659,6 +648,8 @@ class user(object):
 			user_entity = self.entity
 			lstr_tx_type = "NEW USERNAME CREATED"
 			lstr_tx_description = "A new username was chosen by a user."
+		new_entity.name_type = "username"
+		new_entity.id_pointer_str = user_entity.user_id
 		# assign new username to user
 		user_entity.user_status = "ACTIVE"
 		user_entity.username = fstr_name
@@ -696,6 +687,8 @@ class user(object):
 		new_entity = ds_mr_unique_dummy_entity()
 		new_entity.unique_name = fstr_name
 		new_entity.key = maybe_new_key
+		new_entity.name_type = "username"
+		new_entity.id_pointer_str = self.PARENT.user.entity.user_id
 		new_entity.put()
 		# delete old name making available for others to now use
 		old_key = ndb.Key("ds_mr_unique_dummy_entity", self.PARENT.user.entity.username)
@@ -715,7 +708,7 @@ class user(object):
 		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A user changed their username." 
 		lds_tx_log.memo = fstr_name
-		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 		lds_tx_log.network_id = 0
 		lds_tx_log.account_id = 0
 		lds_tx_log.source_account = 0 
@@ -732,16 +725,6 @@ class metric(object):
 	
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
-		
-	# process command form
-	def _process_command(self,fstr_command):
-	
-		# first parse the command
-		parsed_command = fstr_command.split()
-		
-		
-	
-		return None
 	
 	@ndb.transactional(xg=True)
 	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
@@ -3429,102 +3412,6 @@ class metric(object):
 ###
 ################################################################
 
-# page handler for all command based pages
-class ph_command(webapp2.RequestHandler):
-
-	def get(self):
-	
-		pass
-		
-	def post(self):
-	
-		pass
-
-# page handler class for "/" (web root/home page)
-class ph_home(webapp2.RequestHandler):
-
-	# There is a mobile and desktop version of this site. We direct them to
-	# the corresponding site based on CGI user agent variable. This only
-	# applies to the root domain as all internal pages are named and rendered
-	# separately so any bookmarking will always terminate on correct template.
-	
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		# STUB - need user agent check after site complete, now just targeting mobile
-		# by using "True" in decision logic.
-		if True:
-		
-			# render mobile homepage
-		        template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_home.html')
-		        self.response.write(template.render(master=lobj_master))
-		
-		else:
-		
-			# render desktop homepage
-			pass
-
-# page handler class for "/mob_u_home" 
-class ph_mob_u_home(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_home.html')
-		self.response.write(template.render(master=lobj_master))
-
-# page handler class for "/mob_u_menu" 
-class ph_mob_u_menu(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_menu.html')
-		self.response.write(template.render(master=lobj_master))
-
-# page handler class for "/mob_s_home"
-class ph_mob_s_home(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","secured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_home.html')
-		self.response.write(template.render(master=lobj_master))
-		
-# page handler class for "/mob_s_menu" 
-class ph_mob_s_menu(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","secured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_s_menu.html')
-		self.response.write(template.render(master=lobj_master))
-
 # page handler class for "/mob_s_register"
 class ph_mob_s_register(webapp2.RequestHandler):
 
@@ -3829,75 +3716,6 @@ class ph_mob_s_make_payment(webapp2.RequestHandler):
 		
 		lobj_master.request_handler.redirect('/mob_s_make_payment?form_result=%s' % lstr_result)
 
-# page handler class for "/mob_u_command"
-class ph_mob_u_command(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		lobj_master.TRACE.append("ph_mob_u_command.get(): in u_command GET function")
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_command.html')
-		self.response.write(template.render(master=lobj_master))
-		
-	def post(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"post","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		lobj_master.TRACE.append("ph_mob_u_command.post(): in u_command POST function")
-		
-		# unsecured command form
-		lstr_command_text = lobj_master.request.POST['form_command_text']
-		
-		lbool_secured = False
-		lstr_result = lobj_master._process_command(lbool_secured, lstr_command_text)
-		
-		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
-
-# page handler class for "/mob_s_command"
-class ph_mob_s_root(webapp2.RequestHandler):
-
-	def get(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"get","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		lobj_master.TRACE.append("ph_mob_u_command.get(): in u_command GET function")
-		
-		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_u_command.html')
-		self.response.write(template.render(master=lobj_master))
-		
-	def post(self):
-		
-		# Instantiate the master object, do security and other app checks. If
-		# there's an interruption return from this function without processing
-		# further.
-		lobj_master = master(self,"post","unsecured")
-		if lobj_master.IS_INTERRUPTED:return
-		
-		lobj_master.TRACE.append("ph_mob_u_command.post(): in u_command POST function")
-		
-		# unsecured command form
-		lstr_command_text = lobj_master.request.POST['form_command_text']
-		
-		lbool_secured = False
-		lstr_result = lobj_master._process_command(lbool_secured, lstr_command_text)
-		
-		lobj_master.request_handler.redirect('/mob_u_command?form_result=%s' % lstr_result)
-
-
 # page handler class for command based pages
 class ph_command(webapp2.RequestHandler):
 
@@ -3908,14 +3726,9 @@ class ph_command(webapp2.RequestHandler):
 	# simplicity.  Every page that uses it comes in as a GET or a POST.
 	# The GET requests use the "context", which is the url path and 
 	# query string key/values, as the means to decide what to display.
-	# Whereas the POST requests use the command text to decide what
+	# Whereas, the POST requests use the command text to decide what
 	# to "do" and the "context" can be a requirement, or unnecessary.
 	# 
-	# For instance a GET request for "menu" would return the menu "page"
-	# from any context, but a "connect()" command would be required 
-	# to be called from "/network/account?netid=mynetwork&accid=bob" as a
-	# requirement.
-	#
 	# If the user hits the submit button with no command in it, it
 	# simply turns the request into a redirect back to itself (refresh).
 	# In fact the FORM action always targets the current path/context
@@ -3927,12 +3740,42 @@ class ph_command(webapp2.RequestHandler):
 	# would automatically target the context 
 	# "/network/account?netid=mynetwork&accid=bob"
 	
-	def url_path(self,new_vars={},new_path=None,error_code=None):
+	def is_valid_name(self,fstr_name):
+	
+		# a valid name is comprised of re.match(r'^[a-z0-9_]+$',fstr_name)
+		# so only a-z, 0-9, or an underscore
+		# additionally:
+		# 1. Can't end or begin with an underscore
+		# 2. Can't be less than three characters
+		# 3. Must contain at least one letter.
+		# 4. If 10 or less in length, must contain at lease one
+		# number and at least one letternumber as keywords 
+		# reserve the 10 or less space without numbers
+		# or underscores.
+		if not re.match(r'^[a-z0-9_]+$',fstr_name):
+			return False
+		if not re.search('[a-z]',fstr_name):
+			return False
+		if not len(fstr_name) > 2:
+			return False
+		if fstr_name[:1] == "_" or fstr_name[-1:] == "_":
+			return False
+		if len(fstr_name) < 11 and not re.search('[0-9]',fstr_name):
+			return False
+		return True
+	
+	def url_path(self,new_vars={},new_path=None,error_code=None,confirm_code=None,success_code=None):
 
 		if not error_code is None:
 			path_part = self.master.request.path
 			new_vars["error_code"] = error_code
 			new_vars["last_view"] = urllib.quote_plus(self.master.request.path_qs)
+		elif not confirm_code is None:
+			path_part = self.master.request.path
+			new_vars["confirm_code"] = confirm_code
+		elif not success_code is None:
+			path_part = self.master.request.path
+			new_vars["success_code"] = success_code
 		else:
 			if new_vars == {}:
 				if new_path is None:
@@ -3971,6 +3814,8 @@ class ph_command(webapp2.RequestHandler):
 		
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+		# make the menu link href
+		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")
 		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
 		
 		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
@@ -3998,6 +3843,10 @@ class ph_command(webapp2.RequestHandler):
 		else:
 			view = "default"
 			
+		###################################
+		# ERROR PROCESS
+		###################################
+		
 		# first check our error/success/confirm requests
 		if "error_code" in lobj_master.request.GET:
 			page["title"] = "ERROR"
@@ -4007,7 +3856,34 @@ class ph_command(webapp2.RequestHandler):
 			blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["last_view"])
 			blok["last_view_link_text"] = "Link to last View"
 			bloks.append(blok)		
-		
+
+		###################################
+		# CONFIRM PROCESS
+		###################################
+
+		elif "confirm_code" in lobj_master.request.GET:
+			page["title"] = "CONFIRM"
+			blok = {}
+			blok["type"] = "confirm"
+			blok["confirm_code"] = lobj_master.request.GET["confirm_code"]
+			blok["form_hidden_command_text"] = urllib.unquote(lobj_master.request.GET["ct"])
+			bloks.append(blok)	
+			
+		###################################
+		# SUCCESS PROCESS
+		###################################
+				
+		elif "success_code" in lobj_master.request.GET:
+			page["title"] = "SUCCESS"
+			blok = {}
+			blok["type"] = "success"
+			blok["success_code"] = lobj_master.request.GET["success_code"]
+			bloks.append(blok)	
+				
+		###################################
+		# CONTEXT/VIEW PROCESS
+		###################################
+				
 		# make bloks from context
 		elif context == "root" and view == "default":
 			page["title"] = "ROOT"
@@ -4029,6 +3905,7 @@ class ph_command(webapp2.RequestHandler):
 			menuitem2["label"] = "Introduction"
 			blok["menuitems"].append(menuitem2)
 			bloks.append(blok)	
+			
 		else:
 			# context not recognized
 			# show error
@@ -4054,6 +3931,7 @@ class ph_command(webapp2.RequestHandler):
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")
 		
 		# unsecured command form
 		lstr_command_text = lobj_master.request.POST['form_command_text']
@@ -4064,10 +3942,49 @@ class ph_command(webapp2.RequestHandler):
 			# create a shorter reference to the request handler
 			r = lobj_master.request_handler
 			# parse the command and make sure all lowercase
-			command_tokens = lstr_command_text.lower().split()			
-			# process the command
-			if command_tokens[0] == "menu" and len(command_tokens) == 1:
+			ct = lstr_command_text.lower().split()
+			# is this a confirmation?
+			is_confirmed = False
+			if ct[0] == "confirm" and len(ct) == 1:
+				# yes, it is
+				# check the hidden confirmed command
+				lstr_command_text = lobj_master.request.POST['form_hidden_command_text']
+				if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
+					# no command passed, just treat as a refresh
+					r.redirect(self.url_path(error_code="1001"))
+					return
+				else:
+					# process that instead
+					ct = lstr_command_text.lower().split()
+					is_confirmed = True
+			# process the commands
+			###################################
+			# MENU
+			###################################
+			if ct[0] == "menu" and len(ct) == 1:
 				r.redirect(self.url_path(new_vars="view=menu"))
+			###################################
+			# USERNAME CHANGE
+			###################################
+			if ("%s %s" % (ct[0],ct[1])) == "username change" and len(ct) == 3:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1101"))
+				elif not is_confirmed:
+					# need confirmation before changing a username
+					ltemp = {}
+					ltemp["old_username"] = lobj_master.user.entity.username
+					ltemp["new_username"] = ct[2]
+					ltemp["ct"] = "username change %s" % ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
+				elif not lobj_master.user._change_unique_username(ct[2]):
+					r.redirect(self.url_path(error_code="1102"))
+				else:
+					ltemp = {}
+					ltemp["old_username"] = lobj_master.user.entity.username
+					ltemp["new_username"] = ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
 			else:
 				# command not recognized
 				r.redirect(self.url_path(error_code="1001"))
@@ -4078,47 +3995,33 @@ class ph_command(webapp2.RequestHandler):
 ###
 ################################################################
 
-
 ##########################################################################
 # BEGIN: Python Entry point.  This function should be permanent.
 ##########################################################################
 
 # Defining all pages here for simplicity
 # 'ph' prefix means "page handler"
-# 'mob' means "mobile version" (example: ph_mob_home)
-# 'full' means "full browser version" (example: ph_full_home)
-# 's' and 'u' refer to 'unsecured' vs. 'secured'
-#
-# so ph_mob_u_menu for instance means:
-# "this class is a page handler for the mobile version of an unsecured menu page."
 
 # All this function does is tell the module which path to match to which 
-# class. It then calls either 'get' or 'post' function on that class depending
-# on the request type. The path argument takes a regular expression but I 
-# just use static mapping as building logic into path tokenizing and handling 
-# gets unnecessarily complex.
+# class. It then calls either 'get'/'post' function on that class depending
+# on the request type. The path argument takes a regular expression.
 
 # steps to add a new page
 # 1. Create the template you want to use
-# 2. Add it to the tuple-ey/arrayish thingy below
-# 3. Create the class you designate below up above like the others with a get/post
+# 2. Add it to the tuple-ey/sequencey thingy below
+# 3. Create the class you designate below like the others with a get/post
 
 application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
 	('/network/account', ph_command),
-	('/mob_u_home', ph_mob_u_home),
-	('/mob_u_menu', ph_mob_u_menu),
-	('/mob_s_home', ph_mob_s_home),
-	('/mob_s_menu', ph_mob_s_menu),
 	('/mob_s_register', ph_mob_s_register),
 	('/mob_s_network_summary', ph_mob_s_network_summary),
 	('/mob_s_join_network', ph_mob_s_join_network),
 	('/mob_s_connect', ph_mob_s_connect),
 	('/mob_s_disconnect', ph_mob_s_disconnect),
 	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
-	('/mob_s_make_payment', ph_mob_s_make_payment),
-	('/mob_u_command', ph_mob_u_command)
+	('/mob_s_make_payment', ph_mob_s_make_payment)
 	],debug=True)
 
 ##########################################################################
