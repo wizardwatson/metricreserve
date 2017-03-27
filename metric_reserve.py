@@ -3464,11 +3464,11 @@ class User(webapp2_extras.appengine.auth.models.User):
 		user_key = ndb.Key(cls, user_id)
 		# Use get_multi() to save a RPC call.
 		valid_token, user = ndb.get_multi([token_key, user_key])
-	if valid_token and user:
-		timestamp = int(time.mktime(valid_token.created.timetuple()))
-		return user, timestamp
+		if valid_token and user:
+			timestamp = int(time.mktime(valid_token.created.timetuple()))
+			return user, timestamp
 
-	return None, None
+		return None, None
 
 def user_required(handler):
   """
