@@ -14,6 +14,15 @@ handlers:
   
 - url: /.*
   script: metric_reserve.application
+  
+- url: /signup
+  secure: always
+
+- url: /login
+  secure: always
+
+- url: /forgot
+  secure: always
 
 libraries:
 - name: webapp2
