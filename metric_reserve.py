@@ -3839,13 +3839,25 @@ class ph_command(webapp2.RequestHandler):
 			view = lobj_master.request.GET["view"]
 		else:
 			view = "default"
-			
+
+		###################################
+		# TEST BLOCK PROCESS
+		###################################
+		
+		# first check our error/success/confirm requests
+		if "test_code" in lobj_master.request.GET:
+			page["title"] = "TEST"
+			blok = {}
+			blok["type"] = "test"
+			blok["test_code"] = lobj_master.request.GET["test_code"]
+			bloks.append(blok)	
+
 		###################################
 		# ERROR PROCESS
 		###################################
 		
 		# first check our error/success/confirm requests
-		if "error_code" in lobj_master.request.GET:
+		elif "error_code" in lobj_master.request.GET:
 			page["title"] = "ERROR"
 			blok = {}
 			blok["type"] = "error"
