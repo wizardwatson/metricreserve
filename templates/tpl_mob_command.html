@@ -3,7 +3,7 @@
 {% block content %}
 <div data-role="page" id="mob_u_home">
 	<div data-role="header" data-position="inline">
-		<a href="/menu" data-icon="grid">Menu</a>
+		<a href="{{ master.MENU_LINK }}" data-icon="grid">Menu</a>
 		<h1>METRIC RESERVE</h1>
 		{% if master.user.IS_LOGGED_IN %}
 		<a href="{{ master.user.LOG_OUT_GAE_HREF }}" data-icon="minus">Logout</a>
@@ -15,7 +15,8 @@
 		<form action="{{ master.request.path_qs }}" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
 		  <fieldset>
 			<div data-role="fieldcontain" class="ui-hide-label">
-			  <label for="command">CMD:</label>
+				<input type="hidden" name="form_hidden_command_text" value="{{ master.request.GET.ct }}"  />
+				<label for="command">CMD:</label>
 				<input type="text" name="form_command_text" id="command" value="" placeholder="COMMAND"/>
 			</div>
 			<button type="submit" data-theme="b" name="submit" value="submit_command">ENTER</button>
