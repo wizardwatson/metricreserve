@@ -1,0 +1,117 @@
+
+<!-- UNSECURED PAGE -->
+
+<!-- mobile base template -->
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>ROOT</title>
+	<link rel="stylesheet" href="https://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.css" />
+	<link rel="shortcut icon" href="static/favicon.ico" type="image/x-icon">
+	<link rel="icon" href="static/favicon.ico" type="image/x-icon">
+	<script src="https://code.jquery.com/jquery-1.8.2.min.js"></script>
+	<script type="text/javascript">
+	$(document).bind("mobileinit", function () {
+	    $.mobile.ajaxEnabled = false;
+	});
+	</script>
+	<script src="https://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+	<style>
+
+	li {
+	  font-family: courier;
+	}
+    * {
+      font-family: courier;
+    }
+    p.myclass {
+      font-family: courier;
+    }
+    input.myclass {
+      font-family: courier;
+    }
+    div.myclass {
+      font-family: courier;
+      margin-top: 5px;
+      font-size: .8em;
+      border-radius: 5px;
+    }
+
+    div.mycontent {
+      font-family: courier;
+      margin-top: 10px;
+      font-weight: bold;
+      margin-bottom: 1px;
+      font-size: 1em;
+      border-radius: 5px;
+    }
+
+	/* this is for the red asterisk on required form fields */
+	/* use like: <span class="required_asterisk">*</span> */
+	span.required_asterisk {
+		padding-left: 2px;
+		color: ##ba0000;
+		font-size: 18px;
+		font-weight: 700;
+		height: 18px;
+	}
+
+	</style>
+</head>
+	<body>
+		<div data-role="page" id="mob_u_home">
+			<div data-role="header" data-position="inline">
+				<a href="#" data-icon="grid">Menu</a>
+				<h1>METRIC RESERVE</h1>
+				<a href="#" data-icon="plus">Login</a>
+			</div>
+			<div data-role="content">
+				<form action="#" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+				  <fieldset>
+					<div data-role="fieldcontain" class="ui-hide-label">
+						<input type="hidden" name="form_hidden_command_text" value=""  />
+						<label for="command">CMD:</label>
+						<input class="myclass" type="text" name="form_command_text" id="command" value="" placeholder="COMMAND"/>
+					</div>
+					<button type="submit" data-theme="b" name="submit" value="submit_command">ENTER</button>
+				  </fieldset>
+				</form>
+				<div class="myclass ui-body ui-body-a"><font color="yellow">CONTEXT: (root) AS (127.0.0.1)</font></div>
+				<div class="mycontent ui-body ui-body-c">
+				<p>Hello, 127.0.0.1.</p>
+				<p>If you're new here it is recommended you read the introduction.</p>
+				<p>If you are returning, somewhat familar, or need a refresher, try the quickstart guide.</p>
+				<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
+				</div>
+				<p class="myclass ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">Inactive Networks</li>
+					<li><a href="#">usafrn1</a></li>
+					<li data-role="list-divider">My Networks</li>
+					<li><a href="#">gold42</a></li>
+					<li><a href="#">silver99</a></li>
+					<li data-role="list-divider">Other Networks</li>
+					<li><a href="#">bitcoin1</a></li>
+					<li><a href="#">ether12</a></li>
+				</ul>
+				<p class="myclass ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
+				<div data-role="navbar">
+					<ul>
+						<li><a href="a.html">One</a></li>
+						<li><a href="b.html">Two</a></li>
+					</ul>
+				</div>
+				<div data-role="navbar">
+					<ul>
+						<li><a href="a.html">One</a></li>
+						<li><a href="b.html">Two</a></li>
+					</ul>
+				</div>
+				<p class="myclass ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
+			</div>
+		</div>
+	</body>
+</html>
