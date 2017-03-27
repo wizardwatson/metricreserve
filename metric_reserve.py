@@ -4019,7 +4019,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_disconnect', ph_mob_s_disconnect),
 	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
 	('/mob_s_make_payment', ph_mob_s_make_payment)
-	],debug=True,config=config)
+	],debug=True)
 
 ##########################################################################
 # END: Python Entry point.  This function should be permanent.
