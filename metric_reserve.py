@@ -3597,21 +3597,21 @@ class ForgotPasswordHandler(BaseHandler):
 		username = self.request.get('username')
 
 		user = self.user_model.get_by_auth_id(username)
-	if not user:
-		logging.info('Could not find any user entry for username %s', username)
-		self._serve_page(not_found=True)
-		return
+		if not user:
+			logging.info('Could not find any user entry for username %s', username)
+			self._serve_page(not_found=True)
+			return
 
-	user_id = user.get_id()
-	token = self.user_model.create_signup_token(user_id)
+		user_id = user.get_id()
+		token = self.user_model.create_signup_token(user_id)
 
-	verification_url = self.uri_for('verification', type='p', user_id=user_id,
-		signup_token=token, _full=True)
+		verification_url = self.uri_for('verification', type='p', user_id=user_id,
+			signup_token=token, _full=True)
 
-	msg = 'Send an email to user in order to reset their password. \
-		They will be able to do so by visiting <a href="{url}">{url}</a>'
+		msg = 'Send an email to user in order to reset their password. \
+			They will be able to do so by visiting <a href="{url}">{url}</a>'
 
-	self.display_message(msg.format(url=verification_url))
+		self.display_message(msg.format(url=verification_url))
   
 	def _serve_page(self, not_found=False):
 		username = self.request.get('username')
@@ -3635,34 +3635,34 @@ class VerificationHandler(BaseHandler):
 		user, ts = self.user_model.get_by_auth_token(int(user_id), signup_token,
 			'signup')
 
-	if not user:
-		logging.info('Could not find any user with id "%s" signup token "%s"',
-			user_id, signup_token)
-		self.abort(404)
-    
-	# store user data in the session
-	self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
+		if not user:
+			logging.info('Could not find any user with id "%s" signup token "%s"',
+				user_id, signup_token)
+			self.abort(404)
 
-	if verification_type == 'v':
-		# remove signup token, we don't want users to come back with an old link
-		self.user_model.delete_signup_token(user.get_id(), signup_token)
+		# store user data in the session
+		self.auth.set_session(self.auth.store.user_to_dict(user), remember=True)
 
-		if not user.verified:
-			user.verified = True
-			user.put()
+		if verification_type == 'v':
+			# remove signup token, we don't want users to come back with an old link
+			self.user_model.delete_signup_token(user.get_id(), signup_token)
 
-		self.display_message('User email address has been verified.')
-		return
-	elif verification_type == 'p':
-		# supply user to the page
-		params = {
-			'user': user,
-			'token': signup_token
-		}
-		self.render_template('resetpassword.html', params)
-	else:
-		logging.info('verification type not supported')
-		self.abort(404)
+			if not user.verified:
+				user.verified = True
+				user.put()
+
+			self.display_message('User email address has been verified.')
+			return
+		elif verification_type == 'p':
+			# supply user to the page
+			params = {
+				'user': user,
+				'token': signup_token
+			}
+			self.render_template('resetpassword.html', params)
+		else:
+			logging.info('verification type not supported')
+			self.abort(404)
 
 class SetPasswordHandler(BaseHandler):
 
@@ -3691,13 +3691,13 @@ class LoginHandler(BaseHandler):
 	def post(self):
 		username = self.request.get('username')
 		password = self.request.get('password')
-	try:
-		u = self.auth.get_user_by_password(username, password, remember=True,
-			save_session=True)
-		self.redirect(self.uri_for('home'))
-	except (InvalidAuthIdError, InvalidPasswordError) as e:
-		logging.info('Login failed for user %s because of %s', username, type(e))
-		self._serve_page(True)
+		try:
+			u = self.auth.get_user_by_password(username, password, remember=True,
+				save_session=True)
+			self.redirect(self.uri_for('home'))
+		except (InvalidAuthIdError, InvalidPasswordError) as e:
+			logging.info('Login failed for user %s because of %s', username, type(e))
+			self._serve_page(True)
 
 	def _serve_page(self, failed=False):
 		username = self.request.get('username')
@@ -3705,7 +3705,7 @@ class LoginHandler(BaseHandler):
 			'username': username,
 			'failed': failed
 		}
-	self.render_template('login.html', params)
+		self.render_template('login.html', params)
 
 class LogoutHandler(BaseHandler):
 	def get(self):
