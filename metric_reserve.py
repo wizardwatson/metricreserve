@@ -4342,6 +4342,14 @@ application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
 	('/network/account', ph_command),
+	webapp2.Route('/signup', SignupHandler),
+    webapp2.Route('/<type:v|p>/<user_id:\d+>-<signup_token:.+>',
+      handler=VerificationHandler, name='verification'),
+    webapp2.Route('/password', SetPasswordHandler),
+    webapp2.Route('/login', LoginHandler, name='login'),
+    webapp2.Route('/logout', LogoutHandler, name='logout'),
+    webapp2.Route('/forgot', ForgotPasswordHandler, name='forgot'),
+    webapp2.Route('/authenticated', AuthenticatedHandler, name='authenticated'),
 	('/mob_s_register', ph_mob_s_register),
 	('/mob_s_network_summary', ph_mob_s_network_summary),
 	('/mob_s_join_network', ph_mob_s_join_network),
@@ -4349,7 +4357,7 @@ application = webapp2.WSGIApplication([
 	('/mob_s_disconnect', ph_mob_s_disconnect),
 	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
 	('/mob_s_make_payment', ph_mob_s_make_payment)
-	],debug=True)
+	],debug=True,config=config)
 
 ##########################################################################
 # END: Python Entry point.  This function should be permanent.
