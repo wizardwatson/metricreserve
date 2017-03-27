@@ -15,6 +15,14 @@
 			<p>If you are returning, somewhat familar, or need a refresher, try the quickstart guide.</p>
 			<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
 		{% endif %}
+	{% elif blok.type == "test" %}
+		{% if blok.test_code == "8001" %}
+			<p class="ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
+		{% elif blok.test_code == "8002" %}
+			<p class="ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8002 for template testing.</p>
+		{% else %}
+			<p>Unrecognized Test Code</p>
+		{% endif %}
 	{% elif blok.type == "error" %}
 		{% if blok.error_code == "1001" %}
 			<p class="ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Command keyword(s) unrecognized.<br/>
