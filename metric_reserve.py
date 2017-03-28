@@ -362,7 +362,7 @@ class master(object):
 		self.TRACE = []
 		self.DEBUG_VARS = {}
 		# A var for functions in different objects to pass around error/success codes
-		self.RETURN_CODE
+		self.RETURN_CODE = ""
 		
 		# see if this site is being viewed on mobile browser
 		self.IS_MOBILE = False
