@@ -890,6 +890,104 @@ class metric(object):
 		lds_tx_log.target_account = 0
 		lds_tx_log.put()	
 
+	def _get_all_networks(self):
+	
+		"""
+			We want to show all networks to everyone, but if they are members of
+			certain networks we will show those on top.
+
+			FOR LOGGED IN USERS:
+
+			My Live Networks (inset)
+			
+			My Test Networks (inset)
+
+			[Other] Live Networks (inset)
+			
+			[Other] Test Networks (inset/collapsible)
+			Inactive Networks (inset/collapsible)
+			Deleted Networks (inset/collapsible)
+
+
+			FOR ANONYMOUS VIEWERS:
+
+			Live Networks (inset)
+
+			Test Networks (inset/collapsible)
+			Inactive Networks (inset/collapsible)
+			Deleted Networks (inset/collapsible)		
+		"""
+		system_cursor_key = ndb.Key("ds_mr_system_cursor", "system")
+		system_cursor = system_cursor_key.get()
+		if system_cursor is None:
+			# No networks in the system yet.
+			return None
+		
+		list_of_keys = []
+		for i in range(1,system_cursor.current_index + 1):
+			a_key = ndb.Key("ds_mr_network_profile","%s" % str(i).zfill(8))
+			list_of_keys.append(a_key)
+		list_of_networks = ndb.get_multi(list_of_keys)
+		
+		groups = {}
+		groups["has_my_live_networks"] = False
+		groups["has_my_test_networks"] = False
+		groups["has_live_networks"] = False
+		groups["has_one_of_test_inactive_deleted"] = False
+		groups["has_test_networks"] = False
+		groups["has_inactive_networks"] = False
+		groups["has_deleted_networks"] = False
+		
+		groups["my_live_networks"] = []
+		groups["my_test_networks"] = []
+		groups["live_networks"] = []
+		groups["test_networks"] = []
+		groups["inactive_networks"] = []
+		groups["deleted_networks"] = []
+		
+		if self.PARENT.user.IS_LOGGED_IN:
+			for network in list_of_networks:
+				if network.status == "DELETED":
+					groups["has_deleted_networks"] = True
+					groups["deleted_networks"].append(network)
+				elif network.status == "INACTIVE":
+					groups["has_inactive_networks"] = True
+					groups["inactive_networks"].append(network)
+				elif network.status == "ACTIVE":
+					if network.type == "LIVE":
+						if network.network_id in self.PARENT.user.entity.metric_network_ids:
+							groups["has_my_live_networks"] = True
+							groups["my_live_networks"].append(network)
+						else:
+							groups["has_live_networks"] = True
+							groups["live_networks"].append(network)
+					elif network.type == "TEST":
+						if network.network_id in self.PARENT.user.entity.metric_network_ids:
+							groups["has_my_test_networks"] = True
+							groups["my_test_networks"].append(network)	
+						else:
+							groups["has_test_networks"] = True
+							groups["test_networks"].append(network)
+		else:
+			for network in list_of_networks:
+				if network.status == "DELETED":
+					groups["has_deleted_networks"] = True
+					groups["deleted_networks"].append(network)
+				elif network.status == "INACTIVE":
+					groups["has_inactive_networks"] = True
+					groups["inactive_networks"].append(network)
+				elif network.status == "ACTIVE":
+					if network.type == "LIVE":
+						groups["has_live_networks"] = True
+						groups["live_networks"].append(network)
+					elif network.type == "TEST":
+						groups["has_test_networks"] = True
+						groups["test_networks"].append(network)
+		if groups["has_test_networks"] or groups["has_inactive_networks"] or groups["has_deleted_networks"]:		
+			groups["has_one_of_test_inactive_deleted"] = True
+							
+		return groups
+
 	@ndb.transactional(xg=True)
 	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
 	
@@ -3923,10 +4021,18 @@ class ph_command(webapp2.RequestHandler):
 		
 		if self.PATH_CONTEXT == "root/network" and "view_network" in lobj_master.request.GET:
 			# network level context
-			result.append(1)
+			result.append(10)
 			result.append(lobj_master.request.GET["view_network"])
-		elif True:
+		elif self.PATH_CONTEXT == "root/network":
+			# view all networks
+			result.append(20)
 			pass
+		elif self.PATH_CONTEXT == "root" and "view_menu" in lobj_master.request.GET::
+			# view root menu
+			result.append(30)
+		elif self.PATH_CONTEXT == "root":
+			# home page
+			result.append(40)
 		else:
 			pass
 					
@@ -4007,7 +4113,7 @@ class ph_command(webapp2.RequestHandler):
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 		# make the menu link href
-		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu",new_path=lobj_master.request.path)
+		lobj_master.MENU_LINK = self.url_path(new_vars="view_menu=1",new_path=lobj_master.request.path)
 		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
 		
 		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
@@ -4031,12 +4137,6 @@ class ph_command(webapp2.RequestHandler):
 				page["username"] = lobj_master.request.remote_addr
 				
 		page["context"] = "CONTEXT: (<b>%s</b>) AS: (<b>%s</b>)" % (context,page["username"])
-		
-		# lets get the non-default view if there is one
-		if "view" in lobj_master.request.GET:
-			view = lobj_master.request.GET["view"]
-		else:
-			view = "default"
 
 		###################################
 		# TEST BLOCK PROCESS
@@ -4092,20 +4192,20 @@ class ph_command(webapp2.RequestHandler):
 		###################################
 				
 		# make bloks from context
-		elif context == "root" and view == "default":
+		elif pqc[0] == 40:
 			page["title"] = "ROOT"
 			blok = {}
 			blok["type"] = "home"
 			bloks.append(blok)
 
-		elif context == "root" and view == "menu":
+		elif pqc[0] == 30:
 			page["title"] = "MENU ROOT"
 			blok = {}
 			blok["type"] = "menu"
 			blok["menuitems"] = []
 			menuitem1 = {}
 			menuitem1["href"] = "/"
-			menuitem1["label"] = "Root"
+			menuitem1["label"] = "root"
 			blok["menuitems"].append(menuitem1)
 			menuitem2 = {}
 			menuitem2["href"] = "/"
@@ -4116,7 +4216,45 @@ class ph_command(webapp2.RequestHandler):
 			menuitem3["label"] = "Test Bloks"
 			blok["menuitems"].append(menuitem3)
 			bloks.append(blok)	
+		
+		elif pqc[0] == 20:
+			# view all networks
+			page["title"] = "NETWORKS"
+			blok = {}
+			blok["type"] = "all networks"
+			blok["groups"] = {}
+			"""
+			We want to show all networks to everyone, but if they are members of
+			certain networks we will show those on top.
+
+			FOR LOGGED IN USERS:
+
+			My Live Networks (inset)
 			
+			My Test Networks (inset)
+
+			[Other] Live Networks (inset)
+			
+			[Other] Test Networks (inset/collapsible)
+			Inactive Networks (inset/collapsible)
+			Deleted Networks (inset/collapsible)
+
+
+			FOR ANONYMOUS VIEWERS:
+
+			Live Networks (inset)
+
+			Test Networks (inset/collapsible)
+			Inactive Networks (inset/collapsible)
+			Deleted Networks (inset/collapsible)		
+			"""
+			blok["groups"] = self.master._get_all_networks()
+			
+			
+			pass	
+		elif pqc[0] == 10:
+			# view specific network
+			pass			
 		else:
 			# context not recognized
 			# show error
@@ -4201,7 +4339,7 @@ class ph_command(webapp2.RequestHandler):
 			# from any context
 			###################################
 			if  len(ct) == 1 and ct[0] == "menu":
-				r.redirect(self.url_path(new_vars="view=menu",new_path=lobj_master.request.path))
+				r.redirect(self.url_path(new_vars="view_menu=1",new_path=lobj_master.request.path))
 			###################################
 			# username change <USERNAME>
 			# 
@@ -4227,8 +4365,9 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnew_username"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
 			###################################
-			# network add <NETWORK NAME> : add a new network
+			# network add <NETWORK NAME> : add a new network [admin only]
 			# network <NETWORK NAME> : view a network
+			# network : view network summary
 			# 
 			# from any context
 			###################################
@@ -4247,15 +4386,18 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnew_network_name"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
 			elif  len(ct) == 2 and ct[0] == "network":
-				# STUB - not sure which side I want to do a name check on.
-				pass
+				ltemp = {}
+				temp["view_network"] = ct[2]
+				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
+			elif  len(ct) == 1 and ct[0] == "network":
+				r.redirect("/network")
 			###################################
-			# network delete : delete a network
-			# network activate : change network status to ACTIVE
-			# network type live : set network type to live
-			# network type test : set network type to test
-			# network name <valid name> : change the name of a network
-			# network skintillionths <positive integer> : set conversion rate of network
+			# network delete : delete a network [admin only]
+			# network activate : change network status to ACTIVE [admin only]
+			# network type live : set network type to live [admin only]
+			# network type test : set network type to test [admin only]
+			# network name <valid name> : change the name of a network [admin only]
+			# network skintillionths <positive integer> : set conversion rate of network [admin only]
 			# 
 			# all only from network:network_id context
 			###################################
