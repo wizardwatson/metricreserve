@@ -100,6 +100,9 @@
 		{% elif blok.error_code == "1105" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network name chosen is not unique.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1106" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network can't be deleted.  Only inactive networks can be deleted manually.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -118,6 +121,10 @@
 		{% if blok.success_code == "7001" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			changed your username to <b>{{ master.request.GET.new_username }}</b>.</p>
+		{% elif blok.success_code == "7002" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			created a new network: <b>{{ master.request.GET.new_network_name }}</b>.  It's still inactive however.  Change whatever
+			settings you need to, and then issue an 'activate' command.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
