@@ -89,6 +89,18 @@
 
 
 
+	{% elif blok.type == "one network" %}
+			<div class="text_bubble ui-body ui-body-c">
+			<h2>NETWORK: {{ blok.network.network_name }}</h2>
+			<p><b>STATUS</b>:  {{ blok.network.network_status }}<br/>
+			<b>TYPE</b>:  {{ blok.network.network_type }}<br/>
+			<b>SKINTILLIONTHS</b>:  {{ blok.network.skintillionths }}<br/>
+			<b>DESCRIPTION</b>:  {{ blok.network.description }}<br/>
+			<b>DATE CREATED</b>:  {{ blok.network.date_created }}</p>
+			</div>
+
+
+
 	{% elif blok.type == "test" %}
 		{% if blok.test_code == "8001" %}
 			<p class="ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
@@ -183,6 +195,12 @@
 		{% elif blok.error_code == "1108" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Once a network has become active
 			you cannot modify the status, type, description, or skintillionth conversion rate.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1109" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Name no longer valid.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1110" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network id invalid.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
