@@ -812,6 +812,7 @@ class metric(object):
 		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
 		network_name_entity = network_name_key.get()
 		if network_name_entity is None:
+			self.PARENT.RETURN_CODE = "1109"
 			return False # Name not valid
 		# get the network from the name entity reference
 		net_id = network_name_entity.id_pointer_int
@@ -988,6 +989,28 @@ class metric(object):
 							
 		return groups
 
+	def _get_network(self,fstr_network_name=None,fint_network_id=None):
+	
+		if not fstr_network_name is None:
+			# get network by name
+			network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
+			network_name_entity = network_name_key.get()
+			if network_name_entity is None:
+				self.PARENT.RETURN_CODE = "1109"
+				return None # Name not valid
+			# get the network from the name entity reference
+			net_id = network_name_entity.id_pointer_int
+			network_key = ndb.Key("ds_mr_network_profile", "%s" % str(net_id).zfill(8))
+			network_profile = network_key.get()
+		elif not fint_network_id is None:
+			# get network by id
+			network_key = ndb.Key("ds_mr_network_profile","%s" % str(i).zfill(8))
+			network_profile = network_key.get()
+			if network_profile is None:
+				self.PARENT.RETURN_CODE = "1110"
+				return None # Name not valid
+		return network_profile
+	
 	@ndb.transactional(xg=True)
 	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
 	
@@ -4020,7 +4043,7 @@ class ph_command(webapp2.RequestHandler):
 		result = []		
 		
 		if self.PATH_CONTEXT == "root/network" and "view_network" in lobj_master.request.GET:
-			# network level context
+			# view specific network
 			result.append(10)
 			result.append(lobj_master.request.GET["view_network"])
 		elif self.PATH_CONTEXT == "root/network":
@@ -4203,14 +4226,17 @@ class ph_command(webapp2.RequestHandler):
 			blok = {}
 			blok["type"] = "menu"
 			blok["menuitems"] = []
+			
 			menuitem1 = {}
 			menuitem1["href"] = "/"
 			menuitem1["label"] = "root"
 			blok["menuitems"].append(menuitem1)
+			
 			menuitem2 = {}
 			menuitem2["href"] = "/"
 			menuitem2["label"] = "Introduction"
 			blok["menuitems"].append(menuitem2)
+			
 			menuitem3 = {}
 			menuitem3["href"] = "/?test_code=8002"
 			menuitem3["label"] = "Test Bloks"
@@ -4222,7 +4248,6 @@ class ph_command(webapp2.RequestHandler):
 			page["title"] = "NETWORKS"
 			blok = {}
 			blok["type"] = "all networks"
-			blok["groups"] = {}
 			"""
 			We want to show all networks to everyone, but if they are members of
 			certain networks we will show those on top.
@@ -4249,12 +4274,20 @@ class ph_command(webapp2.RequestHandler):
 			Deleted Networks (inset/collapsible)		
 			"""
 			blok["groups"] = self.master._get_all_networks()
-			
+			bloks.append(blok)
 			
 			pass	
 		elif pqc[0] == 10:
 			# view specific network
-			pass			
+			# view all networks
+			blok = {}
+			blok["type"] = "one network"
+			blok["network"] = self.master._get_all_networks(fstr_network_name=pqc[1])
+			if blok["network"] is None: 
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				return None
+			page["title"] = blok["network"].network_name
+			bloks.append(blok)
 		else:
 			# context not recognized
 			# show error
