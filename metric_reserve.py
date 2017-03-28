@@ -822,24 +822,36 @@ class metric(object):
 		
 		if delete_network:
 			if network_profile.network_status == "INACTIVE":
-				network_name_key.delete()
-				network_key.delete()
+				network_profile.network_status = "DELETED"
+				network_profile.put()
 				tx_description = "Network deleted."
 			else:
 				# can't delete, only inactive networks can be deleted manually
 				self.PARENT.RETURN_CODE = "1106"
 				return False
 		else:
-			if not fdescription is None: 
+			if not fdescription is None:
+				if not network_profile.network_status == "INACTIVE":
+					self.PARENT.RETURN_CODE = "1108"
+					return False
 				network_profile.description = fdescription
 				tx_description = "Network description updated."
 			if not fskintillionths is None:
+				if not network_profile.network_status == "INACTIVE":
+					self.PARENT.RETURN_CODE = "1108"
+					return False
 				network_profile.skintillionths = fskintillionths
 				tx_description = "Network skintillionth conversion updated."
 			if not ftype is None:
+				if not network_profile.network_status == "INACTIVE":
+					self.PARENT.RETURN_CODE = "1108"
+					return False
 				network_profile.network_type = ftype
 				tx_description = "Network type updated."
 			if not fstatus is None:
+				if not network_profile.network_status == "INACTIVE":
+					self.PARENT.RETURN_CODE = "1108"
+					return False
 				network_profile.network_status = fstatus
 				tx_description = "Network status updated."
 			if not fnewname is None:
@@ -4209,39 +4221,104 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["new_network_name"] = lobj_master.user.entity.username
+					ltemp["new_network_name"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
 			elif  len(ct) == 2 and ct[0] == "network":
 				# STUB - not sure which side I want to do a name check on.
 				pass
 			###################################
-			# network delete
-			# network activate
-			# network type live
-			# network type test
-			# network name <valid name>
-			# network skintillionths <positive integer>
+			# network delete : delete a network
+			# network activate : change network status to ACTIVE
+			# network type live : set network type to live
+			# network type test : set network type to test
+			# network name <valid name> : change the name of a network
+			# network skintillionths <positive integer> : set conversion rate of network
 			# 
 			# all only from network:network_id context
 			###################################
 			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
-				pass
+				# only admins can delete a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],delete_network=True):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["network_name"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
 			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
-				pass
+				# only admins can change the status of a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["network_name"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type live":
-				pass
+				# only admins can change the type of a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="LIVE"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["network_name"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type test":
-				pass
-			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
-				pass
+				# only admins can change the type of a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="TEST"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["network_name"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
-				pass
-				
-			
+				# only admins can change the type of a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not re.match(r'^[0-9]+$',ct[2]) or not (int(ct[2])) < 1000000000000000 or not (int(ct[2])) > 0:
+					r.redirect(self.url_path(error_code="1107"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],fskintillionths=ct[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["network_name"] = pqc[1]
+					ltemp["skintillionths"] = ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
+			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
+				# only admins can change a network name
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1104"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["old_network_name"] = pqc[1]
+					ltemp["new_network_name"] = ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="STUB"))
 			else:
 				# command not recognized
 				r.redirect(self.url_path(error_code="1001"))
 	
+# 	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,delete_network=False):
 ################################################################
 ###
 ###  END: Page Handler Classes
