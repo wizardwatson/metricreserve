@@ -3960,14 +3960,14 @@ class ph_command(webapp2.RequestHandler):
 
 		if not error_code is None:
 			path_part = self.master.request.path
-			new_vars["error_code"] = error_code
-			new_vars["last_view"] = urllib.quote_plus(self.master.request.path_qs)
+			new_vars["xerror_code"] = error_code
+			new_vars["xlast_view"] = urllib.quote_plus(self.master.request.path_qs)
 		elif not confirm_code is None:
 			path_part = self.master.request.path
-			new_vars["confirm_code"] = confirm_code
+			new_vars["xconfirm_code"] = confirm_code
 		elif not success_code is None:
 			path_part = self.master.request.path
-			new_vars["success_code"] = success_code
+			new_vars["xsuccess_code"] = success_code
 		else:
 			if new_vars == {}:
 				if new_path is None:
@@ -4059,8 +4059,8 @@ class ph_command(webapp2.RequestHandler):
 			page["title"] = "ERROR"
 			blok = {}
 			blok["type"] = "error"
-			blok["error_code"] = lobj_master.request.GET["error_code"]
-			blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["last_view"])
+			blok["error_code"] = lobj_master.request.GET["xerror_code"]
+			blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["xlast_view"])
 			blok["last_view_link_text"] = "Link to last View"
 			bloks.append(blok)		
 
@@ -4072,8 +4072,8 @@ class ph_command(webapp2.RequestHandler):
 			page["title"] = "CONFIRM"
 			blok = {}
 			blok["type"] = "confirm"
-			blok["confirm_code"] = lobj_master.request.GET["confirm_code"]
-			blok["form_hidden_command_text"] = urllib.unquote(lobj_master.request.GET["ct"])
+			blok["confirm_code"] = lobj_master.request.GET["xconfirm_code"]
+			blok["form_hidden_command_text"] = urllib.unquote(lobj_master.request.GET["xct"])
 			bloks.append(blok)	
 			
 		###################################
@@ -4084,7 +4084,7 @@ class ph_command(webapp2.RequestHandler):
 			page["title"] = "SUCCESS"
 			blok = {}
 			blok["type"] = "success"
-			blok["success_code"] = lobj_master.request.GET["success_code"]
+			blok["success_code"] = lobj_master.request.GET["xsuccess_code"]
 			bloks.append(blok)	
 				
 		###################################
@@ -4142,22 +4142,35 @@ class ph_command(webapp2.RequestHandler):
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
-		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")		
 		
-		# get path/query context
+		# get path/query context and variables
 		pqc = self.get_pqc()
 		
-		# unsecured command form
+		# get the command text
 		lstr_command_text = lobj_master.request.POST['form_command_text']
 		if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
-			# no command passed, just treat as a refresh
-			lobj_master.request_handler.redirect(lobj_master.request.path_qs)
+			# No command passed, just treat as a refresh, but if they hit
+			# enter when command field is empty and they are also currently
+			# on a error/success/confirm view, then we strip out any query
+			# string vars related to those views before refreshing.
+			# 
+			# That's why we prefix all result view query variables with x.
+			stripped_GET = {}
+			for key in lobj_master.request.GET:
+				# if first character of query string var name is 'x'
+				if key[:1] == "x":
+					# skip it
+					pass
+				else:
+					#include it
+					stripped_GET[key] = lobj_master.request.GET[key]					
+			lobj_master.request_handler.redirect(self.url_path(new_vars=stripped_GET,new_path=lobj_master.request.path))
 		else:
 			# create a shorter reference to the request handler
 			r = lobj_master.request_handler
 			# parse the command and make sure all lowercase
 			ct = lstr_command_text.lower().split()
-			# is this a confirmation?
+			# is this a confirmation of a previously entered command?
 			is_confirmed = False
 			if ct[0] == "confirm" and len(ct) == 1:
 				# yes, it is
@@ -4168,17 +4181,27 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1001"))
 					return
 				else:
-					# process that instead
+					# Make what was in the hidden field what we actually process
+					# and continue.
 					ct = lstr_command_text.lower().split()
-					is_confirmed = True
-			# process the commands
+					is_confirmed = True			
+			
+			"""
+			PROCESS THE COMMANDS
+			
+			This is the main switch for processing commands.
+			Most of the logic/rules/permissions for various
+			functions/pages are handled here.
+			
+			"""			
+			
 			###################################
 			# menu
 			# 
 			# from any context
 			###################################
 			if  len(ct) == 1 and ct[0] == "menu":
-				r.redirect(self.url_path(new_vars="view=menu"))
+				r.redirect(self.url_path(new_vars="view=menu",new_path=lobj_master.request.path))
 			###################################
 			# username change <USERNAME>
 			# 
@@ -4192,16 +4215,16 @@ class ph_command(webapp2.RequestHandler):
 				elif not is_confirmed:
 					# need confirmation before changing a username
 					ltemp = {}
-					ltemp["old_username"] = lobj_master.user.entity.username
-					ltemp["new_username"] = ct[2]
-					ltemp["ct"] = "username change %s" % ct[2]
+					ltemp["xold_username"] = lobj_master.user.entity.username
+					ltemp["xnew_username"] = ct[2]
+					ltemp["xct"] = "username change %s" % ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
 				elif not lobj_master.user._change_unique_username(ct[2]):
 					r.redirect(self.url_path(error_code="1102"))
 				else:
 					ltemp = {}
-					ltemp["old_username"] = lobj_master.user.entity.username
-					ltemp["new_username"] = ct[2]
+					ltemp["xold_username"] = lobj_master.user.entity.username
+					ltemp["xnew_username"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
 			###################################
 			# network add <NETWORK NAME> : add a new network
@@ -4221,7 +4244,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["new_network_name"] = ct[2]
+					ltemp["xnew_network_name"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
 			elif  len(ct) == 2 and ct[0] == "network":
 				# STUB - not sure which side I want to do a name check on.
@@ -4246,7 +4269,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["network_name"] = pqc[1]
+					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
 			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
 				# only admins can change the status of a network
@@ -4254,11 +4277,17 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1003"))
 				elif not lobj_master.user.IS_ADMIN:
 					r.redirect(self.url_path(error_code="1103"))
+				elif not is_confirmed:
+					# need confirmation before activating a network
+					ltemp = {}
+					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["xct"] = "network activate"
+					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6002"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["network_name"] = pqc[1]
+					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type live":
 				# only admins can change the type of a network
@@ -4270,7 +4299,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["network_name"] = pqc[1]
+					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type test":
 				# only admins can change the type of a network
@@ -4282,7 +4311,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["network_name"] = pqc[1]
+					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
 				# only admins can change the type of a network
@@ -4296,8 +4325,8 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["network_name"] = pqc[1]
-					ltemp["skintillionths"] = ct[2]
+					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["xskintillionths"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
 			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
 				# only admins can change a network name
@@ -4307,18 +4336,28 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1103"))
 				elif not self.is_valid_name(ct[2]):
 					r.redirect(self.url_path(error_code="1104"))
+				elif not is_confirmed:
+					# need confirmation before changing a network name
+					ltemp = {}
+					ltemp["xold_network_name"] = pqc[1]
+					ltemp["xnew_network_name"] = ct[2]
+					ltemp["xct"] = "network name %s" % ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6003"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["old_network_name"] = pqc[1]
-					ltemp["new_network_name"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="STUB"))
+					ltemp["xold_network_name"] = pqc[1]
+					ltemp["xnew_network_name"] = ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))			
+			###################################
+			# command not recognized
+			###################################
 			else:
 				# command not recognized
 				r.redirect(self.url_path(error_code="1001"))
 	
-# 	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,delete_network=False):
+
 ################################################################
 ###
 ###  END: Page Handler Classes
