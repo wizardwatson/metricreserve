@@ -5,6 +5,27 @@ dev_appserver.py --clear_datastore=yes app.yaml
 
 
 
+
+TESTDIR=~/src/metricreserve313/metric
+
+
+
+TESTDIR=~/src/mr2017development/metric
+
+git clone https://github.com/wizardwatson/metricreserve.git $TESTDIR
+
+cd $TESTDIR
+
+dev_appserver.py --clear_datastore=yes $PWD
+dev_appserver.py $PWD
+
+git pull https://github.com/wizardwatson/metricreserve.git
+
+
+
+
+
+
 command creation steps
 
 	
@@ -74,9 +95,10 @@ COMMANDS
 				COMMAND:network
 					COMMAND: add
 					COMMAND: del
-					COMMAND: name
-					COMMAND: type
-					COMMAND: describe
+					COMMAND: name <name>
+					COMMAND: type <type>
+					COMMAND: activate
+					COMMAND: describe <description>
 				
 		
 		CONTEXT: root
