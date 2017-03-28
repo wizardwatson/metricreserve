@@ -121,37 +121,44 @@
 	{% elif blok.type == "confirm" %}
 		{% if blok.confirm_code == "6001" %}
 			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
-			command field to indicate you wish to change your current username: <b>{{ master.request.GET.old_username }}</b>
-			to new username: <b>{{ master.request.GET.new_username }}</b></p>
+			command field to indicate you wish to change your current username: <b>{{ master.request.GET.xold_username }}</b>
+			to new username: <b>{{ master.request.GET.xnew_username }}</b></p>
+		{% elif blok.confirm_code == "6002" %}
+			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
+			command field to indicate you wish to activate network: <b>{{ master.request.GET.xnetwork_name }}</b></p>
+		{% elif blok.confirm_code == "6003" %}
+			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
+			command field to indicate you wish to change the network name from: <b>{{ master.request.GET.xold_network_name }}</b> to:
+			<b>{{ master.request.GET.xnew_network_name }}</b>.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
 	{% elif blok.type == "success" %}
 		{% if blok.success_code == "7001" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			changed your username to <b>{{ master.request.GET.new_username }}</b>.</p>
+			changed your username to <b>{{ master.request.GET.xnew_username }}</b>.</p>
 		{% elif blok.success_code == "7002" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			created a new network: <b>{{ master.request.GET.new_network_name }}</b>.  It's still inactive however.  Change whatever
+			created a new network: <b>{{ master.request.GET.xnew_network_name }}</b>.  It's still inactive however.  Change whatever
 			settings you need to, and then issue an 'activate' command.</p>
 		{% elif blok.success_code == "7003" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			deleted network: <b>{{ master.request.GET.network_name }}</b>.</p>
+			deleted network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% elif blok.success_code == "7004" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			activated network: <b>{{ master.request.GET.network_name }}</b>.</p>
+			activated network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% elif blok.success_code == "7005" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			set the network type to "LIVE" for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+			set the network type to "LIVE" for network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% elif blok.success_code == "7006" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			set the network type to "TEST" for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+			set the network type to "TEST" for network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% elif blok.success_code == "7007" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			changed the skintillionth conversion to {{ master.request.GET.skintillionths }} for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+			changed the skintillionth conversion to {{ master.request.GET.xskintillionths }} for network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% elif blok.success_code == "7008" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			changed the network name from: <b>{{ master.request.GET.old_network_name }}</b> to: <b>{{ master.request.GET.new_network_name }}</b>.</p>
+			changed the network name from: <b>{{ master.request.GET.xold_network_name }}</b> to: <b>{{ master.request.GET.xnew_network_name }}</b>.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
