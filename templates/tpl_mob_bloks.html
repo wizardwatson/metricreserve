@@ -1,4 +1,7 @@
 {% for blok in master.bloks %}
+
+
+
 	{% if blok.type == "menu" %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li data-role="list-divider">Some Links</li>
@@ -6,6 +9,9 @@
 			<li><a href="{{ link.href }}">{{ link.label }}</a></li>
 		{% endfor %}
 		</ul>
+
+
+
 	{% elif blok.type == "home" %}
 		{% if master.user.IS_LOGGED_IN %}
 			<div class="text_bubble ui-body ui-body-c">
@@ -20,6 +26,69 @@
 			<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
 			</div>
 		{% endif %}
+
+
+
+	{% elif blok.type == "all networks" %}
+		{% if blok.groups %}
+			{% if blok.groups.has_my_live_networks %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">My Live Networks</li>
+					{% for network in blok.groups.my_live_networks %}
+					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+			{% if blok.groups.has_my_test_networks %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">My Test Networks</li>
+					{% for network in blok.groups.my_test_networks %}
+					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+			{% if blok.groups.has_one_of_test_inactive_deleted %}
+			<div data-role="collapsible-set" data-theme="b" data-content-theme="d">
+				{% if blok.groups.has_test_networks %}
+					<div data-role="collapsible">
+						<h2>Test Networks</h2>
+						<ul class="myclass" data-role="listview" data-divider-theme="a">
+							{% for network in blok.groups.test_networks %}
+							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							{% endfor %}
+						</ul>
+					</div>
+				{% endif %}
+				{% if blok.groups.has_inactive_networks %}
+					<div data-role="collapsible">
+						<h2>Inactive Networks</h2>
+						<ul class="myclass" data-role="listview" data-divider-theme="a">
+							{% for network in blok.groups.inactive_networks %}
+							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							{% endfor %}
+						</ul>
+					</div>
+				{% endif %}
+				{% if blok.groups.has_deleted_networks %}
+					<div data-role="collapsible">
+						<h2>Deleted Networks</h2>
+						<ul class="myclass" data-role="listview" data-divider-theme="a">
+							{% for network in blok.groups.deleted_networks %}
+							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							{% endfor %}
+						</ul>
+					</div>
+				{% endif %}
+			</div>
+			{% endif %}
+		{% else %}
+			<div class="text_bubble ui-body ui-body-c">
+			<p>Currently no metric reserve networks exist.</p>
+			</div>
+		{% endif %}
+
+
+
 	{% elif blok.type == "test" %}
 		{% if blok.test_code == "8001" %}
 			<p class="ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
@@ -75,6 +144,9 @@
 		{% else %}
 			<p>Unrecognized Test Code</p>
 		{% endif %}
+
+
+
 	{% elif blok.type == "error" %}
 		{% if blok.error_code == "1001" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Command keyword(s) unrecognized.<br/>
@@ -118,6 +190,9 @@
 		{% else %}
 			<p>Unrecognized Error Code</p>
 		{% endif %}
+
+
+
 	{% elif blok.type == "confirm" %}
 		{% if blok.confirm_code == "6001" %}
 			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
@@ -133,6 +208,9 @@
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
+
+
+
 	{% elif blok.type == "success" %}
 		{% if blok.success_code == "7001" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
