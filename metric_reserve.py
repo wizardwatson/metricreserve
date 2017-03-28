@@ -4050,7 +4050,7 @@ class ph_command(webapp2.RequestHandler):
 			# view all networks
 			result.append(20)
 			pass
-		elif self.PATH_CONTEXT == "root" and "view_menu" in lobj_master.request.GET::
+		elif self.PATH_CONTEXT == "root" and "view_menu" in lobj_master.request.GET:
 			# view root menu
 			result.append(30)
 		elif self.PATH_CONTEXT == "root":
