@@ -802,7 +802,7 @@ class metric(object):
 		return True
 
 	@ndb.transactional(xg=True)
-	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None):
+	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,delete_network=False):
 	
 		# get network by name
 		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
@@ -816,36 +816,45 @@ class metric(object):
 		
 		tx_description = ""
 		
-		if not fdescription is None: 
-			network_profile.description = fdescription
-			tx_description = "Network description updated."
-		if not fskintillionths is None:
-			network_profile.skintillionths = fskintillionths
-			tx_description = "Network skintillionth conversion updated."
-		if not ftype is None:
-			network_profile.network_type = ftype
-			tx_description = "Network type updated."
-		if not fstatus is None:
-			network_profile.network_status = fstatus
-			tx_description = "Network status updated."
-		if not fnewname is None:
-			# verify new name is valid
-			new_name_key = ndb.Key("ds_mr_unique_dummy_entity", fnewname)
-			new_name_entity = new_name_key.get()
-			if new_name_entity is None:
-				new_name_entity = ds_mr_unique_dummy_entity()
-				new_name_entity.unique_name = fnewname
-				network_profile.network_name = fnewname
-				new_name_entity.id_pointer_int = net_id
-				new_name_entity.key = new_name_key
-				new_name_entity.name_type = "networkname"
-				new_name_entity.put()
+		if delete_network:
+			if network_profile.network_status == "INACTIVE":
 				network_name_key.delete()
-				tx_description = "Network name changed."
+				network_key.delete()
+				tx_description = "Network deleted."
 			else:
-				# already exists
+				# can't delete
 				return False
-		network_profile.put()
+		else:
+			if not fdescription is None: 
+				network_profile.description = fdescription
+				tx_description = "Network description updated."
+			if not fskintillionths is None:
+				network_profile.skintillionths = fskintillionths
+				tx_description = "Network skintillionth conversion updated."
+			if not ftype is None:
+				network_profile.network_type = ftype
+				tx_description = "Network type updated."
+			if not fstatus is None:
+				network_profile.network_status = fstatus
+				tx_description = "Network status updated."
+			if not fnewname is None:
+				# verify new name is valid
+				new_name_key = ndb.Key("ds_mr_unique_dummy_entity", fnewname)
+				new_name_entity = new_name_key.get()
+				if new_name_entity is None:
+					new_name_entity = ds_mr_unique_dummy_entity()
+					new_name_entity.unique_name = fnewname
+					network_profile.network_name = fnewname
+					new_name_entity.id_pointer_int = net_id
+					new_name_entity.key = new_name_key
+					new_name_entity.name_type = "networkname"
+					new_name_entity.put()
+					network_name_key.delete()
+					tx_description = "Network name changed."
+				else:
+					# already exists
+					return False
+			network_profile.put()
 		
 		# transaction log
 		lds_tx_log = ds_mr_tx_log()
