@@ -4042,18 +4042,18 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 		
-		if self.PATH_CONTEXT == "root/network" and "view_network" in lobj_master.request.GET:
+		if self.master.PATH_CONTEXT == "root/network" and "view_network" in self.master.request.GET:
 			# view specific network
 			result.append(10)
-			result.append(lobj_master.request.GET["view_network"])
-		elif self.PATH_CONTEXT == "root/network":
+			result.append(self.master.request.GET["view_network"])
+		elif self.master.PATH_CONTEXT == "root/network":
 			# view all networks
 			result.append(20)
 			pass
-		elif self.PATH_CONTEXT == "root" and "view_menu" in lobj_master.request.GET:
+		elif self.master.PATH_CONTEXT == "root" and "view_menu" in self.master.request.GET:
 			# view root menu
 			result.append(30)
-		elif self.PATH_CONTEXT == "root":
+		elif self.master.PATH_CONTEXT == "root":
 			# home page
 			result.append(40)
 		else:
