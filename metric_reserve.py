@@ -4273,7 +4273,7 @@ class ph_command(webapp2.RequestHandler):
 			Inactive Networks (inset/collapsible)
 			Deleted Networks (inset/collapsible)		
 			"""
-			blok["groups"] = self.master._get_all_networks()
+			blok["groups"] = self.master.metric._get_all_networks()
 			bloks.append(blok)
 			
 			pass	
@@ -4282,7 +4282,7 @@ class ph_command(webapp2.RequestHandler):
 			# view all networks
 			blok = {}
 			blok["type"] = "one network"
-			blok["network"] = self.master._get_all_networks(fstr_network_name=pqc[1])
+			blok["network"] = self.master.metric._get_all_networks(fstr_network_name=pqc[1])
 			if blok["network"] is None: 
 				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				return None
