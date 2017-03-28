@@ -133,13 +133,19 @@ class ds_mr_network_profile(ndb.Model):
 
 	network_name = ndb.StringProperty(indexed=False)
 	network_id = ndb.IntegerProperty(indexed=False)
-	network_status = ndb.StringProperty(indexed=False)
-	network_type = ndb.StringProperty(indexed=False)
-	active_user_count = ndb.IntegerProperty(indexed=False)
+	network_status = ndb.StringProperty(indexed=False,default="INACTIVE")
+	network_type = ndb.StringProperty(indexed=False,default="LIVE")
+	description = ndb.StringProperty(indexed=False)
+	skintillionths = ndb.IntegerProperty(indexed=False,default=10000)
 	orphan_count = ndb.IntegerProperty(indexed=False)
 	total_trees = ndb.IntegerProperty(indexed=False)
 	last_graph_process = ndb.StringProperty(default="EMPTY",indexed=False)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+
+# network cursor: this entity maintains the index of networks
+class ds_mr_system_cursor(ndb.Model):
+
+	current_index = ndb.IntegerProperty(indexed=False)
 	
 # network cursor: this entity maintains the index of network accounts
 class ds_mr_network_cursor(ndb.Model):
@@ -725,6 +731,139 @@ class metric(object):
 		self.PARENT = fobj_master
 	
 	@ndb.transactional(xg=True)
+	def _network_add(self,fname):
+	
+		# new name check
+		maybe_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
+		maybe_dummy_entity = maybe_key.get()
+		if maybe_dummy_entity is not None:
+			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
+			return False # False meaning "not created"
+		new_name_entity = ds_mr_unique_dummy_entity()
+		new_name_entity.unique_name = fname
+		new_name_entity.key = maybe_key
+		new_name_entity.name_type = "networkname"
+		
+		# Before we can assign a network id, we need to figure out
+		# what the network id count is.  This is stored in our 
+		# system cursor, which is similar to network cursor we are
+		# about to create only for networks.  If the system cursor
+		# hasn't been created yet, we'll create it.
+		system_cursor_key = ndb.Key("ds_mr_system_cursor", "system")
+		system_cursor = system_cursor_key.get()
+		if system_cursor is None:
+			system_cursor = ds_mr_system_cursor()
+			system_cursor.key = system_cursor_key
+			system_cursor.current_index = 1
+		else:
+			system_cursor.current_index +=1
+		system_cursor.put()
+		new_name_entity.id_pointer_int = system_cursor.current_index
+		new_name_entity.put()
+		
+		net_id = system_cursor.current_index
+
+		# create the network profile
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(net_id).zfill(8))
+		new_network_profile = ds_mr_network_profile()
+		new_network_profile.network_name = fname
+		new_network_profile.network_id = net_id
+		new_network_profile.orphan_count = 0
+		new_network_profile.total_trees = 0
+		# use the proper key from above
+		new_network_profile.key = network_key
+		new_network_profile.put()
+
+		# also make the cursor for the network when making the network
+		network_cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(net_id).zfill(8))
+		new_network_cursor = ds_mr_network_cursor()
+		new_network_cursor.current_index = 0
+		new_network_cursor.network_id = net_id
+		new_network_cursor.key = network_cursor_key
+		new_network_cursor.put()
+
+		# transaction log
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = 0
+		lds_tx_log.tx_type = "NETWORK ADDED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A new network was created." 
+		lds_tx_log.memo = "%s %s" % (fstr_network_name, str(net_id))
+		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.network_id = net_id
+		lds_tx_log.account_id = 0
+		lds_tx_log.source_account = 0 
+		lds_tx_log.target_account = 0
+		lds_tx_log.put()
+
+		return True
+
+	@ndb.transactional(xg=True)
+	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None):
+	
+		# get network by name
+		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
+		network_name_entity = network_name_key.get()
+		if network_name_entity is None:
+			return False # Name not valid
+		# get the network from the name entity reference
+		net_id = network_name_entity.id_pointer_int
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(net_id).zfill(8))
+		network_profile = network_key.get()
+		
+		tx_description = ""
+		
+		if not fdescription is None: 
+			network_profile.description = fdescription
+			tx_description = "Network description updated."
+		if not fskintillionths is None:
+			network_profile.skintillionths = fskintillionths
+			tx_description = "Network skintillionth conversion updated."
+		if not ftype is None:
+			network_profile.network_type = ftype
+			tx_description = "Network type updated."
+		if not fstatus is None:
+			network_profile.network_status = fstatus
+			tx_description = "Network status updated."
+		if not fnewname is None:
+			# verify new name is valid
+			new_name_key = ndb.Key("ds_mr_unique_dummy_entity", fnewname)
+			new_name_entity = new_name_key.get()
+			if new_name_entity is None:
+				new_name_entity = ds_mr_unique_dummy_entity()
+				new_name_entity.unique_name = fnewname
+				network_profile.network_name = fnewname
+				new_name_entity.id_pointer_int = net_id
+				new_name_entity.key = new_name_key
+				new_name_entity.name_type = "networkname"
+				new_name_entity.put()
+				network_name_key.delete()
+				tx_description = "Network name changed."
+			else:
+				# already exists
+				return False
+		network_profile.put()
+		
+		# transaction log
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		lds_tx_log.tx_index = 0
+		lds_tx_log.tx_type = "NETWORK MODIFIED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = tx_description 
+		lds_tx_log.memo = "%s %s" % (fname, str(net_id))
+		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.network_id = net_id
+		lds_tx_log.account_id = 0
+		lds_tx_log.source_account = 0 
+		lds_tx_log.target_account = 0
+		lds_tx_log.put()	
+
+	@ndb.transactional(xg=True)
 	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
 	
 		# redo the existence check now that we're in a transaction
@@ -740,7 +879,6 @@ class metric(object):
 			new_network_profile.network_id = fint_network_id
 			new_network_profile.network_status = "ACTIVE"
 			new_network_profile.network_type = fstr_network_type
-			new_network_profile.active_user_count = 0
 			new_network_profile.orphan_count = 0
 			new_network_profile.total_trees = 0
 			# use the proper key from above
@@ -3812,7 +3950,7 @@ class ph_command(webapp2.RequestHandler):
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 		# make the menu link href
-		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")
+		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu",new_path=lobj_master.request.path)
 		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
 		
 		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
@@ -3832,7 +3970,7 @@ class ph_command(webapp2.RequestHandler):
 			else:
 				page["username"] = lobj_master.request.remote_addr
 				
-		page["context"] = "<u>CONTEXT</u>: (<b>%s</b>) <u>AS</u>: (<b>%s</b>)" % (context,page["username"])
+		page["context"] = "CONTEXT: (<b>%s</b>) AS: (<b>%s</b>)" % (context,page["username"])
 		
 		# lets get the non-default view if there is one
 		if "view" in lobj_master.request.GET:
@@ -3913,6 +4051,10 @@ class ph_command(webapp2.RequestHandler):
 			menuitem2["href"] = "/"
 			menuitem2["label"] = "Introduction"
 			blok["menuitems"].append(menuitem2)
+			menuitem3 = {}
+			menuitem3["href"] = "/?test_code=8002"
+			menuitem3["label"] = "Test Bloks"
+			blok["menuitems"].append(menuitem3)
 			bloks.append(blok)	
 			
 		else:
@@ -3970,12 +4112,12 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 			# MENU
 			###################################
-			if ct[0] == "menu" and len(ct) == 1:
+			if  len(ct) == 1 and ct[0] == "menu":
 				r.redirect(self.url_path(new_vars="view=menu"))
 			###################################
-			# USERNAME CHANGE
+			# USERNAME CHANGE <USERNAME>
 			###################################
-			if ("%s %s" % (ct[0],ct[1])) == "username change" and len(ct) == 3:
+			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				elif not self.is_valid_name(ct[2]):
@@ -3989,6 +4131,24 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
 				elif not lobj_master.user._change_unique_username(ct[2]):
 					r.redirect(self.url_path(error_code="1102"))
+				else:
+					ltemp = {}
+					ltemp["old_username"] = lobj_master.user.entity.username
+					ltemp["new_username"] = ct[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
+			###################################
+			# NETWORK ADD <NETWORK NAME>
+			###################################
+			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
+				# only admins can create a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1104"))
+				elif not lobj_master.user._change_unique_username(ct[2]):
+					r.redirect(self.url_path(error_code="1105"))
 				else:
 					ltemp = {}
 					ltemp["old_username"] = lobj_master.user.entity.username
