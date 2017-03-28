@@ -101,7 +101,16 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network name chosen is not unique.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1106" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network can't be deleted.  Only inactive networks can be deleted manually.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network can't be deleted.  Only inactive
+			networks can be deleted manually.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1107" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network skintillionth conversion
+			rate must be a positive integer less than 1 quadrillion.  It's default value is 10 thousand.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1108" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Once a network has become active
+			you cannot modify the status, type, description, or skintillionth conversion rate.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
@@ -125,6 +134,24 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			created a new network: <b>{{ master.request.GET.new_network_name }}</b>.  It's still inactive however.  Change whatever
 			settings you need to, and then issue an 'activate' command.</p>
+		{% elif blok.success_code == "7003" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			deleted network: <b>{{ master.request.GET.network_name }}</b>.</p>
+		{% elif blok.success_code == "7004" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			activated network: <b>{{ master.request.GET.network_name }}</b>.</p>
+		{% elif blok.success_code == "7005" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			set the network type to "LIVE" for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+		{% elif blok.success_code == "7006" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			set the network type to "TEST" for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+		{% elif blok.success_code == "7007" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			changed the skintillionth conversion to {{ master.request.GET.skintillionths }} for network: <b>{{ master.request.GET.network_name }}</b>.</p>
+		{% elif blok.success_code == "7008" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			changed the network name from: <b>{{ master.request.GET.old_network_name }}</b> to: <b>{{ master.request.GET.new_network_name }}</b>.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
