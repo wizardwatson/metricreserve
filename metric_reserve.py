@@ -361,6 +361,8 @@ class master(object):
 		# For my own "stack" tracing I just append to a delimited list for later output.
 		self.TRACE = []
 		self.DEBUG_VARS = {}
+		# A var for functions in different objects to pass around error/success codes
+		self.RETURN_CODE
 		
 		# see if this site is being viewed on mobile browser
 		self.IS_MOBILE = False
@@ -738,6 +740,8 @@ class metric(object):
 		maybe_dummy_entity = maybe_key.get()
 		if maybe_dummy_entity is not None:
 			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
+			# network name already exists
+			self.PARENT.RETURN_CODE = "1105"
 			return False # False meaning "not created"
 		new_name_entity = ds_mr_unique_dummy_entity()
 		new_name_entity.unique_name = fname
@@ -822,7 +826,8 @@ class metric(object):
 				network_key.delete()
 				tx_description = "Network deleted."
 			else:
-				# can't delete
+				# can't delete, only inactive networks can be deleted manually
+				self.PARENT.RETURN_CODE = "1106"
 				return False
 		else:
 			if not fdescription is None: 
@@ -852,7 +857,8 @@ class metric(object):
 					network_name_key.delete()
 					tx_description = "Network name changed."
 				else:
-					# already exists
+					# network name already exists
+					self.PARENT.RETURN_CODE = "1105"
 					return False
 			network_profile.put()
 		
@@ -3884,6 +3890,36 @@ class ph_command(webapp2.RequestHandler):
 	# would automatically target the context 
 	# "/network/account?netid=mynetwork&accid=bob"
 	
+	def get_pqc(self):
+	
+		# Context is important in the pattern I've chosen.  Since I'm
+		# trying to cram all the functions into a nice list in the form
+		# of a if/elif/elif case/select type statement I need to have
+		# another variable which condenses the context.  Sometimes we're
+		# operating on a network object, sometimes an account on that
+		# network, sometimes someone elses account on that network.  Or
+		# perhaps even a shopping cart, on someone elses account on a
+		# network that we're not even on.  So instead of checking context
+		# for each function we'll just assign an integer for the command
+		# functions to check against that we'll define here.
+		#
+		# pqc[] = "Path/Query Context object"
+		# pqc[0] = identifier
+		# pqc[1-n] = relevant query values for that id
+		
+		result = []		
+		
+		if self.PATH_CONTEXT == "root/network" and "view_network" in lobj_master.request.GET:
+			# network level context
+			result.append(1)
+			result.append(lobj_master.request.GET["view_network"])
+		elif True:
+			pass
+		else:
+			pass
+					
+		return result
+	
 	def is_valid_name(self,fstr_name):
 	
 		# a valid name is comprised of re.match(r'^[a-z0-9_]+$',fstr_name)
@@ -3963,6 +3999,9 @@ class ph_command(webapp2.RequestHandler):
 		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
 		
 		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
+		
+		# get path/query context
+		pqc = self.get_pqc()
 		
 		# create shorter references to our objects
 		lobj_master.bloks = []
@@ -4091,7 +4130,10 @@ class ph_command(webapp2.RequestHandler):
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
-		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")
+		lobj_master.MENU_LINK = self.url_path(new_vars="view=menu")		
+		
+		# get path/query context
+		pqc = self.get_pqc()
 		
 		# unsecured command form
 		lstr_command_text = lobj_master.request.POST['form_command_text']
@@ -4119,12 +4161,16 @@ class ph_command(webapp2.RequestHandler):
 					is_confirmed = True
 			# process the commands
 			###################################
-			# MENU
+			# menu
+			# 
+			# from any context
 			###################################
 			if  len(ct) == 1 and ct[0] == "menu":
 				r.redirect(self.url_path(new_vars="view=menu"))
 			###################################
-			# USERNAME CHANGE <USERNAME>
+			# username change <USERNAME>
+			# 
+			# from any context
 			###################################
 			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
 				if not lobj_master.user.IS_LOGGED_IN:
@@ -4146,7 +4192,10 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["new_username"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
 			###################################
-			# NETWORK ADD <NETWORK NAME>
+			# network add <NETWORK NAME> : add a new network
+			# network <NETWORK NAME> : view a network
+			# 
+			# from any context
 			###################################
 			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
 				# only admins can create a network
@@ -4156,13 +4205,39 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1103"))
 				elif not self.is_valid_name(ct[2]):
 					r.redirect(self.url_path(error_code="1104"))
-				elif not lobj_master.user._change_unique_username(ct[2]):
-					r.redirect(self.url_path(error_code="1105"))
+				elif not lobj_master.metric._network_add(ct[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["old_username"] = lobj_master.user.entity.username
-					ltemp["new_username"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
+					ltemp["new_network_name"] = lobj_master.user.entity.username
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
+			elif  len(ct) == 2 and ct[0] == "network":
+				# STUB - not sure which side I want to do a name check on.
+				pass
+			###################################
+			# network delete
+			# network activate
+			# network type live
+			# network type test
+			# network name <valid name>
+			# network skintillionths <positive integer>
+			# 
+			# all only from network:network_id context
+			###################################
+			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
+				pass
+			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
+				pass
+			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type live":
+				pass
+			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type test":
+				pass
+			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
+				pass
+			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
+				pass
+				
+			
 			else:
 				# command not recognized
 				r.redirect(self.url_path(error_code="1001"))
