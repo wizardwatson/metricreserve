@@ -147,13 +147,6 @@ class ds_mr_user(ndb.Model):
 	child_joint_parent_ids = ndb.PickleProperty(default=[])
 	child_joint_offer_network_ids = ndb.PickleProperty(default=[])
 	child_joint_offer_account_ids = ndb.PickleProperty(default=[])
-	
-	# STUB ERASE AFTER IMPLEMENTING NEW STORAGE METHOD
-	metric_network_ids = ndb.PickleProperty(default=[])
-	# STUB ERASE AFTER IMPLEMENTING NEW STORAGE METHOD
-	metric_account_ids = ndb.PickleProperty(default=[])
-	
-
 
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
@@ -162,8 +155,9 @@ class ds_mr_unique_dummy_entity(ndb.Model):
 
 	unique_name = ndb.StringProperty(indexed=False)
 	name_type = ndb.StringProperty(indexed=False)
-	id_pointer_int = ndb.IntegerProperty(indexed=False)
-	id_pointer_str = ndb.StringProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	account_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
 # network profile: this entity contains information about specific graph
@@ -194,49 +188,46 @@ class ds_mr_network_cursor(ndb.Model):
 # metric account: this is the main account information
 class ds_mr_metric_account(ndb.Model):
 
-	account_id = ndb.IntegerProperty()
-	network_id = ndb.IntegerProperty()
-	user_id = ndb.StringProperty()
-	tx_index = ndb.IntegerProperty()
-	account_status = ndb.StringProperty()
-	account_type = ndb.StringProperty()
-	account_parent = ndb.IntegerProperty()
-	account_grandparent = ndb.PickleProperty()
-	account_sub_children = ndb.PickleProperty()
-	account_client_children = ndb.PickleProperty()
-	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_reserve_transfer_requests = ndb.PickleProperty()
-	outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
-	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_connections = ndb.PickleProperty(default="EMPTY")
-	current_reserve_balance = ndb.IntegerProperty()
-	current_network_balance = ndb.IntegerProperty()	
-	last_connections = ndb.PickleProperty(default="EMPTY")
-	last_reserve_balance = ndb.IntegerProperty()
-	last_network_balance = ndb.IntegerProperty()
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	account_id = ndb.IntegerProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
+	tx_index = ndb.IntegerProperty(indexed=False)
+	account_status = ndb.StringProperty(indexed=False)
+	account_type = ndb.StringProperty(indexed=False)
+	account_parent = ndb.IntegerProperty(default=0,indexed=False)
+	outgoing_connection_requests = ndb.PickleProperty(default=[])
+	incoming_connection_requests = ndb.PickleProperty(default=[])
+	incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	current_connections = ndb.PickleProperty(default=[])
+	current_reserve_balance = ndb.IntegerProperty(default=0)
+	current_network_balance = ndb.IntegerProperty(default=0)	
+	last_connections = ndb.PickleProperty(default=[])
+	last_reserve_balance = ndb.IntegerProperty(default=0)
+	last_network_balance = ndb.IntegerProperty(default=0)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
-	category = ndb.StringProperty()
-	tx_index = ndb.IntegerProperty()
-	tx_type = ndb.StringProperty()
-	amount = ndb.IntegerProperty()
-	access = ndb.StringProperty()
-	description = ndb.StringProperty()
-	memo = ndb.StringProperty()
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
-	user_id_created = ndb.StringProperty()
-	network_id = ndb.IntegerProperty()
-	account_id = ndb.IntegerProperty()
-	source_account = ndb.IntegerProperty()
-	target_account = ndb.IntegerProperty()
+	category = ndb.StringProperty(default="MRTX",indexed=False)
+	tx_index = ndb.IntegerProperty(default=0,indexed=False)
+	tx_type = ndb.StringProperty(indexed=False) # should always be set when used
+	amount = ndb.IntegerProperty(default=0,indexed=False)
+	access = ndb.StringProperty(default="PUBLIC",indexed=False)
+	description = ndb.StringProperty(default=None,indexed=False) # should always be set when used
+	memo = ndb.StringProperty(default=None,indexed=False)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	user_id_created = ndb.StringProperty(default="SYSTEM",indexed=False)
+	network_id = ndb.IntegerProperty(default=0,indexed=False)
+	account_id = ndb.IntegerProperty(default=0,indexed=False)
+	source_account = ndb.IntegerProperty(default=0,indexed=False)
+	target_account = ndb.IntegerProperty(default=0,indexed=False)
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -400,6 +391,21 @@ class master(object):
 			else:
 				self.TRACE.append("mobile not detected")
 		
+		# instantiate a user via class - see 'class user(object)'
+		self.user = user(self)
+		
+		# instantiate the metric object
+		self.metric = metric(self)
+		
+		# sometimes our security or other app checks (like system being offline) 
+		# interrupt normal page processing and return other information like errors
+		# to the browser. So each page handler class will break out before processing
+		# if this variable becomes true.
+		self.IS_INTERRUPTED = False
+		
+		
+		
+		
 		###############################################
 		###############################################
 		#DEBUG STUFF BEGIN
@@ -515,19 +521,11 @@ class master(object):
 		###############################################
 		###############################################
 		
+		"""
+		OLD SECURITY PATTERN
+		NO LONGER USED
 		
-		
-		# instantiate a user via class - see 'class user(object)'
-		self.user = user(self)
-		
-		# instantiate the metric object
-		self.metric = metric(self)
-		
-		# sometimes our security or other app checks (like system being offline) 
-		# interrupt normal page processing and return other information like errors
-		# to the browser. So each page handler class will break out before processing
-		# if this variable becomes true.
-		self.IS_INTERRUPTED = False
+
 		
 		# Security:
 		# 
@@ -549,6 +547,9 @@ class master(object):
 		
 		# Note that there's no check for 'secured' because it's generic and accounted for
 		# in the first 'if' check. 'unsecured' also requires no checks.
+		
+
+	
 		if not fstr_security_req == 'unsecured' and self.user.IS_LOGGED_IN == False:
 			
 			# This page requires login and they are not.
@@ -566,7 +567,8 @@ class master(object):
 		
 			# Admin page is special case. Send them to error page if they are not admin.
 			# STUB: haven't built the error page yet.
-			pass		
+			pass	
+		"""
 			
 # this is the user class specifically designed for using google user authentication
 class user(object):
@@ -633,12 +635,7 @@ class user(object):
 			self.PARENT.TRACE.append("user._load_user(): user object not loaded")
 			
 			# create a new user
-			ldata_user = ds_mr_user()
-			ldata_user.user_id = fobj_google_account.user_id()			
-			ldata_user.user_status = 'VERIFIED'
-			gravatar_email = fobj_google_account.email()
-			#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
-			ldata_user.key = ldata_user_key	
+			ldata_user = None
 			
 			while True:
 				# new users get temporary username automatically upon first login
@@ -646,101 +643,93 @@ class user(object):
 				first_int = str(random.randint(1,999)).zfill(3)
 				second_int = str(random.randint(1,999)).zfill(3)
 				temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)			
-				if self._save_unique_username(temp_username,ldata_user):
+				if self._create_user_transactional(temp_username,fobj_google_account,ldata_user):
 					break			
 		return ldata_user
 		
 	@ndb.transactional(xg=True)
-	def _save_unique_username(self,fstr_name,fobj_user=None,fstr_name_type="EMPTY",fint_id_pointer_int=0,fstr_id_pointer_str="EMPTY"):
+	def _create_user_transactional(self,fstr_username,fobj_google_obj,fuser_ref):
 	
 		# new name check
-		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_username)
 		maybe_dummy_entity = maybe_new_key.get()
 		if maybe_dummy_entity is not None:
 			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
 			return False # False meaning "not created"
 		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
-		new_entity = ds_mr_unique_dummy_entity()
-		new_entity.unique_name = fstr_name
-		new_entity.key = maybe_new_key 
+		new_name_entity = ds_mr_unique_dummy_entity()
+		new_name_entity.unique_name = fstr_username
+		new_name_entity.key = maybe_new_key 
 		
-		# This function is called from user initialization
-		# as well.  Make sure we have correct reference to
-		# user entity.
-		if not fobj_user is None:
-			user_entity = fobj_user
-			lstr_tx_type = "NEW USER CREATED"
-			lstr_tx_description = "A new user was created in the application."
-		else:
-			user_entity = self.entity
-			lstr_tx_type = "NEW USERNAME CREATED"
-			lstr_tx_description = "A new username was chosen by a user."
-		new_entity.name_type = "username"
-		new_entity.id_pointer_str = user_entity.user_id
+		# this function loads a user entity from a key
+		user_key = ndb.Key("ds_mr_user",fobj_google_obj.user_id())
+		ldata_user = user_key.get()
+		if ldata_user:
+			fuser_ref = ldata_user
+			return True # User already exists
+			
+		# create a new user
+		ldata_user = ds_mr_user()
+		ldata_user.user_id = fobj_google_obj.user_id()			
+		ldata_user.user_status = 'VERIFIED'
+		gravatar_email = fobj_google_obj.email()
+		#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
+		ldata_user.key = ldata_user_key	
+			
+		lstr_tx_type = "NEW USER CREATED"
+		lstr_tx_description = "A new user was created in the application."
+		
+		new_name_entity.name_type = "username"
+		new_name_entity.user_id = ldata_user.user_id
 		# assign new username to user
-		user_entity.user_status = "ACTIVE"
-		user_entity.username = fstr_name
-		new_entity.put()
-		user_entity.put()
+		ldata_user.user_status = "ACTIVE"
+		ldata_user.username = fstr_username
+		new_name_entity.put()
+		ldata_user.put()
 		
 		# transaction log:  think "bank statements"
 		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		lds_tx_log.tx_index = 0
 		lds_tx_log.tx_type = lstr_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = lstr_tx_description
-		lds_tx_log.memo = fstr_name
-		lds_tx_log.user_id_created = user_entity.user_id # google id
-		lds_tx_log.network_id = 0
-		lds_tx_log.account_id = 0
-		lds_tx_log.source_account = 0 
-		lds_tx_log.target_account = 0
+		lds_tx_log.memo = fstr_username
+		lds_tx_log.user_id_created = ldata_user.user_id # google id
 		lds_tx_log.put()
 		
+		fuser_ref = ldata_user
 		return True # True meaning "created"
 		
 	@ndb.transactional(xg=True)
-	def _change_unique_username(self,fstr_name):
+	def _change_username_transactional(self,fstr_username):
 
-		# new name check
-		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_name)
+		# new username check
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_username)
 		maybe_dummy_entity = maybe_new_key.get()
 		if maybe_dummy_entity is not None:
 			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
-			return False # False meaning "not created"
-		self.PARENT.TRACE.append("metric._change_unique_username():entity was NOT returned")
-		new_entity = ds_mr_unique_dummy_entity()
-		new_entity.unique_name = fstr_name
-		new_entity.key = maybe_new_key
-		new_entity.name_type = "username"
-		new_entity.id_pointer_str = self.PARENT.user.entity.user_id
-		new_entity.put()
+			return False # False meaning "not created"			
+		new_name_entity = ds_mr_unique_dummy_entity()
+		new_name_entity.unique_name = fstr_username
+		new_name_entity.key = maybe_new_key
+		new_name_entity.name_type = "username"		
+		
+		# get the user transactionally
+		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
+		ldata_user = user_key.get()
+		new_name_entity.user_id = ldata_user.user_id
+		new_name_entity.put()
 		# delete old name making available for others to now use
-		old_key = ndb.Key("ds_mr_unique_dummy_entity", self.PARENT.user.entity.username)
+		old_key = ndb.Key("ds_mr_unique_dummy_entity", ldata_user.username)
 		old_key.delete()
 		# assign new username to user
-		self.PARENT.user.entity.user_status = "ACTIVE"
-		self.PARENT.user.entity.username = fstr_name
-		self.PARENT.user.entity.put()
+		ldata_user.username = fstr_username
+		ldata_user.put()
 		
 		# transaction log:  think "bank statements"
 		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		lds_tx_log.tx_index = 0
 		lds_tx_log.tx_type = "USERNAME CHANGED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A user changed their username." 
-		lds_tx_log.memo = fstr_name
-		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
-		lds_tx_log.network_id = 0
-		lds_tx_log.account_id = 0
-		lds_tx_log.source_account = 0 
-		lds_tx_log.target_account = 0
+		lds_tx_log.memo = fstr_username
+		lds_tx_log.user_id_created = ldata_user.user_id
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
@@ -784,7 +773,7 @@ class metric(object):
 		else:
 			system_cursor.current_index +=1
 		system_cursor.put()
-		new_name_entity.id_pointer_int = system_cursor.current_index
+		new_name_entity.network_id = system_cursor.current_index
 		new_name_entity.put()
 		
 		net_id = system_cursor.current_index
@@ -810,19 +799,11 @@ class metric(object):
 
 		# transaction log
 		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		lds_tx_log.tx_index = 0
 		lds_tx_log.tx_type = "NETWORK ADDED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A new network was created." 
 		lds_tx_log.memo = "%s %s" % (fname, str(net_id))
 		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 		lds_tx_log.network_id = net_id
-		lds_tx_log.account_id = 0
-		lds_tx_log.source_account = 0 
-		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 
 		return True
@@ -837,7 +818,7 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1109"
 			return False # Name not valid
 		# get the network from the name entity reference
-		net_id = network_name_entity.id_pointer_int
+		net_id = network_name_entity.network_id
 		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(net_id).zfill(8))
 		network_profile = network_key.get()
 		
@@ -885,7 +866,7 @@ class metric(object):
 					new_name_entity = ds_mr_unique_dummy_entity()
 					new_name_entity.unique_name = fnewname
 					network_profile.network_name = fnewname
-					new_name_entity.id_pointer_int = net_id
+					new_name_entity.network_id = net_id
 					new_name_entity.key = new_name_key
 					new_name_entity.name_type = "networkname"
 					new_name_entity.put()
@@ -899,18 +880,11 @@ class metric(object):
 		
 		# transaction log
 		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		lds_tx_log.tx_index = 0
 		lds_tx_log.tx_type = "NETWORK MODIFIED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = tx_description 
 		lds_tx_log.memo = "%s %s" % (fname, str(net_id))
 		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 		lds_tx_log.network_id = net_id
-		lds_tx_log.account_id = 0
-		lds_tx_log.source_account = 0 
-		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		return True
@@ -980,14 +954,26 @@ class metric(object):
 					groups["inactive_networks"].append(network)
 				elif network.network_status == "ACTIVE":
 					if network.network_type == "LIVE":
-						if network.network_id in self.PARENT.user.entity.metric_network_ids:
+						if network.network_id in self.PARENT.user.entity.reserve_network_ids:
+							groups["has_my_live_networks"] = True
+							groups["my_live_networks"].append(network)
+						elif network.network_id in self.PARENT.user.entity.joint_network_ids:
+							groups["has_my_live_networks"] = True
+							groups["my_live_networks"].append(network)
+						elif network.network_id in self.PARENT.user.entity.client_network_ids:
 							groups["has_my_live_networks"] = True
 							groups["my_live_networks"].append(network)
 						else:
 							groups["has_live_networks"] = True
 							groups["live_networks"].append(network)
 					elif network.network_type == "TEST":
-						if network.network_id in self.PARENT.user.entity.metric_network_ids:
+						if network.network_id in self.PARENT.user.entity.reserve_network_ids:
+							groups["has_my_test_networks"] = True
+							groups["my_test_networks"].append(network)	
+						elif network.network_id in self.PARENT.user.entity.joint_network_ids:
+							groups["has_my_test_networks"] = True
+							groups["my_test_networks"].append(network)	
+						elif network.network_id in self.PARENT.user.entity.client_network_ids:
 							groups["has_my_test_networks"] = True
 							groups["my_test_networks"].append(network)	
 						else:
@@ -1023,7 +1009,7 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1109"
 				return None # Name not valid
 			# get the network from the name entity reference
-			net_id = network_name_entity.id_pointer_int
+			net_id = network_name_entity.network_id
 			network_key = ndb.Key("ds_mr_network_profile", "%s" % str(net_id).zfill(8))
 			network_profile = network_key.get()
 		elif not fint_network_id is None:
@@ -1036,7 +1022,7 @@ class metric(object):
 		return network_profile
 
 	@ndb.transactional(xg=True)
-	def _save_unique_alias(self,fstr_alias):
+	def _save_unique_alias(self,fstr_alias,fint_network_id,fint_account_id):
 	
 		# new alias check
 		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_alias)
@@ -1047,13 +1033,15 @@ class metric(object):
 		new_entity.unique_name = fstr_alias
 		new_entity.key = maybe_new_key		
 		new_entity.name_type = "alias"
-		new_entity.id_pointer_str = self.PARENT.user.entity.user_id
+		new_entity.user_id = self.PARENT.user.entity.user_id
+		new_entity.account_id = fint_account_id
+		new_entity.network_id = fint_network_id
 		new_entity.put()
 						
 		return True # True meaning "created"
 
 	@ndb.transactional(xg=True)
-	def _get_account_label(self,fint_network_id):
+	def _get_account_label(self,fint_network_id,fint_account_id):
 	
 		# Create a new alias if the user has more than one account
 		# on this network, and "username" is not available.
@@ -1091,53 +1079,17 @@ class metric(object):
 				first_int = str(random.randint(1,999)).zfill(3)
 				second_int = str(random.randint(1,999)).zfill(3)
 				alias = "alias" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)			
-				if self._save_unique_alias(alias):
+				if self._save_unique_alias(alias,fint_network_id,fint_account_id):
 					break
 			return alias
 		else:
 			# "username" is available
 			return "username"
 		
-		"""
-		total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
-		total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
-		total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
-
-		reserve_network_ids = ndb.PickleProperty(default=[])
-		reserve_account_ids = ndb.PickleProperty(default=[])
-		reserve_labels = ndb.PickleProperty(default=[])
-
-		client_network_ids = ndb.PickleProperty(default=[])
-		client_account_ids = ndb.PickleProperty(default=[])
-		client_parent_ids = ndb.PickleProperty(default=[])
-		client_labels = ndb.PickleProperty(default=[])
-		parent_client_offer_network_ids = ndb.PickleProperty(default=[])
-		parent_client_offer_account_ids = ndb.PickleProperty(default=[])
-
-		joint_network_ids = ndb.PickleProperty(default=[])
-		joint_account_ids = ndb.PickleProperty(default=[])
-		joint_parent_ids = ndb.PickleProperty(default=[])
-		joint_labels = ndb.PickleProperty(default=[])
-		parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
-		parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
-
-		clone_network_ids = ndb.PickleProperty(default=[])
-		clone_account_ids = ndb.PickleProperty(default=[])
-		clone_parent_ids = ndb.PickleProperty(default=[])
-		clone_labels = ndb.PickleProperty(default=[])
-		"""
 		return label
 
-
-	def _reserve_open(self,fstr_name):
-		network_profile = self._get_network(fstr_network_name)
-		if network_profile is None:
-			# fail code from _get_network() will fall through
-			return False
-		return self._reserve_open_transactional(network_profile.network_id)
-			
 	@ndb.transactional(xg=True)
-	def _reserve_open_transactional(self,fint_network_id):
+	def _reserve_open_transactional(self,fstr_network_name):
 	
 		# A user can create a reserve account if:
 		# 1. They are not already a member.
@@ -1146,11 +1098,18 @@ class metric(object):
 		# Fewer restrictions on reserve accounts as opposed to other
 		# types as they are not dependent on any other account.
 
+		validation_result = self._name_validate_transactional(fstr_network_name)
+		if not validation_result:
+			# pass up error
+			return False
+		
+		network_id = validation_result[0]
+
 		# load user transactionally
 		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
 		lds_user = user_key.get()		
 		
-		if fint_network_id in lds_user.reserve_network_ids:
+		if network_id in lds_user.reserve_network_ids:
 			# already have a reserve account on this network
 			self.PARENT.RETURN_CODE = "1112"
 			return False
@@ -1161,161 +1120,46 @@ class metric(object):
 			return False
 			
 		# load cursor transactionally
-		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))		
+		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(network_id).zfill(8))		
 		lds_cursor = cursor_key.get()
 		lds_cursor.current_index += 1
 		
 		# get a label for this account
 		# STUB try/catch exception in case alias loop fail
-		label = self._get_account_label(fint_network_id)
+		label = self._get_account_label(network_id,lds_cursor.current_index)
 	
 		# create a new metric account with key equal to current cursor/index for this network
-		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(fint_network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
+		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
 		
 		lds_metric_account = ds_mr_metric_account()
-		lds_metric_account.network_id = fint_network_id
+		lds_metric_account.network_id = network_id
 		lds_metric_account.account_id = lds_cursor.current_index
 		lds_metric_account.user_id = lds_user.user_id
+		# creating the account is our first transaction
 		lds_metric_account.tx_index = 1
 		lds_metric_account.account_status = "ACTIVE"		
-		lds_metric_account.account_type = "reserve"
-		lds_metric_account.account_parent = 0
-		
-		lds_metric_account.outgoing_connection_requests = []
-		lds_metric_account.incoming_connection_requests = []
-		lds_metric_account.incoming_reserve_transfer_requests = {}
-		lds_metric_account.outgoing_reserve_transfer_requests = {}
-		lds_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
-		lds_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
-		lds_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
-		lds_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
-		lds_metric_account.current_connections = []
-		lds_metric_account.current_reserve_balance = 0
-		lds_metric_account.current_network_balance = 0	
-		lds_metric_account.last_connections = []
-		lds_metric_account.last_reserve_balance = 0
-		lds_metric_account.last_network_balance = 0
+		lds_metric_account.account_type = "RESERVE"
 		
 		lds_metric_account.key = metric_account_key
 		
+		# update the user object
+		lds_user.total_reserve_accounts += 1
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-	@ndb.transactional(xg=True)
-	def _join_network(self,fstr_user_id,fint_network_id):
-	
-		# first make sure the user isn't already joined to this 
-		# network if not, join them at the proper index and create
-		# their metric account user_key = ndb.Key("ds_mr_user",
-		# fstr_user_id)
-		lds_user = user_key.get()
-		if not lds_user.metric_network_ids == "EMPTY":
-			# user is already joined to the network
-			return "error_already_joined"
-		
-		# increment the network cursor and update the key chunk(s)
-		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))		
-		lds_cursor = cursor_key.get()
-		lds_cursor.current_index += 1
-		
-		# create a new metric account with key equal to current cursor/index for this network
-		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(fint_network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
-		lds_metric_account = ds_mr_metric_account()
-		lds_metric_account.network_id = fint_network_id
-		lds_metric_account.account_id = lds_cursor.current_index
-		lds_metric_account.user_id = lds_user.user_id
-		lds_metric_account.tx_index = 1
-		lds_metric_account.account_status = "ACTIVE"
-		lds_metric_account.outgoing_connection_requests = []
-		lds_metric_account.incoming_connection_requests = []
-		lds_metric_account.incoming_reserve_transfer_requests = {}
-		lds_metric_account.outgoing_reserve_transfer_requests = {}
-		lds_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
-		lds_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
-		lds_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
-		lds_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
-		lds_metric_account.current_connections = []
-		lds_metric_account.current_reserve_balance = 0
-		lds_metric_account.current_network_balance = 0	
-		lds_metric_account.last_connections = []
-		lds_metric_account.last_reserve_balance = 0
-		lds_metric_account.last_network_balance = 0
-		lds_metric_account.key = metric_account_key
-		
-		# put the metric account id into the user object so we know this user is joined
-		lds_user.metric_network_ids = fint_network_id
-		lds_user.metric_account_ids = lds_cursor.current_index
+		lds_user.reserve_network_ids.append[network_id]
+		lds_user.reserve_account_ids.append[lds_cursor.current_index]
+		lds_user.reserve_labels.append[label]
 		
 		# transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (fstr_network_id,fstr_user_id,str(1).zfill(12)))
+		tx_log_key = ndb.Key("MRTX%s%s%s", (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
 		lds_tx_log.tx_index = 1
 		lds_tx_log.tx_type = "JOINED NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A user joined a network." 
-		lds_tx_log.memo = ""
 		lds_tx_log.user_id_created = lds_user.user_id
-		lds_tx_log.network_id = fstr_network_id
-		lds_tx_log.account_id = fstr_user_id
-		lds_tx_log.source_account = fstr_user_id 
-		lds_tx_log.target_account = 0
+		lds_tx_log.network_id = network_id
+		lds_tx_log.account_id = lds_cursor.current_index
+		lds_tx_log.source_account = lds_cursor.current_index 
 		lds_tx_log.put()
 		
 		# save the transaction
@@ -1323,170 +1167,110 @@ class metric(object):
 		lds_metric_account.put()
 		lds_cursor.put()
 		
-		return "success"
-
-	@ndb.transactional(xg=True)
-	def _leave_network(self, fint_account_id, fint_network_id):
+		return True
 	
-		# must have zero connections in order to leave the network
-		# graph process cannot be going on when we delete
-		
-		# BEGIN THOUGHT
-		# OK, so I just thought of something.  For the graph process, I felt
-		# it was necessary to use integer based keys to make the algorithm more
-		# simplistic.  I knew that if we had each "chunk" hold say 2000 accounts
-		# that first chunk would be 1-2000.  The whole point being that we can 
-		# query by keys.  Originally, I envisioned-when someone leaves the network-
-		# that we'd have to swap out their index with the account at last index.
-		#
-		# But I don't think this is necessary, and we can avoid I think having
-		# to transactionally swap all the connections for the last account we're
-		# moving into the vacant spot.  What we need to store is the "chunk ranges".
-		# Starting is: chunk#1 = 1-2000, chunk#2 = 2001-4000, etc.  If you delete
-		# an account you just need to adjust the chunk ranges.  It makes it a little
-		# more complex when running the graph process, but no deleting will occur
-		# during the process, so the chunk range structure can stay in memory without
-		# worry of it being modified.
-		# 
-		# This lets us also avoid ever having to change a network account id for a 
-		# user on a specific network.
-		# END THOUGHT
-		
-		# first retrieve and check the metric account
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_account_id).zfill(12)
-		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-		lds_metric_account = metric_account_key.get()
-		
-		# error if source doesn't exist
-		if lds_metric_account is None: return "error_account_id_invalid"
-		
-		# error if account still has connections
-		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"		
-
-		# the only two values in a metric account that really matter during a deletion
-		# will be the network and reserve remaining balances.  We do one finally transaction
-		# on this account that works like a "modify_reserve", "normal_subtract" only we ignore
-		# any checks and we remove entire balance even if it exceeds the reserve amount.  All
-		# reserves and balances are forfeit, essentially.
-		
-		# increment negative balance shard
-		if lds_metric_account.current_network_balance > 0:
-			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
-			lds_counter1 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
-			if lds_counter1 is None:
-				lds_counter1 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
-			lds_counter1.count += lds_metric_account.current_network_balance
-			lds_counter1.put()
-
-		# increment negative reserve shard
-		if lds_metric_account.current_reserve_balance > 0:
-			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
-			lds_counter2 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
-			if lds_counter2 is None:
-				lds_counter2 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
-			lds_counter2.count += lds_metric_account.current_reserve_balance
-			lds_counter2.put()
-
-		lstr_return_message = "success_reserve_normal_subtract"
-		
-		lds_chunk_catalog.put()
-		
-		lds_metric_account.tx_index += 1
-		# transaction log
-		key_part3 = str(lds_metric_account.tx_index).zfill(12)
-		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,key_part3))
-		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.key = tx_log_key
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		lds_tx_log.tx_index = lds_metric_account.tx_index
-		lds_tx_log.tx_type = "LEFT NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-		lds_tx_log.description = "A user left a network." 
-		lds_tx_log.memo = ""
-		lds_tx_log.user_id_created = lds_metric_account.user_id
-		lds_tx_log.network_id = fint_network_id
-		lds_tx_log.account_id = fint_account_id
-		lds_tx_log.source_account = fint_account_id 
-		lds_tx_log.target_account = 0
-		lds_tx_log.put()
-		
-		# don't delete an account, just set it's status to "deleted", and delete it along with
-		# it's transactions when however much time passes where we no longer want to keep them
-		lds_metric_account.current_network_balance = 0
-		lds_metric_account.current_reserve_balance = 0
-		lds_metric_account.account_status = "DELETED"
-		lds_metric_account.current_timestamp = datetime.datetime.now()
-		lds_metric_account.put()
-		
 	@ndb.transactional(xg=True)
-	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
+	def _name_validate_transactional(self,fstr_network_name,fstr_source_name=None,fstr_target_name=None):
 	
-		# redo the existence check now that we're in a transaction
-		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
-		new_network_profile = network_key.get()
-		if new_network_profile is not None:
-			# it exists already, nevermind
-			return new_network_profile
-		else:
-			# not created yet
-			new_network_profile = ds_mr_network_profile()
-			new_network_profile.network_name = fstr_network_name
-			new_network_profile.network_id = fint_network_id
-			new_network_profile.network_status = "ACTIVE"
-			new_network_profile.network_type = fstr_network_type
-			new_network_profile.orphan_count = 0
-			new_network_profile.total_trees = 0
-			# use the proper key from above
-			new_network_profile.key = network_key
-			new_network_profile.put()
+		# return network id, and source/target id associated with that network transactionally.
+		
+		##########
+		# GET NETWORK INFO FIRST
+		##########
+		
+		# transactionally get the name/users to get to the network/account ids
+		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
+		network_name_entity = network_name_key.get()
+		if network_name_entity is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # network name invalid
 			
-			# also make the cursor for the network when making the network
-			cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))
-			new_cursor = ds_mr_network_cursor()
-			new_cursor.current_index = 0
-			new_cursor.network_id = fint_network_id
-			new_cursor.key = cursor_key
-			new_cursor.put()
-
-			# transaction log
-			lds_tx_log = ds_mr_tx_log()
-			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-			# tx_index should be based on incremented metric_account value
-			lds_tx_log.tx_index = 0
-			lds_tx_log.tx_type = "NETWORK INITIALIZED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-			lds_tx_log.amount = 0
-			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-			lds_tx_log.description = "A new network was created." 
-			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
-			lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
-			lds_tx_log.network_id = fint_network_id
-			lds_tx_log.account_id = 0
-			lds_tx_log.source_account = 0 
-			lds_tx_log.target_account = 0
-			lds_tx_log.put()
-
-			return new_network_profile
-			
-	def _get_network_summary(self, fint_network_id=1):
-	
-		# get the primary network
-		# default is 1
-		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
-		network_profile = network_key.get()
-		if network_profile is not None:
-			self.PARENT.TRACE.append("metric._get_network_summary():network exists")
-			return network_profile
-		else:
-			# not created yet
-			# ONLY AUTO-INITIALIZE THE PRIMARY NETWORK!!!
-			if fstr_network_id == 1: return self._initialize_network(fint_network_id)
+		network_id = network_name_entity.network_id
 		
-	@ndb.transactional(xg=True)
-	def _connect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
+		##########
+		# GET SOURCE INFO IF REQUESTED
+		##########
+		
+		if fstr_source_name is None:
+			source_account_id = 0
+		else:		
+			source_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_source_name)
+			source_name_entity = source_name_key.get()
+			if source_name_entity is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # source name invalid
+			# Before we get the metric accounts, we need to get the user objects
+			# and verify that the requesting user is in fact the source account
+			# specified and that both source and target exist on the network 
+			# specified.
+			if not self.PARENT.user.entity.user_id == source_name_entity.user_id:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # source account must be current logged in user
+			
+			# load users transactionally
+			source_user_key = ndb.Key("ds_mr_user",source_name_entity.user_id)
+			lds_source_user = source_user_key.get()
+			if not network_id in lds_source_user.reserve_network_ids:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # source user has no reserve account on the named network
+			# So, the named users have accounts on the named networks.  But that
+			# doesn't mean the names match, as requester could have used the wrong
+			# alias.  We need to make sure the name passed corresponds to the exact
+			# account in that network.
+			source_label = lds_source_user.reserve_labels[lds_source_user.reserve_network_ids.index(network_id)]
+			source_account_id = lds_source_user.reserve_account_ids[lds_source_user.reserve_network_ids.index(network_id)]
+			if source_label == "username":
+				if not lds_source_user.username == fstr_source_name:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # source name does not resolve to correct user account.
+			else:
+				if not source_label == fstr_source_name:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # source name does not resolve to correct user account.
+
+		##########
+		# GET TARGET INFO IF REQUESTED
+		##########
+		
+		if fstr_target_name is None:
+			target_account_id = 0
+		else:			
+			target_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
+			target_name_entity = target_name_key.get()
+			if target_name_entity is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # target name invalid			
+			# load users transactionally
+			target_user_key = ndb.Key("ds_mr_user",target_name_entity.user_id)
+			lds_target_user = target_user_key.get()
+			if not network_id in lds_target_user.reserve_network_ids:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # target user has no reserve account on the named network
+			# So, the named users have accounts on the named networks.  But that
+			# doesn't mean the names match, as requester could have used the wrong
+			# alias.  We need to make sure the name passed corresponds to the exact
+			# account in that network.
+			target_label = lds_target_user.reserve_labels[lds_target_user.reserve_network_ids.index(network_id)]
+			target_account_id = lds_target_user.reserve_account_ids[lds_target_user.reserve_network_ids.index(network_id)]
+			if target_label == "username":
+				if not lds_target_user.username == fstr_target_name:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # target name does not resolve to correct user account.
+			else:
+				if not target_label == fstr_target_name:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # target name does not resolve to correct user account.
+		
+		# Should be good to go if we got this far.  It means the 
+		# source/target username/alias's used, have a metric reserve
+		# account on the network that the network name passed maps
+		# to.
+			
+		return (network_id,source_account_id,target_account_id)
 	
+	@ndb.transactional(xg=True)
+	def _connect_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name):
+		fint_target_account_id
 		# connect() corresponds to a "friending" to use a Facebook
 		# term.  Basically reserves pass through your connections and
 		# the network is literally defined by these bilateral connections.
@@ -1505,43 +1289,76 @@ class metric(object):
 		# processed in the tree process phase, we have to pay attention to the
 		# timestamp to determine whether to only change the current state, or
 		# move the current to the last state before updating the current.
-		#
-		# got all that? lol
 		
-		# get the source and target metric accounts
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_source_account_id).zfill(12)
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		if not validation_result:
+			# pass up error
+			return False
+		
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		target_account_id = validation_result[2]
+				
+		# transactionally get the source and target metric accounts
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
-		if lds_source is None: return "error_source_id_not_valid"
+		if lds_source is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_source_id_not_valid
 		# error if trying to connect to self
-		if fint_source_account_id == fint_target_account_id: return "error_cant_connect_to_self"
+		if source_account_id == target_account_id: 
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_cant_connect_to_self
+		# error if not a reserve account
+		if not lds_source.account_type == "RESERVE" and not lds_source.account_status == "ACTIVE":
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # only active reserve accounts can connect, source is not
 		
-		key_part3 = str(fint_target_account_id).zfill(12)
+		key_part3 = str(target_account_id).zfill(12)
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
-		if lds_target is None: return "error_target_id_not_valid"
+		if lds_target is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_target_id_not_valid
+		# error if not a reserve account
+		if not lds_target.account_type == "RESERVE" and not lds_target.account_status == "ACTIVE":
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # active reserve accounts can connect, target is not
 
 		# Five situations where we don't even try to connect
 		# 1. Source and target are already connected.
-		if fint_target_account_id in lds_source.current_connections: return "error_already_connected"
+		if target_account_id in lds_source.current_connections:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # return "error_already_connected"
 		# 2. Source already has outgoing connection request to target
-		if fint_target_account_id in lds_source.outgoing_connection_requests: return "error_connection_already_requested"
+		if target_account_id in lds_source.outgoing_connection_requests:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_connection_already_requested"
 		# 3. Target incoming connection requests is maxed out
-		if len(lds_target.incoming_connection_requests) > 19: return "error_target_incoming_requests_maxed"
+		if len(lds_target.incoming_connection_requests) > 19:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_target_incoming_requests_maxed"
 		# 4. Source outgoing connection requests is maxed out
-		if len(lds_source.outgoing_connection_requests) > 19: return "error_target_incoming_requests_maxed"
+		if len(lds_source.outgoing_connection_requests) > 19:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_target_incoming_requests_maxed"
 		# 5. Target or source has reached their maximum number of connections
-		if len(lds_source.current_connections) > 19: return "error_source_connections_maxed"
-		if len(lds_target.current_connections) > 19: return "error_target_connections_maxed"
+		if len(lds_source.current_connections) > 19:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_source_connections_maxed"
+		if len(lds_target.current_connections) > 19:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_target_connections_maxed"
 		
 		# should be ok to connect
 		# check if the target has the source in it's outgoing connection requests
-		if fint_source_account_id in lds_target.outgoing_connection_requests:
+		if source_account_id in lds_target.outgoing_connection_requests:
 			
 			# target already connected, this is a connection request authorization
 			
@@ -1568,8 +1385,8 @@ class metric(object):
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_source.current_connections.append(fint_target_account_id)
-				lds_source.incoming_connection_requests.remove(fint_target_account_id)
+				lds_source.current_connections.append(target_account_id)
+				lds_source.incoming_connection_requests.remove(target_account_id)
 				
 			else:
 			
@@ -1578,8 +1395,8 @@ class metric(object):
 				lds_source.last_connections = lds_source.current_connections
 				lds_source.last_reserve_balance = lds_source.current_reserve_balance
 				lds_source.last_network_balance = lds_source.current_network_balance
-				lds_source.current_connections.append(fint_target_account_id)
-				lds_source.incoming_connection_requests.remove(fint_target_account_id)
+				lds_source.current_connections.append(target_account_id)
+				lds_source.incoming_connection_requests.remove(target_account_id)
 				
 	
 			# update the target account
@@ -1587,8 +1404,8 @@ class metric(object):
 				
 				# last transaction was in current time window, no need to swap
 				# a.k.a. overwrite current
-				lds_target.current_connections.append(fint_source_account_id)
-				lds_target.outgoing_connection_requests.remove(fint_source_account_id)
+				lds_target.current_connections.append(source_account_id)
+				lds_target.outgoing_connection_requests.remove(source_account_id)
 				
 			else:
 			
@@ -1597,8 +1414,8 @@ class metric(object):
 				lds_target.last_connections = lds_target.current_connections
 				lds_target.last_reserve_balance = lds_target.current_reserve_balance
 				lds_target.last_network_balance = lds_target.current_network_balance
-				lds_target.current_connections.append(fint_source_account_id)
-				lds_target.outgoing_connection_requests.remove(fint_source_account_id)
+				lds_target.current_connections.append(source_account_id)
+				lds_target.outgoing_connection_requests.remove(source_account_id)
 			
 			# only update current_timestamp for graph dependent transactions??? STUB
 			lstr_source_tx_type = "INCOMING CONNECTION AUTHORIZED"
@@ -1607,7 +1424,7 @@ class metric(object):
 			lstr_target_tx_description = "OUTGOING CONNECTION AUTHORIZED"
 			lds_source.current_timestamp = datetime.datetime.now()
 			lds_target.current_timestamp = datetime.datetime.now()			
-			lstr_return_message = "success_connection_request_authorized"
+			self.PARENT.RETURN_CODE = "STUB" # success_connection_request_authorized
 			
 			
 		else:
@@ -1616,9 +1433,9 @@ class metric(object):
 			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST"
 			lstr_target_tx_type = "INCOMING CONNECTION REQUEST"
 			lstr_target_tx_description = "INCOMING CONNECTION REQUEST"
-			lds_source.outgoing_connection_requests.append(fint_target_account_id)
-			lds_target.incoming_connection_requests.append(fint_source_account_id)
-			lstr_return_message = "success_connection_request_completed"
+			lds_source.outgoing_connection_requests.append(target_account_id)
+			lds_target.incoming_connection_requests.append(source_account_id)
+			self.PARENT.RETURN_CODE = "STUB" # success_connection_request_completed
 		
 		
 		lds_source.tx_index += 1
@@ -1630,15 +1447,13 @@ class metric(object):
 		# tx_index should be based on incremented metric_account value
 		source_lds_tx_log.tx_index = lds_source.tx_index
 		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		source_lds_tx_log.amount = 0
-		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = lstr_source_tx_description 
-		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fint_network_id
-		source_lds_tx_log.account_id = fint_source_account_id
-		source_lds_tx_log.source_account = fint_source_account_id 
-		source_lds_tx_log.target_account = fint_target_account_id
+		source_lds_tx_log.network_id = network_id
+		source_lds_tx_log.account_id = source_account_id
+		source_lds_tx_log.source_account = source_account_id 
+		source_lds_tx_log.target_account = target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
@@ -1646,27 +1461,39 @@ class metric(object):
 		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
-		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
 		target_lds_tx_log.tx_index = lds_target.tx_index
 		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		target_lds_tx_log.amount = 0
-		# typically we'll make target private for bilateral transactions so that
-		# when looking at a system view, we don't see duplicates.
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		target_lds_tx_log.description = lstr_target_tx_description 
-		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fint_network_id
-		target_lds_tx_log.account_id = fint_target_account_id
-		target_lds_tx_log.source_account = fint_source_account_id 
-		target_lds_tx_log.target_account = fint_target_account_id
+		target_lds_tx_log.network_id = network_id
+		target_lds_tx_log.account_id = target_account_id
+		target_lds_tx_log.source_account = source_account_id 
+		target_lds_tx_log.target_account = target_account_id
 		target_lds_tx_log.put()
 		
 		lds_source.put()
 		lds_target.put()
-		return lstr_return_message
-			
+		return lstr_return_message	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
 	@ndb.transactional(xg=True)
 	def _disconnect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
 	
@@ -2555,6 +2382,102 @@ class metric(object):
 		lds_target.put()
 		return lstr_return_message
 
+	@ndb.transactional(xg=True)
+	def _leave_network(self, fint_account_id, fint_network_id):
+	
+		# must have zero connections in order to leave the network
+		# graph process cannot be going on when we delete
+		
+		# BEGIN THOUGHT
+		# OK, so I just thought of something.  For the graph process, I felt
+		# it was necessary to use integer based keys to make the algorithm more
+		# simplistic.  I knew that if we had each "chunk" hold say 2000 accounts
+		# that first chunk would be 1-2000.  The whole point being that we can 
+		# query by keys.  Originally, I envisioned-when someone leaves the network-
+		# that we'd have to swap out their index with the account at last index.
+		#
+		# But I don't think this is necessary, and we can avoid I think having
+		# to transactionally swap all the connections for the last account we're
+		# moving into the vacant spot.  What we need to store is the "chunk ranges".
+		# Starting is: chunk#1 = 1-2000, chunk#2 = 2001-4000, etc.  If you delete
+		# an account you just need to adjust the chunk ranges.  It makes it a little
+		# more complex when running the graph process, but no deleting will occur
+		# during the process, so the chunk range structure can stay in memory without
+		# worry of it being modified.
+		# 
+		# This lets us also avoid ever having to change a network account id for a 
+		# user on a specific network.
+		# END THOUGHT
+		
+		# first retrieve and check the metric account
+		key_part1 = str(fint_network_id).zfill(8)
+		key_part2 = str(fint_account_id).zfill(12)
+		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		lds_metric_account = metric_account_key.get()
+		
+		# error if source doesn't exist
+		if lds_metric_account is None: return "error_account_id_invalid"
+		
+		# error if account still has connections
+		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"		
+
+		# the only two values in a metric account that really matter during a deletion
+		# will be the network and reserve remaining balances.  We do one finally transaction
+		# on this account that works like a "modify_reserve", "normal_subtract" only we ignore
+		# any checks and we remove entire balance even if it exceeds the reserve amount.  All
+		# reserves and balances are forfeit, essentially.
+		
+		# increment negative balance shard
+		if lds_metric_account.current_network_balance > 0:
+			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
+			lds_counter1 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
+			if lds_counter1 is None:
+				lds_counter1 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
+			lds_counter1.count += lds_metric_account.current_network_balance
+			lds_counter1.put()
+
+		# increment negative reserve shard
+		if lds_metric_account.current_reserve_balance > 0:
+			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
+			lds_counter2 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
+			if lds_counter2 is None:
+				lds_counter2 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
+			lds_counter2.count += lds_metric_account.current_reserve_balance
+			lds_counter2.put()
+
+		lstr_return_message = "success_reserve_normal_subtract"
+		
+		lds_chunk_catalog.put()
+		
+		lds_metric_account.tx_index += 1
+		# transaction log
+		key_part3 = str(lds_metric_account.tx_index).zfill(12)
+		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,key_part3))
+		lds_tx_log = ds_mr_tx_log()
+		lds_tx_log.key = tx_log_key
+		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# tx_index should be based on incremented metric_account value
+		lds_tx_log.tx_index = lds_metric_account.tx_index
+		lds_tx_log.tx_type = "LEFT NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		lds_tx_log.amount = 0
+		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.description = "A user left a network." 
+		lds_tx_log.memo = ""
+		lds_tx_log.user_id_created = lds_metric_account.user_id
+		lds_tx_log.network_id = fint_network_id
+		lds_tx_log.account_id = fint_account_id
+		lds_tx_log.source_account = fint_account_id 
+		lds_tx_log.target_account = 0
+		lds_tx_log.put()
+		
+		# don't delete an account, just set it's status to "deleted", and delete it along with
+		# it's transactions when however much time passes where we no longer want to keep them
+		lds_metric_account.current_network_balance = 0
+		lds_metric_account.current_reserve_balance = 0
+		lds_metric_account.account_status = "DELETED"
+		lds_metric_account.current_timestamp = datetime.datetime.now()
+		lds_metric_account.put()
+		
 	def _process_graph(self, fint_network_id):
 	
 		# So...we meet again.
@@ -3934,10 +3857,11 @@ class metric(object):
 
 ################################################################
 ###
-###  BEGIN: Page Handler Classes
+###  OLD PAGE HANDLER CLASSES
 ###
 ################################################################
 
+"""
 # page handler class for "/mob_s_register"
 class ph_mob_s_register(webapp2.RequestHandler):
 
@@ -4241,6 +4165,10 @@ class ph_mob_s_make_payment(webapp2.RequestHandler):
 		lstr_result = lobj_master.metric._make_payment(lint_network_id, lint_source_account_id, lint_target_account_id, lstr_amount)
 		
 		lobj_master.request_handler.redirect('/mob_s_make_payment?form_result=%s' % lstr_result)
+
+"""
+
+
 
 # page handler class for command based pages
 class ph_command(webapp2.RequestHandler):
@@ -4633,7 +4561,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnew_username"] = ct[2]
 					ltemp["xct"] = "username change %s" % ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
-				elif not lobj_master.user._change_unique_username(ct[2]):
+				elif not lobj_master.user._change_username_transactional(ct[2]):
 					r.redirect(self.url_path(error_code="1102"))
 				else:
 					ltemp = {}
@@ -4805,7 +4733,7 @@ class ph_command(webapp2.RequestHandler):
 					# we won't get back here on confirm.
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
-				elif not lobj_master.metric._reserve_open(pqc[1]):
+				elif not lobj_master.metric._reserve_open_transactional(pqc[1]):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
@@ -4849,14 +4777,7 @@ class ph_command(webapp2.RequestHandler):
 application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
-	('/network/account', ph_command),
-	('/mob_s_register', ph_mob_s_register),
-	('/mob_s_network_summary', ph_mob_s_network_summary),
-	('/mob_s_join_network', ph_mob_s_join_network),
-	('/mob_s_connect', ph_mob_s_connect),
-	('/mob_s_disconnect', ph_mob_s_disconnect),
-	('/mob_s_modify_reserve', ph_mob_s_modify_reserve),
-	('/mob_s_make_payment', ph_mob_s_make_payment)
+	('/network/account', ph_command)
 	],debug=True)
 
 ##########################################################################
