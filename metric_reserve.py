@@ -150,7 +150,7 @@ class ds_mr_system_cursor(ndb.Model):
 # network cursor: this entity maintains the index of network accounts
 class ds_mr_network_cursor(ndb.Model):
 
-	network_id = ndb.StringProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
 	current_index = ndb.IntegerProperty(indexed=False)
 
 # metric account: this is the main account information
@@ -795,8 +795,8 @@ class metric(object):
 		lds_tx_log.amount = 0
 		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = "A new network was created." 
-		lds_tx_log.memo = "%s %s" % (fstr_network_name, str(net_id))
-		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.memo = "%s %s" % (fname, str(net_id))
+		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 		lds_tx_log.network_id = net_id
 		lds_tx_log.account_id = 0
 		lds_tx_log.source_account = 0 
@@ -884,12 +884,14 @@ class metric(object):
 		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = tx_description 
 		lds_tx_log.memo = "%s %s" % (fname, str(net_id))
-		lds_tx_log.user_id_created = self.PARENT.user.user_id
+		lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 		lds_tx_log.network_id = net_id
 		lds_tx_log.account_id = 0
 		lds_tx_log.source_account = 0 
 		lds_tx_log.target_account = 0
-		lds_tx_log.put()	
+		lds_tx_log.put()
+		
+		return True
 
 	def _get_all_networks(self):
 	
@@ -948,21 +950,21 @@ class metric(object):
 		
 		if self.PARENT.user.IS_LOGGED_IN:
 			for network in list_of_networks:
-				if network.status == "DELETED":
+				if network.network_status == "DELETED":
 					groups["has_deleted_networks"] = True
 					groups["deleted_networks"].append(network)
-				elif network.status == "INACTIVE":
+				elif network.network_status == "INACTIVE":
 					groups["has_inactive_networks"] = True
 					groups["inactive_networks"].append(network)
-				elif network.status == "ACTIVE":
-					if network.type == "LIVE":
+				elif network.network_status == "ACTIVE":
+					if network.network_type == "LIVE":
 						if network.network_id in self.PARENT.user.entity.metric_network_ids:
 							groups["has_my_live_networks"] = True
 							groups["my_live_networks"].append(network)
 						else:
 							groups["has_live_networks"] = True
 							groups["live_networks"].append(network)
-					elif network.type == "TEST":
+					elif network.network_type == "TEST":
 						if network.network_id in self.PARENT.user.entity.metric_network_ids:
 							groups["has_my_test_networks"] = True
 							groups["my_test_networks"].append(network)	
@@ -971,17 +973,17 @@ class metric(object):
 							groups["test_networks"].append(network)
 		else:
 			for network in list_of_networks:
-				if network.status == "DELETED":
+				if network.network_status == "DELETED":
 					groups["has_deleted_networks"] = True
 					groups["deleted_networks"].append(network)
-				elif network.status == "INACTIVE":
+				elif network.network_status == "INACTIVE":
 					groups["has_inactive_networks"] = True
 					groups["inactive_networks"].append(network)
-				elif network.status == "ACTIVE":
-					if network.type == "LIVE":
+				elif network.network_status == "ACTIVE":
+					if network.network_type == "LIVE":
 						groups["has_live_networks"] = True
 						groups["live_networks"].append(network)
-					elif network.type == "TEST":
+					elif network.network_type == "TEST":
 						groups["has_test_networks"] = True
 						groups["test_networks"].append(network)
 		if groups["has_test_networks"] or groups["has_inactive_networks"] or groups["has_deleted_networks"]:		
@@ -993,7 +995,7 @@ class metric(object):
 	
 		if not fstr_network_name is None:
 			# get network by name
-			network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
+			network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
 			network_name_entity = network_name_key.get()
 			if network_name_entity is None:
 				self.PARENT.RETURN_CODE = "1109"
@@ -1051,7 +1053,7 @@ class metric(object):
 			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 			lds_tx_log.description = "A new network was created." 
 			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
-			lds_tx_log.user_id_created = self.PARENT.user.user_id
+			lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
 			lds_tx_log.network_id = fint_network_id
 			lds_tx_log.account_id = 0
 			lds_tx_log.source_account = 0 
@@ -4136,7 +4138,7 @@ class ph_command(webapp2.RequestHandler):
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 		# make the menu link href
-		lobj_master.MENU_LINK = self.url_path(new_vars="view_menu=1",new_path=lobj_master.request.path)
+		lobj_master.MENU_LINK = self.url_path(new_vars="view_menu=1",new_path="/")
 		lobj_master.TRACE.append("self.PATH_CONTEXT = %s" % lobj_master.PATH_CONTEXT)
 		
 		lobj_master.TRACE.append("ph_command.get(): in ph_command GET function")
@@ -4178,7 +4180,7 @@ class ph_command(webapp2.RequestHandler):
 		###################################
 		
 		# first check our error/success/confirm requests
-		elif "error_code" in lobj_master.request.GET:
+		elif "xerror_code" in lobj_master.request.GET:
 			page["title"] = "ERROR"
 			blok = {}
 			blok["type"] = "error"
@@ -4191,7 +4193,7 @@ class ph_command(webapp2.RequestHandler):
 		# CONFIRM PROCESS
 		###################################
 
-		elif "confirm_code" in lobj_master.request.GET:
+		elif "xconfirm_code" in lobj_master.request.GET:
 			page["title"] = "CONFIRM"
 			blok = {}
 			blok["type"] = "confirm"
@@ -4203,7 +4205,7 @@ class ph_command(webapp2.RequestHandler):
 		# SUCCESS PROCESS
 		###################################
 				
-		elif "success_code" in lobj_master.request.GET:
+		elif "xsuccess_code" in lobj_master.request.GET:
 			page["title"] = "SUCCESS"
 			blok = {}
 			blok["type"] = "success"
@@ -4229,12 +4231,12 @@ class ph_command(webapp2.RequestHandler):
 			
 			menuitem1 = {}
 			menuitem1["href"] = "/"
-			menuitem1["label"] = "root"
+			menuitem1["label"] = "Root"
 			blok["menuitems"].append(menuitem1)
 			
 			menuitem2 = {}
-			menuitem2["href"] = "/"
-			menuitem2["label"] = "Introduction"
+			menuitem2["href"] = "/network"
+			menuitem2["label"] = "All Networks"
 			blok["menuitems"].append(menuitem2)
 			
 			menuitem3 = {}
@@ -4282,7 +4284,7 @@ class ph_command(webapp2.RequestHandler):
 			# view all networks
 			blok = {}
 			blok["type"] = "one network"
-			blok["network"] = self.master.metric._get_all_networks(fstr_network_name=pqc[1])
+			blok["network"] = self.master.metric._get_network(fstr_network_name=pqc[1])
 			if blok["network"] is None: 
 				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				return None
@@ -4372,7 +4374,7 @@ class ph_command(webapp2.RequestHandler):
 			# from any context
 			###################################
 			if  len(ct) == 1 and ct[0] == "menu":
-				r.redirect(self.url_path(new_vars="view_menu=1",new_path=lobj_master.request.path))
+				r.redirect(self.url_path(new_vars="view_menu=1",new_path="/"))
 			###################################
 			# username change <USERNAME>
 			# 
@@ -4400,7 +4402,7 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 			# network add <NETWORK NAME> : add a new network [admin only]
 			# network <NETWORK NAME> : view a network
-			# network : view network summary
+			# network : view network summary for all networks
 			# 
 			# from any context
 			###################################
@@ -4418,9 +4420,9 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xnew_network_name"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
-			elif  len(ct) == 2 and ct[0] == "network":
+			elif  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
 				ltemp = {}
-				temp["view_network"] = ct[2]
+				temp["view_network"] = ct[1]
 				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
 			elif  len(ct) == 1 and ct[0] == "network":
 				r.redirect("/network")
@@ -4434,7 +4436,7 @@ class ph_command(webapp2.RequestHandler):
 			# 
 			# all only from network:network_id context
 			###################################
-			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
+			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
 				# only admins can delete a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4445,8 +4447,9 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
-			elif pqc[0] == 1 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
+			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
 				# only admins can change the status of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4457,14 +4460,19 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["xct"] = "network activate"
+					# Need to declare query vars necessary for 
+					# pqc[]/context on the confirm page or else
+					# we won't get back here on confirm.
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6002"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
-			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type live":
+			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4475,8 +4483,9 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
-			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1])) == "network type test":
+			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4487,8 +4496,9 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
-			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
+			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4496,14 +4506,15 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1103"))
 				elif not re.match(r'^[0-9]+$',ct[2]) or not (int(ct[2])) < 1000000000000000 or not (int(ct[2])) > 0:
 					r.redirect(self.url_path(error_code="1107"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],fskintillionths=ct[2]):
+				elif not lobj_master.metric._network_modify(fname=pqc[1],fskintillionths=int(ct[2])):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["xskintillionths"] = ct[2]
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
-			elif pqc[0] == 1 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
+			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
 				# only admins can change a network name
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4517,6 +4528,10 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xold_network_name"] = pqc[1]
 					ltemp["xnew_network_name"] = ct[2]
 					ltemp["xct"] = "network name %s" % ct[2]
+					# Need to declare query vars necessary for 
+					# pqc[]/context on the confirm page or else
+					# we won't get back here on confirm.
+					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6003"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
@@ -4524,6 +4539,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xold_network_name"] = pqc[1]
 					ltemp["xnew_network_name"] = ct[2]
+					ltemp["view_network"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))			
 			###################################
 			# command not recognized
