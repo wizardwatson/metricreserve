@@ -210,6 +210,14 @@
 		{% elif blok.error_code == "1110" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network id invalid.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1111" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cannot open another reserve account.
+			Maximum reserve accounts allowed has been reached.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1112" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cannot open another reserve account.
+			You already have a reserve account on this network.  Each user is only allowed one reserve account per network.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -231,6 +239,9 @@
 			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
 			command field to indicate you wish to change the network name from: <b>{{ master.request.GET.xold_network_name }}</b> to:
 			<b>{{ master.request.GET.xnew_network_name }}</b>.</p>
+		{% elif blok.confirm_code == "6004" %}
+			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
+			command field to indicate you wish to open a reserve accounton network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
