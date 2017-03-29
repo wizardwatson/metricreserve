@@ -112,19 +112,117 @@ COMMANDS
 			COMMAND: gravatar type(email|identicon|monstercon|anonymous|metric)
 			COMMAND: bio
 			COMMAND: location
-			
-			alias create <alias>
-			alias change <alias>
-			alias delete
-			alias assign
-			username assign
+
+
+# this is the user Model.  Not to be confused with the account model
+class ds_mr_user(ndb.Model):
+
+	user_id = ndb.StringProperty(indexed=False)
+	username = ndb.StringProperty(indexed=False,default="EMPTY")
+	email = ndb.StringProperty(indexed=False)
+	
+	user_status = ndb.StringProperty(indexed=False)
+	
+	name_first = ndb.StringProperty(indexed=False)
+	name_middle = ndb.StringProperty(indexed=False)
+	name_last = ndb.StringProperty(indexed=False)
+	name_suffix = ndb.StringProperty(indexed=False)
+	
+	gravatar_url = ndb.StringProperty(indexed=False)
+	
+	# metric_reserve_accounts STUB
+	metric_network_ids = ndb.PickleProperty(default=[])
+	metric_account_ids = ndb.PickleProperty(default=[])
+	
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	
+	new_alias = ndb.StringProperty(indexed=False)
+	
+	total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
+	total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+	total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+	
+	reserve_network_ids = ndb.PickleProperty(default=[])
+	reserve_account_ids = ndb.PickleProperty(default=[])
+	reserve_labels = ndb.PickleProperty(default=[])
+	
+	client_network_ids = ndb.PickleProperty(default=[])
+	client_account_ids = ndb.PickleProperty(default=[])
+	client_parent_ids = ndb.PickleProperty(default=[])
+	client_labels = ndb.PickleProperty(default=[])
+	parent_client_offer_network_ids = ndb.PickleProperty(default=[])
+	parent_client_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	joint_network_ids = ndb.PickleProperty(default=[])
+	joint_account_ids = ndb.PickleProperty(default=[])
+	joint_parent_ids = ndb.PickleProperty(default=[])
+	joint_labels = ndb.PickleProperty(default=[])
+	parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
+	parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	clone_network_ids = ndb.PickleProperty(default=[])
+	clone_account_ids = ndb.PickleProperty(default=[])
+	clone_parent_ids = ndb.PickleProperty(default=[])
+	clone_labels = ndb.PickleProperty(default=[])
+	
+	child_client_network_ids = ndb.PickleProperty(default=[])
+	child_client_account_ids = ndb.PickleProperty(default=[])
+	child_client_parent_ids = ndb.PickleProperty(default=[])
+	child_client_offer_network_ids = ndb.PickleProperty(default=[])
+	child_client_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	child_joint_network_ids = ndb.PickleProperty(default=[])
+	child_joint_account_ids = ndb.PickleProperty(default=[])
+	child_joint_parent_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_network_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_account_ids = ndb.PickleProperty(default=[])
+
+
+
+
+
+	
+alias change <alias>
+alias delete
+
+
+*** joint ***
+(parent/child)
+PARENT
+	joint offer
+	joint close
+CHILD
+	joint authorize
+	joint close
+
+*** client ***
+(parent/child)
+PARENT
+	client offer
+	client close
+CHILD
+	client authorize
+	client close
+	
+*** clone ***
+(self only)
+clone open
+clone close
+
+*** reserve ***
+(self only)
+reserve open
+reserve close
+
+
+
+
+
 
 		CONTEXT:network:username
 				COMMAND:joint
 					CONTEXT:parent(client|reserve)
-						COMMAND:give(amount)
-						COMMAND:take(amount)
-						COMMAND:add(child username)
+						COMMAND:offer (child username)
 						COMMAND:del(child username)
 					CONTEXT:child
 						COMMAND:ask(parent username)
@@ -168,7 +266,37 @@ COMMANDS
 		
 			message wizardwatson [<text>]
 			... [<more message>]
-		
+
+# metric account: this is the main account information
+class ds_mr_metric_account(ndb.Model):
+
+	account_id = ndb.IntegerProperty()
+	network_id = ndb.IntegerProperty()
+	user_id = ndb.StringProperty()
+	tx_index = ndb.IntegerProperty()
+	account_status = ndb.StringProperty()
+	account_type = ndb.StringProperty()
+	account_parent = ndb.IntegerProperty()
+	account_grandparent = ndb.PickleProperty()
+	account_sub_children = ndb.PickleProperty()
+	account_client_children = ndb.PickleProperty()
+	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
+	incoming_reserve_transfer_requests = ndb.PickleProperty()
+	outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+	current_connections = ndb.PickleProperty(default="EMPTY")
+	current_reserve_balance = ndb.IntegerProperty()
+	current_network_balance = ndb.IntegerProperty()	
+	last_connections = ndb.PickleProperty(default="EMPTY")
+	last_reserve_balance = ndb.IntegerProperty()
+	last_network_balance = ndb.IntegerProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+
 		# cart and register
 		
 			register_program{
@@ -218,39 +346,4 @@ COMMANDS
 
 
 
-CONTEXTS
-	root
-		introduction
-		quickstart
-	home
-		
-	admin
-		CreateNetwork
-		DeleteNetwork
-			# Only if no connections
-		RenameNetwork
-
-
-COMMANDS
-	
-	
-	
-	
-VIEWS
-
-	home
-		your networks
-		your sub accounts
-		your client accounts
-		available networks
-
-
-
-
-
-VIEW TYPES
-
-	error
-	success
-	confirm
 	
