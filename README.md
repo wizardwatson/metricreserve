@@ -113,6 +113,11 @@ COMMANDS
 			COMMAND: bio
 			COMMAND: location
 			
+			alias create <alias>
+			alias change <alias>
+			alias delete
+			alias assign
+			username assign
 
 		CONTEXT:network:username
 				COMMAND:joint
