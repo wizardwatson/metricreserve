@@ -47,6 +47,14 @@
 					{% endfor %}
 				</ul>
 			{% endif %}
+			{% if blok.groups.has_live_networks %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">Available Live Networks</li>
+					{% for network in blok.groups.live_networks %}
+					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					{% endfor %}
+				</ul>
+			{% endif %}
 			{% if blok.groups.has_one_of_test_inactive_deleted %}
 			<div data-role="collapsible-set" data-theme="b" data-content-theme="d">
 				{% if blok.groups.has_test_networks %}
@@ -91,8 +99,8 @@
 
 	{% elif blok.type == "one network" %}
 			<div class="text_bubble ui-body ui-body-c">
-			<h2>NETWORK: {{ blok.network.network_name }}</h2>
-			<p><b>STATUS</b>:  {{ blok.network.network_status }}<br/>
+			<p><b>NETWORK</b>: {{ blok.network.network_name }}<br/>
+			<b>STATUS</b>:  {{ blok.network.network_status }}<br/>
 			<b>TYPE</b>:  {{ blok.network.network_type }}<br/>
 			<b>SKINTILLIONTHS</b>:  {{ blok.network.skintillionths }}<br/>
 			<b>DESCRIPTION</b>:  {{ blok.network.description }}<br/>
