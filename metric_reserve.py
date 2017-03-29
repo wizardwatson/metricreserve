@@ -107,15 +107,53 @@ class ds_mr_user(ndb.Model):
 	
 	gravatar_url = ndb.StringProperty(indexed=False)
 	
-	# metric_reserve_accounts STUB
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	
+	total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
+	total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+	total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+	
+	reserve_network_ids = ndb.PickleProperty(default=[])
+	reserve_account_ids = ndb.PickleProperty(default=[])
+	reserve_labels = ndb.PickleProperty(default=[])
+	
+	client_network_ids = ndb.PickleProperty(default=[])
+	client_account_ids = ndb.PickleProperty(default=[])
+	client_parent_ids = ndb.PickleProperty(default=[])
+	client_labels = ndb.PickleProperty(default=[])
+	parent_client_offer_network_ids = ndb.PickleProperty(default=[])
+	parent_client_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	joint_network_ids = ndb.PickleProperty(default=[])
+	joint_account_ids = ndb.PickleProperty(default=[])
+	joint_parent_ids = ndb.PickleProperty(default=[])
+	joint_labels = ndb.PickleProperty(default=[])
+	parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
+	parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	clone_network_ids = ndb.PickleProperty(default=[])
+	clone_account_ids = ndb.PickleProperty(default=[])
+	clone_parent_ids = ndb.PickleProperty(default=[])
+	clone_labels = ndb.PickleProperty(default=[])
+	
+	child_client_network_ids = ndb.PickleProperty(default=[])
+	child_client_account_ids = ndb.PickleProperty(default=[])
+	child_client_parent_ids = ndb.PickleProperty(default=[])
+	child_client_offer_network_ids = ndb.PickleProperty(default=[])
+	child_client_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	child_joint_network_ids = ndb.PickleProperty(default=[])
+	child_joint_account_ids = ndb.PickleProperty(default=[])
+	child_joint_parent_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_network_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_account_ids = ndb.PickleProperty(default=[])
+	
+	# STUB ERASE AFTER IMPLEMENTING NEW STORAGE METHOD
 	metric_network_ids = ndb.PickleProperty(default=[])
+	# STUB ERASE AFTER IMPLEMENTING NEW STORAGE METHOD
 	metric_account_ids = ndb.PickleProperty(default=[])
 	
-	metric_client_accounts = ndb.PickleProperty(default=[])# [(network_id,account_id,type),...] # type = joint|client
-	metric_joint_accounts = ndb.PickleProperty(default=[])# [(network_id,account_id,type),...] # type = joint|client
-	metric_alternate_accounts = ndb.PickleProperty(default=[]) # [(network_id,account_id,username),...]
-	
-	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+
 
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
@@ -183,20 +221,6 @@ class ds_mr_metric_account(ndb.Model):
 	last_network_balance = ndb.IntegerProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
-# metric account: this is the subordinate account information
-class ds_mr_metric_sub_account(ndb.Model):
-
-	account_id = ndb.IntegerProperty()
-	network_id = ndb.IntegerProperty()
-	user_id = ndb.StringProperty()
-	tx_index = ndb.IntegerProperty()
-	account_status = ndb.StringProperty()
-	account_sub_type = ndb.StringProperty()
-	account_sub_parent = ndb.IntegerProperty()
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_network_balance = ndb.IntegerProperty()	
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
-
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
@@ -252,8 +276,6 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 	    for counter in ds_mr_negative_reserve_shard.query():
 		total += counter.count
 	    return total
-
-
 
 ##############################################################################
 ###
@@ -618,12 +640,12 @@ class user(object):
 			#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 			ldata_user.key = ldata_user_key	
 			
-			# new users get temporary username automatically upon first login
-			some_letters = "abcdefghijkmnprstuvwxyz"
-			first_int = str(random.randint(1,999)).zfill(3)
-			second_int = str(random.randint(1,999)).zfill(3)
-			temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)
 			while True:
+				# new users get temporary username automatically upon first login
+				some_letters = "abcdefghijkmnprstuvwxyz"
+				first_int = str(random.randint(1,999)).zfill(3)
+				second_int = str(random.randint(1,999)).zfill(3)
+				temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)			
 				if self._save_unique_username(temp_username,ldata_user):
 					break			
 		return ldata_user
@@ -640,9 +662,8 @@ class user(object):
 		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
 		new_entity = ds_mr_unique_dummy_entity()
 		new_entity.unique_name = fstr_name
-		new_entity.key = maybe_new_key
- 
-		new_entity.put()
+		new_entity.key = maybe_new_key 
+		
 		# This function is called from user initialization
 		# as well.  Make sure we have correct reference to
 		# user entity.
@@ -659,6 +680,7 @@ class user(object):
 		# assign new username to user
 		user_entity.user_status = "ACTIVE"
 		user_entity.username = fstr_name
+		new_entity.put()
 		user_entity.put()
 		
 		# transaction log:  think "bank statements"
@@ -1012,70 +1034,226 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1110"
 				return None # Name not valid
 		return network_profile
-	
+
 	@ndb.transactional(xg=True)
-	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
+	def _save_unique_alias(self,fstr_alias):
 	
-		# redo the existence check now that we're in a transaction
-		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
-		new_network_profile = network_key.get()
-		if new_network_profile is not None:
-			# it exists already, nevermind
-			return new_network_profile
-		else:
-			# not created yet
-			new_network_profile = ds_mr_network_profile()
-			new_network_profile.network_name = fstr_network_name
-			new_network_profile.network_id = fint_network_id
-			new_network_profile.network_status = "ACTIVE"
-			new_network_profile.network_type = fstr_network_type
-			new_network_profile.orphan_count = 0
-			new_network_profile.total_trees = 0
-			# use the proper key from above
-			new_network_profile.key = network_key
-			new_network_profile.put()
-			
-			# also make the cursor for the network when making the network
-			cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))
-			new_cursor = ds_mr_network_cursor()
-			new_cursor.current_index = 0
-			new_cursor.network_id = fint_network_id
-			new_cursor.key = cursor_key
-			new_cursor.put()
+		# new alias check
+		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_alias)
+		maybe_dummy_entity = maybe_new_key.get()
+		if maybe_dummy_entity is not None:
+			return False # False meaning "not created"
+		new_entity = ds_mr_unique_dummy_entity()
+		new_entity.unique_name = fstr_alias
+		new_entity.key = maybe_new_key		
+		new_entity.name_type = "alias"
+		new_entity.id_pointer_str = self.PARENT.user.entity.user_id
+		new_entity.put()
+						
+		return True # True meaning "created"
 
-			# transaction log
-			lds_tx_log = ds_mr_tx_log()
-			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-			# tx_index should be based on incremented metric_account value
-			lds_tx_log.tx_index = 0
-			lds_tx_log.tx_type = "NETWORK INITIALIZED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-			lds_tx_log.amount = 0
-			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-			lds_tx_log.description = "A new network was created." 
-			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
-			lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
-			lds_tx_log.network_id = fint_network_id
-			lds_tx_log.account_id = 0
-			lds_tx_log.source_account = 0 
-			lds_tx_log.target_account = 0
-			lds_tx_log.put()
-
-			return new_network_profile
-			
-	def _get_network_summary(self, fint_network_id=1):
+	@ndb.transactional(xg=True)
+	def _get_account_label(self,fint_network_id):
 	
-		# get the primary network
-		# default is 1
-		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
-		network_profile = network_key.get()
-		if network_profile is not None:
-			self.PARENT.TRACE.append("metric._get_network_summary():network exists")
-			return network_profile
+		# Create a new alias if the user has more than one account
+		# on this network, and "username" is not available.
+		has_multiple = False
+		username_in_use = False
+		for i in range(len(self.PARENT.user.entity.reserve_network_ids)):
+			if reserve_network_ids[i] == fint_network_id:
+				has_multiple = True
+				if reserve_labels[i] == "username":
+					username_in_use = True
+					break
+		for i in range(len(self.PARENT.user.entity.client_network_ids)):
+			if client_network_ids[i] == fint_network_id:
+				has_multiple = True
+				if client_labels[i] == "username":
+					username_in_use = True
+					break
+		for i in range(len(self.PARENT.user.entity.joint_network_ids)):
+			if joint_network_ids[i] == fint_network_id:
+				has_multiple = True
+				if joint_labels[i] == "username":
+					username_in_use = True
+					break		
+		for i in range(len(self.PARENT.user.entity.clone_network_ids)):
+			if clone_network_ids[i] == fint_network_id:
+				has_multiple = True
+				if clone_labels[i] == "username":
+					username_in_use = True
+					break
+	
+		if username_in_use:
+			# create a random alias
+			while True:
+				some_letters = "abcdefghijkmnprstuvwxyz"
+				first_int = str(random.randint(1,999)).zfill(3)
+				second_int = str(random.randint(1,999)).zfill(3)
+				alias = "alias" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)			
+				if self._save_unique_alias(alias):
+					break
+			return alias
 		else:
-			# not created yet
-			# ONLY AUTO-INITIALIZE THE PRIMARY NETWORK!!!
-			if fstr_network_id == 1: return self._initialize_network(fint_network_id)
+			# "username" is available
+			return "username"
+		
+		"""
+		total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
+		total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+		total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+
+		reserve_network_ids = ndb.PickleProperty(default=[])
+		reserve_account_ids = ndb.PickleProperty(default=[])
+		reserve_labels = ndb.PickleProperty(default=[])
+
+		client_network_ids = ndb.PickleProperty(default=[])
+		client_account_ids = ndb.PickleProperty(default=[])
+		client_parent_ids = ndb.PickleProperty(default=[])
+		client_labels = ndb.PickleProperty(default=[])
+		parent_client_offer_network_ids = ndb.PickleProperty(default=[])
+		parent_client_offer_account_ids = ndb.PickleProperty(default=[])
+
+		joint_network_ids = ndb.PickleProperty(default=[])
+		joint_account_ids = ndb.PickleProperty(default=[])
+		joint_parent_ids = ndb.PickleProperty(default=[])
+		joint_labels = ndb.PickleProperty(default=[])
+		parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
+		parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
+
+		clone_network_ids = ndb.PickleProperty(default=[])
+		clone_account_ids = ndb.PickleProperty(default=[])
+		clone_parent_ids = ndb.PickleProperty(default=[])
+		clone_labels = ndb.PickleProperty(default=[])
+		"""
+		return label
+
+
+	def _reserve_open(self,fstr_name):
+		network_profile = self._get_network(fstr_network_name)
+		if network_profile is None:
+			# fail code from _get_network() will fall through
+			return False
+		return self._reserve_open_transactional(network_profile.network_id)
 			
+	@ndb.transactional(xg=True)
+	def _reserve_open_transactional(self,fint_network_id):
+	
+		# A user can create a reserve account if:
+		# 1. They are not already a member.
+		# 2. They haven't reached there maximum number of accounts.
+		# 
+		# Fewer restrictions on reserve accounts as opposed to other
+		# types as they are not dependent on any other account.
+
+		# load user transactionally
+		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
+		lds_user = user_key.get()		
+		
+		if fint_network_id in lds_user.reserve_network_ids:
+			# already have a reserve account on this network
+			self.PARENT.RETURN_CODE = "1112"
+			return False
+		
+		if not lds_user.total_reserve_accounts < 30:
+			# maximum reserve accounts reached
+			self.PARENT.RETURN_CODE = "1111"
+			return False
+			
+		# load cursor transactionally
+		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))		
+		lds_cursor = cursor_key.get()
+		lds_cursor.current_index += 1
+		
+		# get a label for this account
+		# STUB try/catch exception in case alias loop fail
+		label = self._get_account_label(fint_network_id)
+	
+		# create a new metric account with key equal to current cursor/index for this network
+		metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(fint_network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
+		
+		lds_metric_account = ds_mr_metric_account()
+		lds_metric_account.network_id = fint_network_id
+		lds_metric_account.account_id = lds_cursor.current_index
+		lds_metric_account.user_id = lds_user.user_id
+		lds_metric_account.tx_index = 1
+		lds_metric_account.account_status = "ACTIVE"		
+		lds_metric_account.account_type = "reserve"
+		lds_metric_account.account_parent = 0
+		
+		lds_metric_account.outgoing_connection_requests = []
+		lds_metric_account.incoming_connection_requests = []
+		lds_metric_account.incoming_reserve_transfer_requests = {}
+		lds_metric_account.outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
+		lds_metric_account.current_connections = []
+		lds_metric_account.current_reserve_balance = 0
+		lds_metric_account.current_network_balance = 0	
+		lds_metric_account.last_connections = []
+		lds_metric_account.last_reserve_balance = 0
+		lds_metric_account.last_network_balance = 0
+		
+		lds_metric_account.key = metric_account_key
+		
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 	@ndb.transactional(xg=True)
 	def _join_network(self,fstr_user_id,fint_network_id):
 	
@@ -1242,6 +1420,69 @@ class metric(object):
 		lds_metric_account.account_status = "DELETED"
 		lds_metric_account.current_timestamp = datetime.datetime.now()
 		lds_metric_account.put()
+		
+	@ndb.transactional(xg=True)
+	def _initialize_network(self, fint_network_id, fstr_network_name="Primary", fstr_network_type="PUBLIC_LIVE"):
+	
+		# redo the existence check now that we're in a transaction
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
+		new_network_profile = network_key.get()
+		if new_network_profile is not None:
+			# it exists already, nevermind
+			return new_network_profile
+		else:
+			# not created yet
+			new_network_profile = ds_mr_network_profile()
+			new_network_profile.network_name = fstr_network_name
+			new_network_profile.network_id = fint_network_id
+			new_network_profile.network_status = "ACTIVE"
+			new_network_profile.network_type = fstr_network_type
+			new_network_profile.orphan_count = 0
+			new_network_profile.total_trees = 0
+			# use the proper key from above
+			new_network_profile.key = network_key
+			new_network_profile.put()
+			
+			# also make the cursor for the network when making the network
+			cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(fint_network_id).zfill(8))
+			new_cursor = ds_mr_network_cursor()
+			new_cursor.current_index = 0
+			new_cursor.network_id = fint_network_id
+			new_cursor.key = cursor_key
+			new_cursor.put()
+
+			# transaction log
+			lds_tx_log = ds_mr_tx_log()
+			lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+			# tx_index should be based on incremented metric_account value
+			lds_tx_log.tx_index = 0
+			lds_tx_log.tx_type = "NETWORK INITIALIZED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			lds_tx_log.amount = 0
+			lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			lds_tx_log.description = "A new network was created." 
+			lds_tx_log.memo = "%s %s" % (fstr_network_name, str(fint_network_id))
+			lds_tx_log.user_id_created = self.PARENT.user.entity.user_id
+			lds_tx_log.network_id = fint_network_id
+			lds_tx_log.account_id = 0
+			lds_tx_log.source_account = 0 
+			lds_tx_log.target_account = 0
+			lds_tx_log.put()
+
+			return new_network_profile
+			
+	def _get_network_summary(self, fint_network_id=1):
+	
+		# get the primary network
+		# default is 1
+		network_key = ndb.Key("ds_mr_network_profile", "%s" % str(fint_network_id).zfill(8))
+		network_profile = network_key.get()
+		if network_profile is not None:
+			self.PARENT.TRACE.append("metric._get_network_summary():network exists")
+			return network_profile
+		else:
+			# not created yet
+			# ONLY AUTO-INITIALIZE THE PRIMARY NETWORK!!!
+			if fstr_network_id == 1: return self._initialize_network(fint_network_id)
 		
 	@ndb.transactional(xg=True)
 	def _connect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
@@ -4540,7 +4781,41 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xold_network_name"] = pqc[1]
 					ltemp["xnew_network_name"] = ct[2]
 					ltemp["view_network"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))			
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))		
+			###################################
+			# reserve add : 
+			# joint authorize :
+			# client authorize : 
+			# 
+			# These three functions are done from the single network
+			# view context.  All other account functions are done from
+			# the single account view context.
+			###################################
+			efif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
+				# create a reserve account on this network for the user
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not is_confirmed:
+					# need confirmation before creating a reserve account
+					ltemp = {}
+					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["xct"] = "reserve open" % ct[2]
+					# Need to declare query vars necessary for 
+					# pqc[]/context on the confirm page or else
+					# we won't get back here on confirm.
+					ltemp["view_network"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
+				elif not lobj_master.metric._reserve_open(pqc[1]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["view_network"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="STUB"))
+			
+			
+			
+			
+			
 			###################################
 			# command not recognized
 			###################################
