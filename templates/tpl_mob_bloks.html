@@ -282,33 +282,27 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account specified is not current user.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1116" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account specified
-			has no reserve account on the named network.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account name specified
+			has no account on the named network.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1117" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account specified
-			does not resolve to correct user account.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1118" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account specified
-			does not resolve to correct user account.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1119" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account name is
 			invalid.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1120" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account
-			has no reserve account on the network specified.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account name specified
+			has no account on the network specified.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1121" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account specified
-			does not resolve to correct user account.<br/>
-			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.</p>
 		{% elif blok.error_code == "1122" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account specified
-			does not resolve to correct user account.<br/>
-			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.</p>
 		{% elif blok.error_code == "1123" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source metric account
 			is invalid.<br/>
@@ -359,6 +353,24 @@
 		{% elif blok.error_code == "1135" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network name is invalid.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1136" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account name is invalid.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1137" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account name is invalid.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1138" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> No valid connection or connection
+			requests between source and target accounts.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% elif blok.error_code == "1139" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account name is invalid.</p>
+		{% elif blok.error_code == "1140" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Amount passed to modify reserve
+			function is invalid.</p>
+		{% elif blok.error_code == "1141" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Amount passed to modify reserve
+			function exceeds maximum.</p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -426,6 +438,27 @@
 		{% elif blok.success_code == "7011" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			opened a reserve account on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+		{% elif blok.success_code == "7012" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have denied the connection
+			request by user: <b>{{ master.request.GET.xtargetname }}</b> on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+		{% elif blok.success_code == "7013" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have withdrawn your
+			connection request to user: <b>{{ master.request.GET.xtargetname }}</b> on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+		{% elif blok.success_code == "7014" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have cancelled the reserve
+			connection between yourself and user: <b>{{ master.request.GET.xtargetname }}</b> on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+		{% elif blok.success_code == "7015" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			increased your accounts reserve amount.</p>
+		{% elif blok.success_code == "7016" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			decreased your accounts reserve amount.</p>
+		{% elif blok.success_code == "7017" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			increased your accounts reserve amount via override.</p>
+		{% elif blok.success_code == "7018" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			decreased your accounts reserve amount via override.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
