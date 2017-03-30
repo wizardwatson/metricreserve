@@ -1592,12 +1592,172 @@ class metric(object):
 		lds_target.put()
 		return lstr_return_message	
 
+	@ndb.transactional(xg=True)
+	def _disconnect_transactional(self, fstr_network_name, fstr_source_name, fstr_target_name):
 
+		# first get id's instead of names
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		if not validation_result:
+			# pass up error
+			return False
+		
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		target_account_id = validation_result[2]
+		
+		# transactionally get the source and target metric accounts
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
+		key_part3 = str(target_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		lds_source = source_key.get()
+		if lds_source is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error source id not valid
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
+		lds_target = target_key.get()
+		
+		# error if target doesn't exist
+		if lds_target is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error target id not valid
+		
+		# Disconnect() can do one of three things:
+		#
+		# 1. Cancel an incoming connection request
+		# 2. Cancel an outgoing connection request
+		# 3. Cancel an existing connection
+		#
+		# None of these three situations can exist simultaneously.  And if none of
+		# the three cases apply, then the request to disconnect is invalid.
+		#
+		# 1 & 2 are benign changes and don't effect the graph, but cancelling an
+		# existing connection will require a graph process time window check.
+		
+		if target_account_id in lds_source.incoming_connection_requests:
+		
+			# benign change with respect to graph
+			lds_source.incoming_connection_requests.remove(target_account_id)
+			lds_target.outgoing_connection_requests.remove(source_account_id)
+			lstr_source_tx_type = "INCOMING CONNECTION REQUEST DENIED"
+			lstr_source_tx_description = "INCOMING CONNECTION REQUEST DENIED"
+			lstr_target_tx_type = "OUTGOING CONNECTION REQUEST DENIED"
+			lstr_target_tx_description = "OUTGOING CONNECTION REQUEST DENIED"
+			
+			lstr_return_message = "success_denied_target_connection_request"
+		
+		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
+		
+			# benign change with respect to graph
+			lds_target.incoming_connection_requests.remove(source_account_id)
+			lds_source.outgoing_connection_requests.remove(target_account_id)
+			lstr_source_tx_type = "OUTGOING CONNECTION REQUEST WITHDRAWN"
+			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST WITHDRAWN"
+			lstr_target_tx_type = "INCOMING CONNECTION REQUEST WITHDRAWN"
+			lstr_target_tx_description = "INCOMING CONNECTION REQUEST WITHDRAWN"
+			lstr_return_message = "success_withdrew_connection_request"
+		
+		elif target_account_id in lds_source.current_connections:
+		
+			# First thing we need to do-and probably should abstract this later STUB
+			# since we will need in other places-is we need to figure out our cutoff
+			# time for "current_timestamp" based on graph processing frequency.
+			#
+			# My basic idea is to subtract the frequencies modulus since epoch time
+			# (which I'm arbitralily making 8am UTC March 13th, 2017) from the current
+			# datetime.  We'll set frequency in minutes but convert to seconds since
+			# that's what timedelta uses in python.
+			
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		
+			# update the source account
+			if lds_source.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_source.current_connections.remove(target_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_source.last_connections = lds_source.current_connections
+				lds_source.last_reserve_balance = lds_source.current_reserve_balance
+				lds_source.last_network_balance = lds_source.current_network_balance
+				lds_source.current_connections.remove(target_account_id)				
+	
+			# update the target account
+			if lds_target.current_timestamp > t_cutoff:
+				
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_target.current_connections.remove(source_account_id)
+				
+			else:
+			
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_target.last_connections = lds_target.current_connections
+				lds_target.last_reserve_balance = lds_target.current_reserve_balance
+				lds_target.last_network_balance = lds_target.current_network_balance
+				lds_target.current_connections.remove(source_account_id)
+				
+			# only update current_timestamp for graph dependent transactions??? STUB
+			lds_source.current_timestamp = datetime.datetime.now()
+			lds_target.current_timestamp = datetime.datetime.now()
+			lstr_source_tx_type = "DISCONNECTION BY THIS ACCOUNT"
+			lstr_source_tx_description = "DISCONNECTION BY THIS ACCOUNT"
+			lstr_target_tx_type = "DISCONNECTION BY OTHER ACCOUNT"
+			lstr_target_tx_description = "DISCONNECTION BY OTHER ACCOUNT"
+			lstr_return_message = "success_cancelled_connection"
+			
+		else:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_nothing_to_disconnect
 
+		# ADD TWO TRANSACTIONS LIKE CONNECT()
+		lds_source.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
+		# tx_index should be based on incremented metric_account value
+		source_lds_tx_log.tx_index = lds_source.tx_index
+		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = lstr_source_tx_description 
+		source_lds_tx_log.user_id_created = lds_source.user_id
+		source_lds_tx_log.network_id = network_id
+		source_lds_tx_log.account_id = source_account_id
+		source_lds_tx_log.source_account = source_account_id 
+		source_lds_tx_log.target_account = target_account_id
+		source_lds_tx_log.put()
 
+		lds_target.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target.tx_index
+		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = lstr_target_tx_description 
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = network_id
+		target_lds_tx_log.account_id = target_account_id
+		target_lds_tx_log.source_account = source_account_id 
+		target_lds_tx_log.target_account = target_account_id
+		target_lds_tx_log.put()
 
-
-
+		lds_source.put()
+		lds_target.put()
+		return lstr_return_message
 
 
 
