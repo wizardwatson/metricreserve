@@ -168,7 +168,7 @@ class ds_mr_network_profile(ndb.Model):
 	network_status = ndb.StringProperty(indexed=False,default="INACTIVE")
 	network_type = ndb.StringProperty(indexed=False,default="LIVE")
 	description = ndb.StringProperty(indexed=False)
-	skintillionths = ndb.IntegerProperty(indexed=False,default=10000)
+	skintillionths = ndb.IntegerProperty(indexed=False,default=100000)
 	orphan_count = ndb.IntegerProperty(indexed=False)
 	total_trees = ndb.IntegerProperty(indexed=False)
 	last_graph_process = ndb.StringProperty(default="EMPTY",indexed=False)
@@ -719,6 +719,21 @@ class user(object):
 		old_key = ndb.Key("ds_mr_unique_dummy_entity", ldata_user.username)
 		old_key.delete()
 		# assign new username to user
+		
+		# change every label using that old name in account labels to new name
+		for i in range(len(ldata_user.reserve_labels)):
+			if ldata_user.reserve_labels[i] == ldata_user.username:
+				ldata_user.reserve_labels[i] = fstr_username
+		for i in range(len(ldata_user.client_labels)):
+			if ldata_user.client_labels[i] == ldata_user.username:
+				ldata_user.client_labels[i] = fstr_username
+		for i in range(len(ldata_user.joint_labels)):
+			if ldata_user.joint_labels[i] == ldata_user.username:
+				ldata_user.joint_labels[i] = fstr_username
+		for i in range(len(ldata_user.clone_labels)):
+			if ldata_user.clone_labels[i] == ldata_user.username:
+				ldata_user.clone_labels[i] = fstr_username
+		
 		ldata_user.username = fstr_username
 		ldata_user.put()
 		
@@ -1165,25 +1180,25 @@ class metric(object):
 		for i in range(len(self.PARENT.user.entity.reserve_network_ids)):
 			if self.PARENT.user.entity.reserve_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if self.PARENT.user.entity.reserve_labels[i] == "username":
+				if self.PARENT.user.entity.reserve_labels[i] == self.PARENT.user.entity.username:
 					username_in_use = True
 					break
 		for i in range(len(self.PARENT.user.entity.client_network_ids)):
 			if self.PARENT.user.entity.client_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if self.PARENT.user.entity.client_labels[i] == "username":
+				if self.PARENT.user.entity.client_labels[i] == self.PARENT.user.entity.username:
 					username_in_use = True
 					break
 		for i in range(len(self.PARENT.user.entity.joint_network_ids)):
 			if self.PARENT.user.entity.joint_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if self.PARENT.user.entity.joint_labels[i] == "username":
+				if self.PARENT.user.entity.joint_labels[i] == self.PARENT.user.entity.username:
 					username_in_use = True
 					break		
 		for i in range(len(self.PARENT.user.entity.clone_network_ids)):
 			if self.PARENT.user.entity.clone_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if self.PARENT.user.entity.clone_labels[i] == "username":
+				if self.PARENT.user.entity.clone_labels[i] == self.PARENT.user.entity.username:
 					username_in_use = True
 					break
 	
@@ -1199,9 +1214,7 @@ class metric(object):
 			return alias
 		else:
 			# "username" is available
-			return "username"
-		
-		return label
+			return self.PARENT.user.entity.username
 
 	@ndb.transactional(xg=True)
 	def _reserve_open_transactional(self,fstr_network_name):
@@ -1289,6 +1302,10 @@ class metric(object):
 	
 		# return network id, and source/target id associated with that network transactionally.
 		
+		# STUB After modifying this to work for not just reserve accounts realized I'm storing account
+		# and network id for aliases in the name entity itself.  Ugh.  Maybe, change later to cut down 
+		# unnecessary looping.  Could've done it easier.
+		
 		##########
 		# GET NETWORK INFO FIRST
 		##########
@@ -1325,23 +1342,57 @@ class metric(object):
 			# load users transactionally
 			source_user_key = ndb.Key("ds_mr_user",source_name_entity.user_id)
 			lds_source_user = source_user_key.get()
-			if not network_id in lds_source_user.reserve_network_ids:
+			# We are looking for a match on network_id AND the name passed in.
+			# We want this to work for all account types, so we have to loop
+			# since we may have more than one occurrence of network_id in an
+			# account sequence (like joint/client/clone).  We don't care about
+			# the type as that will be known when calling function queries the
+			# metric account itself.
+			
+			for i in range(len(lds_source_user.reserve_network_ids)):
+				if lds_source_user.reserve_network_ids[i] == network_id:
+					if lds_source_user.reserve_labels[i] == fstr_source_name:
+						source_account_id = lds_source_user.reserve_account_ids[i]
+						break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_source_user.client_network_ids)):
+					if lds_source_user.client_network_ids[i] == network_id:
+						if lds_source_user.client_labels[i] == fstr_source_name:
+							source_account_id = lds_source_user.client_account_ids[i]
+							break			
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_source_user.joint_network_ids)):
+					if lds_source_user.joint_network_ids[i] == network_id:
+						if lds_source_user.joint_labels[i] == fstr_source_name:
+							source_account_id = lds_source_user.joint_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_source_user.clone_network_ids)):
+					if lds_source_user.clone_network_ids[i] == network_id:
+						if lds_source_user.clone_labels[i] == fstr_source_name:
+							source_account_id = lds_source_user.clone_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_source_user.child_client_network_ids)):
+					if lds_source_user.child_client_network_ids[i] == network_id:
+						if lds_source_user.child_client_labels[i] == fstr_source_name:
+							source_account_id = lds_source_user.child_client_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_source_user.child_joint_network_ids)):
+					if lds_source_user.child_joint_network_ids[i] == network_id:
+						if lds_source_user.child_joint_labels[i] == fstr_source_name:
+							source_account_id = lds_source_user.child_joint_account_ids[i]
+							break		
+			
+			if source_account_id == 0:
 				self.PARENT.RETURN_CODE = "1116"
-				return False # source user has no reserve account on the named network
-			# So, the named users have accounts on the named networks.  But that
-			# doesn't mean the names match, as requester could have used the wrong
-			# alias.  We need to make sure the name passed corresponds to the exact
-			# account in that network.
-			source_label = lds_source_user.reserve_labels[lds_source_user.reserve_network_ids.index(network_id)]
-			source_account_id = lds_source_user.reserve_account_ids[lds_source_user.reserve_network_ids.index(network_id)]
-			if source_label == "username":
-				if not lds_source_user.username == fstr_source_name:
-					self.PARENT.RETURN_CODE = "1117"
-					return False # source name does not resolve to correct user account.
-			else:
-				if not source_label == fstr_source_name:
-					self.PARENT.RETURN_CODE = "1118"
-					return False # source name does not resolve to correct user account.
+				return False # source user has no account on the named network
 
 		##########
 		# GET TARGET INFO IF REQUESTED
@@ -1354,28 +1405,64 @@ class metric(object):
 			target_name_entity = target_name_key.get()
 			if target_name_entity is None:
 				self.PARENT.RETURN_CODE = "1119"
-				return False # target name invalid			
-			# load users transactionally
+				return False # target name invalid	
+				
+			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",target_name_entity.user_id)
 			lds_target_user = target_user_key.get()
-			if not network_id in lds_target_user.reserve_network_ids:
+			# We are looking for a match on network_id AND the name passed in.
+			# We want this to work for all account types, so we have to loop
+			# since we may have more than one occurrence of network_id in an
+			# account sequence (like joint/client/clone).  We don't care about
+			# the type as that will be known when calling function queries the
+			# metric account itself.
+			
+			for i in range(len(lds_target_user.reserve_network_ids)):
+				if lds_target_user.reserve_network_ids[i] == network_id:
+					if lds_target_user.reserve_labels[i] == fstr_source_name:
+						target_account_id = lds_target_user.reserve_account_ids[i]
+						break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_target_user.client_network_ids)):
+					if lds_target_user.client_network_ids[i] == network_id:
+						if lds_target_user.client_labels[i] == fstr_source_name:
+							target_account_id = lds_target_user.client_account_ids[i]
+							break			
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_target_user.joint_network_ids)):
+					if lds_target_user.joint_network_ids[i] == network_id:
+						if lds_target_user.joint_labels[i] == fstr_source_name:
+							target_account_id = lds_target_user.joint_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_target_user.clone_network_ids)):
+					if lds_target_user.clone_network_ids[i] == network_id:
+						if lds_target_user.clone_labels[i] == fstr_source_name:
+							target_account_id = lds_target_user.clone_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_target_user.child_client_network_ids)):
+					if lds_target_user.child_client_network_ids[i] == network_id:
+						if lds_target_user.child_client_labels[i] == fstr_source_name:
+							target_account_id = lds_target_user.child_client_account_ids[i]
+							break
+			# keep looking if we haven't found
+			if not source_account_id == 0:
+				for i in range(len(lds_target_user.child_joint_network_ids)):
+					if lds_target_user.child_joint_network_ids[i] == network_id:
+						if lds_target_user.child_joint_labels[i] == fstr_source_name:
+							target_account_id = lds_target_user.child_joint_account_ids[i]
+							break		
+			
+			if target_account_id == 0:
 				self.PARENT.RETURN_CODE = "1120"
-				return False # target user has no reserve account on the named network
-			# So, the named users have accounts on the named networks.  But that
-			# doesn't mean the names match, as requester could have used the wrong
-			# alias.  We need to make sure the name passed corresponds to the exact
-			# account in that network.
-			target_label = lds_target_user.reserve_labels[lds_target_user.reserve_network_ids.index(network_id)]
-			target_account_id = lds_target_user.reserve_account_ids[lds_target_user.reserve_network_ids.index(network_id)]
-			if target_label == "username":
-				if not lds_target_user.username == fstr_target_name:
-					self.PARENT.RETURN_CODE = "1121"
-					return False # target name does not resolve to correct user account.
-			else:
-				if not target_label == fstr_target_name:
-					self.PARENT.RETURN_CODE = "1122"
-					return False # target name does not resolve to correct user account.
-		
+				return False # target user has no account on the named network
+				
+	
 		# Should be good to go if we got this far.  It means the 
 		# source/target username/alias's used, have a metric reserve
 		# account on the network that the network name passed maps
@@ -1590,7 +1677,7 @@ class metric(object):
 		
 		lds_source.put()
 		lds_target.put()
-		return lstr_return_message	
+		return True	
 
 	@ndb.transactional(xg=True)
 	def _disconnect_transactional(self, fstr_network_name, fstr_source_name, fstr_target_name):
@@ -1612,14 +1699,14 @@ class metric(object):
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		if lds_source is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1136"
 			return False # error source id not valid
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
 		if lds_target is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1137"
 			return False # error target id not valid
 		
 		# Disconnect() can do one of three things:
@@ -1644,7 +1731,7 @@ class metric(object):
 			lstr_target_tx_type = "OUTGOING CONNECTION REQUEST DENIED"
 			lstr_target_tx_description = "OUTGOING CONNECTION REQUEST DENIED"
 			
-			lstr_return_message = "success_denied_target_connection_request"
+			self.PARENT.RETURN_CODE = "7012" # success denied target connection request
 		
 		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
 		
@@ -1655,7 +1742,7 @@ class metric(object):
 			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST WITHDRAWN"
 			lstr_target_tx_type = "INCOMING CONNECTION REQUEST WITHDRAWN"
 			lstr_target_tx_description = "INCOMING CONNECTION REQUEST WITHDRAWN"
-			lstr_return_message = "success_withdrew_connection_request"
+			self.PARENT.RETURN_CODE = "7013" # success withdrew connection request
 		
 		elif target_account_id in lds_source.current_connections:
 		
@@ -1712,10 +1799,10 @@ class metric(object):
 			lstr_source_tx_description = "DISCONNECTION BY THIS ACCOUNT"
 			lstr_target_tx_type = "DISCONNECTION BY OTHER ACCOUNT"
 			lstr_target_tx_description = "DISCONNECTION BY OTHER ACCOUNT"
-			lstr_return_message = "success_cancelled_connection"
+			self.PARENT.RETURN_CODE = "7014" # success cancelled connection
 			
 		else:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1138"
 			return False # error_nothing_to_disconnect
 
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
@@ -1757,193 +1844,37 @@ class metric(object):
 
 		lds_source.put()
 		lds_target.put()
-		return lstr_return_message
+		return True
 
-
-
-
-
-
-
-
-
-
+	def _modify_reserve(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount):
 	
-	@ndb.transactional(xg=True)
-	def _disconnect(self, fint_network_id, fint_source_account_id, fint_target_account_id):
-	
-	
-		# STUB we need to remove any reserve transfer requests when disconnecting
-		
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_source_account_id).zfill(12)
-		key_part3 = str(fint_target_account_id).zfill(12)
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-		lds_source = source_key.get()
-		
-		# error if source doesn't exist
-		if lds_source is None: return "error_source_id_not_valid"
-		# error if trying to disconnect from self
-		if fint_source_account_id == fint_target_account_id: return "error_cant_disconnect_from_self"
-		
-		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
-		lds_target = target_key.get()
-		
-		# error if target doesn't exist
-		if lds_target is None: return "error_target_id_not_valid"
-		
-		# Disconnect() can do one of three things:
-		#
-		# 1. Cancel an incoming connection request
-		# 2. Cancel an outgoing connection request
-		# 3. Cancel an existing connection
-		#
-		# None of these three situations can exist simultaneously.  And if none of
-		# the three cases apply, then the request to disconnect is invalid.
-		#
-		# 1 & 2 are benign changes and don't effect the graph, but cancelling an
-		# existing connection will require a graph process time window check.
-		
-		if fint_target_account_id in lds_source.incoming_connection_requests:
-		
-			# benign change with respect to graph
-			lds_source.incoming_connection_requests.remove(fint_target_account_id)
-			lds_target.outgoing_connection_requests.remove(fint_source_account_id)
-			lstr_source_tx_type = "INCOMING CONNECTION REQUEST DENIED"
-			lstr_source_tx_description = "INCOMING CONNECTION REQUEST DENIED"
-			lstr_target_tx_type = "OUTGOING CONNECTION REQUEST DENIED"
-			lstr_target_tx_description = "OUTGOING CONNECTION REQUEST DENIED"
-			
-			lstr_return_message = "success_denied_target_connection_request"
-		
-		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
-		
-			# benign change with respect to graph
-			lds_target.incoming_connection_requests.remove(fint_source_account_id)
-			lds_source.outgoing_connection_requests.remove(fint_target_account_id)
-			lstr_source_tx_type = "OUTGOING CONNECTION REQUEST WITHDRAWN"
-			lstr_source_tx_description = "OUTGOING CONNECTION REQUEST WITHDRAWN"
-			lstr_target_tx_type = "INCOMING CONNECTION REQUEST WITHDRAWN"
-			lstr_target_tx_description = "INCOMING CONNECTION REQUEST WITHDRAWN"
-			lstr_return_message = "success_withdrew_connection_request"
-		
-		elif fint_target_account_id in lds_source.current_connections:
-		
-			# First thing we need to do-and probably should abstract this later STUB
-			# since we will need in other places-is we need to figure out our cutoff
-			# time for "current_timestamp" based on graph processing frequency.
-			#
-			# My basic idea is to subtract the frequencies modulus since epoch time
-			# (which I'm arbitralily making 8am UTC March 13th, 2017) from the current
-			# datetime.  We'll set frequency in minutes but convert to seconds since
-			# that's what timedelta uses in python.
-			
-			t_now = datetime.datetime.now()
-			d_since = t_now - T_EPOCH
-			# this requests cutoff time
-			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-		
-			# update the source account
-			if lds_source.current_timestamp > t_cutoff:
-				
-				# last transaction was in current time window, no need to swap
-				# a.k.a. overwrite current
-				lds_source.current_connections.remove(fint_target_account_id)
-				
-			else:
-			
-				# last transaction was in previous time window, swap
-				# a.k.a. move "old" current into "last" before overwriting
-				lds_source.last_connections = lds_source.current_connections
-				lds_source.last_reserve_balance = lds_source.current_reserve_balance
-				lds_source.last_network_balance = lds_source.current_network_balance
-				lds_source.current_connections.remove(fint_target_account_id)				
-	
-			# update the target account
-			if lds_target.current_timestamp > t_cutoff:
-				
-				# last transaction was in current time window, no need to swap
-				# a.k.a. overwrite current
-				lds_target.current_connections.remove(fint_source_account_id)
-				
-			else:
-			
-				# last transaction was in previous time window, swap
-				# a.k.a. move "old" current into "last" before overwriting
-				lds_target.last_connections = lds_target.current_connections
-				lds_target.last_reserve_balance = lds_target.current_reserve_balance
-				lds_target.last_network_balance = lds_target.current_network_balance
-				lds_target.current_connections.remove(fint_source_account_id)
-				
-			# only update current_timestamp for graph dependent transactions??? STUB
-			lds_source.current_timestamp = datetime.datetime.now()
-			lds_target.current_timestamp = datetime.datetime.now()
-			lstr_source_tx_type = "DISCONNECTION BY THIS ACCOUNT"
-			lstr_source_tx_description = "DISCONNECTION BY THIS ACCOUNT"
-			lstr_target_tx_type = "DISCONNECTION BY OTHER ACCOUNT"
-			lstr_target_tx_description = "DISCONNECTION BY OTHER ACCOUNT"
-			lstr_return_message = "success_cancelled_connection"
-			
-		else: return "error_nothing_to_disconnect"
-
-		# ADD TWO TRANSACTIONS LIKE CONNECT()
-		lds_source.tx_index += 1
-		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
-		source_lds_tx_log = ds_mr_tx_log()
-		source_lds_tx_log.key = source_tx_log_key
-		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		source_lds_tx_log.tx_index = lds_source.tx_index
-		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		source_lds_tx_log.amount = 0
-		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-		source_lds_tx_log.description = lstr_source_tx_description 
-		source_lds_tx_log.memo = ""
-		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fint_network_id
-		source_lds_tx_log.account_id = fint_source_account_id
-		source_lds_tx_log.source_account = fint_source_account_id 
-		source_lds_tx_log.target_account = fint_target_account_id
-		source_lds_tx_log.put()
-
-		lds_target.tx_index += 1
-		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
-		target_lds_tx_log = ds_mr_tx_log()
-		target_lds_tx_log.key = target_tx_log_key
-		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-		# tx_index should be based on incremented metric_account value
-		target_lds_tx_log.tx_index = lds_target.tx_index
-		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		target_lds_tx_log.amount = 0
-		# typically we'll make target private for bilateral transactions so that
-		# when looking at a system view, we don't see duplicates.
-		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
-		target_lds_tx_log.description = lstr_target_tx_description 
-		target_lds_tx_log.memo = ""
-		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fint_network_id
-		target_lds_tx_log.account_id = fint_target_account_id
-		target_lds_tx_log.source_account = fint_source_account_id 
-		target_lds_tx_log.target_account = fint_target_account_id
-		target_lds_tx_log.put()
-
-		lds_source.put()
-		lds_target.put()
-		return lstr_return_message
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._modify_reserve_transactional(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _modify_reserve(self, fint_network_id, fint_source_account_id, fstr_type, fstr_amount):
+	def _modify_reserve_transactional(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount,fint_conversion):
 
+		# first get id's instead of names
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+		if not validation_result:
+			# pass up error
+			return False
+		
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]		
+		
 		# First, get the source account.
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_source_account_id).zfill(12)
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
-		if lds_source is None: return "error_source_id_not_valid"
+		if lds_source is None:
+			self.PARENT.RETURN_CODE = "1139"
+			return False # error source id not valid"
 		
 		# Second, let's make sure the number passed is valid.
 		#
@@ -1958,12 +1889,15 @@ class metric(object):
 		# And as I will be discussing, this amount of liquidity is really ludicrous to begin with
 		# so we should be fine.
 		try:
-			lint_amount = int(float(fstr_amount)*100000)
+			lint_amount = int(float(fstr_amount)*fint_conversion)
 		except ValueError, ex:
-			return "error_invalid_amount_passed"
+			self.PARENT.RETURN_CODE = "1140"
+			return False # error_invalid_amount_passed"
 		
 		# make sure amount isn't over the maximum
-		if lint_amount > MAX_RESERVE_MODIFY: return "error_amount_exceeds_maximum_allowed"
+		if lint_amount > MAX_RESERVE_MODIFY:
+			self.PARENT.RETURN_CODE = "1141"
+			return False # error_amount_exceeds_maximum_allowed"
 		
 		# if we don't modify one or the other, "new" will be previous
 		lint_new_balance = lds_source.current_network_balance
@@ -1997,7 +1931,7 @@ class metric(object):
 			
 			lstr_source_tx_type = "RESERVE MODIFIED NORMAL ADD"
 			lstr_source_tx_description = "RESERVE MODIFIED NORMAL ADD"
-			lstr_return_message = "success_reserve_normal_add"
+			self.PARENT.RETURN_CODE = "7015" # success_reserve_normal_add
 
 		elif fstr_type == "normal_subtract":
 		
@@ -2030,7 +1964,7 @@ class metric(object):
 			
 			lstr_source_tx_type = "RESERVE MODIFIED NORMAL SUBTRACT"
 			lstr_source_tx_description = "RESERVE MODIFIED NORMAL SUBTRACT"
-			lstr_return_message = "success_reserve_normal_subtract"
+			self.PARENT.RETURN_CODE = "7016" # success_reserve_normal_subtract
 			
 		elif fstr_type == "override_add":
 
@@ -2048,7 +1982,7 @@ class metric(object):
 			
 			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE ADD"
 			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE ADD"
-			lstr_return_message = "success_reserve_override_add"
+			self.PARENT.RETURN_CODE = "7017" # success_reserve_override_add
 			
 		elif fstr_type == "override_subtract":
 		
@@ -2066,7 +2000,7 @@ class metric(object):
 			
 			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE SUBTRACT"
 			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE SUBTRACT"
-			lstr_return_message = "success_reserve_override_subtract"
+			self.PARENT.RETURN_CODE = "7018" # success_reserve_override_subtract
 			
 		else: return "error_invalid_transaction_type"
 		
@@ -2111,25 +2045,47 @@ class metric(object):
 		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
 		lds_tx_log.tx_index = lds_source.tx_index
 		lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		lds_tx_log.amount = lint_amount
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = lstr_source_tx_description 
-		lds_tx_log.memo = ""
 		lds_tx_log.user_id_created = lds_source.user_id
-		lds_tx_log.network_id = fint_network_id
-		lds_tx_log.account_id = fint_source_account_id
-		lds_tx_log.source_account = fint_source_account_id 
+		lds_tx_log.network_id = network_id
+		lds_tx_log.account_id = source_account_id
+		lds_tx_log.source_account = source_account_id 
 		lds_tx_log.target_account = 0
 		lds_tx_log.put()
 		
 		# only update current_timestamp for graph dependent transactions??? STUB
 		lds_source.current_timestamp = datetime.datetime.now()
 		lds_source.put()
-		return lstr_return_message
+		return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	@ndb.transactional(xg=True)
 	def _make_payment(self, fint_network_id, fint_source_account_id, fint_target_account_id, fstr_amount):
