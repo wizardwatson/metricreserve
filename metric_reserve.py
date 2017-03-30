@@ -109,9 +109,9 @@ class ds_mr_user(ndb.Model):
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	
-	total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
-	total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
-	total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
+	total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
+	total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
+	total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
 	
 	reserve_network_ids = ndb.PickleProperty(default=[])
 	reserve_account_ids = ndb.PickleProperty(default=[])
@@ -211,7 +211,8 @@ class ds_mr_metric_account(ndb.Model):
 	last_reserve_balance = ndb.IntegerProperty(default=0)
 	last_network_balance = ndb.IntegerProperty(default=0)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-
+	extra_pickle = ndb.PickleProperty()
+ 
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
@@ -635,27 +636,26 @@ class user(object):
 			self.PARENT.TRACE.append("user._load_user(): user object not loaded")
 			
 			# create a new user
-			ldata_user = None
-			
 			while True:
 				# new users get temporary username automatically upon first login
 				some_letters = "abcdefghijkmnprstuvwxyz"
 				first_int = str(random.randint(1,999)).zfill(3)
 				second_int = str(random.randint(1,999)).zfill(3)
 				temp_username = "user" + first_int + second_int + random.choice(some_letters) + random.choice(some_letters)			
-				if self._create_user_transactional(temp_username,fobj_google_account,ldata_user):
-					break			
+				ldata_user = self._create_user_transactional(temp_username,fobj_google_account)
+				if not ldata_user is None:
+					break
 		return ldata_user
 		
 	@ndb.transactional(xg=True)
-	def _create_user_transactional(self,fstr_username,fobj_google_obj,fuser_ref):
+	def _create_user_transactional(self,fstr_username,fobj_google_obj):
 	
 		# new name check
 		maybe_new_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_username)
 		maybe_dummy_entity = maybe_new_key.get()
 		if maybe_dummy_entity is not None:
 			self.PARENT.TRACE.append("metric._save_unique_name():entity was returned")
-			return False # False meaning "not created"
+			return None # False meaning "not created"
 		self.PARENT.TRACE.append("metric._save_unique_name():entity was NOT returned")
 		new_name_entity = ds_mr_unique_dummy_entity()
 		new_name_entity.unique_name = fstr_username
@@ -665,8 +665,7 @@ class user(object):
 		user_key = ndb.Key("ds_mr_user",fobj_google_obj.user_id())
 		ldata_user = user_key.get()
 		if ldata_user:
-			fuser_ref = ldata_user
-			return True # User already exists
+			return ldata_user # User already exists
 			
 		# create a new user
 		ldata_user = ds_mr_user()
@@ -674,7 +673,7 @@ class user(object):
 		ldata_user.user_status = 'VERIFIED'
 		gravatar_email = fobj_google_obj.email()
 		#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
-		ldata_user.key = ldata_user_key	
+		ldata_user.key = user_key	
 			
 		lstr_tx_type = "NEW USER CREATED"
 		lstr_tx_description = "A new user was created in the application."
@@ -695,8 +694,7 @@ class user(object):
 		lds_tx_log.user_id_created = ldata_user.user_id # google id
 		lds_tx_log.put()
 		
-		fuser_ref = ldata_user
-		return True # True meaning "created"
+		return ldata_user
 		
 	@ndb.transactional(xg=True)
 	def _change_username_transactional(self,fstr_username):
@@ -889,6 +887,123 @@ class metric(object):
 		
 		return True
 
+	def _get_all_accounts(self,fstr_network_name):	
+		
+		# get network by name
+		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
+		network_name_entity = network_name_key.get()
+		if network_name_entity is None:
+			self.PARENT.RETURN_CODE = "1134"
+			return False # Name not valid
+		if not network_name_entity.name_type == "networkname":
+			self.PARENT.RETURN_CODE = "1135"
+			return False
+		net_id = network_name_entity.network_id
+		list_of_account_ids = []
+		list_of_group_ids = []
+		list_of_labels = []
+		
+		"""
+		RESERVE ACCOUNT 
+		LABEL:
+		
+		CUSTOMER ACCOUNTS 
+		ID: 1 LABEL: wizardwatson
+		
+		JOINT ACCOUNTS
+		ID: 45 LABEL: wizardwatson
+		
+		CLONE ACCOUNTS
+		ID: 4567 LABEL: wizardwatson
+		
+		SPONSORED JOINT ACCOUNTS
+		
+		
+		SPONSORED CLIENT ACCOUNTS
+		"""
+		for i in range(len(self.PARENT.user.entity.reserve_network_ids)):
+			if self.PARENT.user.entity.reserve_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.reserve_account_ids[i])
+				list_of_group_ids.append(1)
+				list_of_labels.append(self.PARENT.user.entity.reserve_labels[i])
+		for i in range(len(self.PARENT.user.entity.client_network_ids)):
+			if self.PARENT.user.entity.client_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.client_account_ids[i])
+				list_of_group_ids.append(2)
+				list_of_labels.append(self.PARENT.user.entity.client_labels[i])
+		for i in range(len(self.PARENT.user.entity.joint_network_ids)):
+			if self.PARENT.user.entity.joint_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.joint_account_ids[i])
+				list_of_group_ids.append(3)
+				list_of_labels.append(self.PARENT.user.entity.joint_labels[i])
+		for i in range(len(self.PARENT.user.entity.clone_network_ids)):
+			if self.PARENT.user.entity.clone_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.clone_account_ids[i])
+				list_of_group_ids.append(4)
+				list_of_labels.append(self.PARENT.user.entity.clone_labels[i])
+		for i in range(len(self.PARENT.user.entity.child_client_network_ids)):
+			if self.PARENT.user.entity.child_client_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.child_client_account_ids[i])
+				list_of_group_ids.append(5)
+		for i in range(len(self.PARENT.user.entity.child_joint_network_ids)):
+			if self.PARENT.user.entity.child_joint_network_ids[i] == net_id:
+				list_of_account_ids.append(self.PARENT.user.entity.child_joint_account_ids[i])
+				list_of_group_ids.append(6)
+		
+		if len(list_of_account_ids) == 0:
+			return None
+			
+		# now construct a list of keys
+		list_of_keys = []
+		for i in range(len(list_of_account_ids)):
+			a_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(net_id).zfill(8),str(list_of_account_ids[i]).zfill(12)))
+			list_of_keys.append(a_key)
+		list_of_accounts = ndb.get_multi(list_of_keys)
+		
+		groups = {}
+		
+		groups["reserve_account"] = None
+		groups["client_accounts"] = []
+		groups["joint_accounts"] = []
+		groups["clone_accounts"] = []
+		groups["child_client_accounts"] = []
+		groups["child_joint_accounts"] = []
+		
+		groups["has_reserve_account"] = False
+		groups["has_client_accounts"] = False
+		groups["has_joint_accounts"] = False
+		groups["has_clone_accounts"] = False
+		groups["has_child_client_accounts"] = False
+		groups["has_child_joint_accounts"] = False
+		
+		for i in range(len(list_of_accounts)):
+			if list_of_group_ids[i] == 1:
+				groups["has_reserve_account"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["reserve_account"] = list_of_accounts[i]
+			if list_of_group_ids[i] == 2:
+				groups["has_client_accounts"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["client_accounts"].append(list_of_accounts[i])
+			if list_of_group_ids[i] == 3:
+				groups["has_joint_accounts"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["joint_accounts"].append(list_of_accounts[i])
+			if list_of_group_ids[i] == 4:
+				groups["has_clone_accounts"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["clone_accounts"].append(list_of_accounts[i])
+			if list_of_group_ids[i] == 5:
+				groups["has_child_client_accounts"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["child_client_accounts"].append(list_of_accounts[i])
+			if list_of_group_ids[i] == 6:
+				groups["has_child_joint_accounts"] = True
+				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				groups["child_joint_accounts"].append(list_of_accounts[i])
+						
+		return groups
+		
 	def _get_all_networks(self):
 	
 		"""
@@ -1048,27 +1163,27 @@ class metric(object):
 		has_multiple = False
 		username_in_use = False
 		for i in range(len(self.PARENT.user.entity.reserve_network_ids)):
-			if reserve_network_ids[i] == fint_network_id:
+			if self.PARENT.user.entity.reserve_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if reserve_labels[i] == "username":
+				if self.PARENT.user.entity.reserve_labels[i] == "username":
 					username_in_use = True
 					break
 		for i in range(len(self.PARENT.user.entity.client_network_ids)):
-			if client_network_ids[i] == fint_network_id:
+			if self.PARENT.user.entity.client_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if client_labels[i] == "username":
+				if self.PARENT.user.entity.client_labels[i] == "username":
 					username_in_use = True
 					break
 		for i in range(len(self.PARENT.user.entity.joint_network_ids)):
-			if joint_network_ids[i] == fint_network_id:
+			if self.PARENT.user.entity.joint_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if joint_labels[i] == "username":
+				if self.PARENT.user.entity.joint_labels[i] == "username":
 					username_in_use = True
 					break		
 		for i in range(len(self.PARENT.user.entity.clone_network_ids)):
-			if clone_network_ids[i] == fint_network_id:
+			if self.PARENT.user.entity.clone_network_ids[i] == fint_network_id:
 				has_multiple = True
-				if clone_labels[i] == "username":
+				if self.PARENT.user.entity.clone_labels[i] == "username":
 					username_in_use = True
 					break
 	
@@ -1106,7 +1221,7 @@ class metric(object):
 		network_id = validation_result[0]
 
 		# load user transactionally
-		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
+		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
 		lds_user = user_key.get()		
 		
 		if network_id in lds_user.reserve_network_ids:
@@ -1145,12 +1260,12 @@ class metric(object):
 		# update the user object
 		lds_user.total_reserve_accounts += 1
 
-		lds_user.reserve_network_ids.append[network_id]
-		lds_user.reserve_account_ids.append[lds_cursor.current_index]
-		lds_user.reserve_labels.append[label]
+		lds_user.reserve_network_ids.append(network_id)
+		lds_user.reserve_account_ids.append(lds_cursor.current_index)
+		lds_user.reserve_labels.append(label)
 		
 		# transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.tx_index = 1
@@ -1182,7 +1297,7 @@ class metric(object):
 		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
 		network_name_entity = network_name_key.get()
 		if network_name_entity is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1113"
 			return False # network name invalid
 			
 		network_id = network_name_entity.network_id
@@ -1197,21 +1312,21 @@ class metric(object):
 			source_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_source_name)
 			source_name_entity = source_name_key.get()
 			if source_name_entity is None:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1114"
 				return False # source name invalid
 			# Before we get the metric accounts, we need to get the user objects
 			# and verify that the requesting user is in fact the source account
 			# specified and that both source and target exist on the network 
 			# specified.
 			if not self.PARENT.user.entity.user_id == source_name_entity.user_id:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1115"
 				return False # source account must be current logged in user
 			
 			# load users transactionally
 			source_user_key = ndb.Key("ds_mr_user",source_name_entity.user_id)
 			lds_source_user = source_user_key.get()
 			if not network_id in lds_source_user.reserve_network_ids:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1116"
 				return False # source user has no reserve account on the named network
 			# So, the named users have accounts on the named networks.  But that
 			# doesn't mean the names match, as requester could have used the wrong
@@ -1221,11 +1336,11 @@ class metric(object):
 			source_account_id = lds_source_user.reserve_account_ids[lds_source_user.reserve_network_ids.index(network_id)]
 			if source_label == "username":
 				if not lds_source_user.username == fstr_source_name:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1117"
 					return False # source name does not resolve to correct user account.
 			else:
 				if not source_label == fstr_source_name:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1118"
 					return False # source name does not resolve to correct user account.
 
 		##########
@@ -1238,13 +1353,13 @@ class metric(object):
 			target_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
 			target_name_entity = target_name_key.get()
 			if target_name_entity is None:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1119"
 				return False # target name invalid			
 			# load users transactionally
 			target_user_key = ndb.Key("ds_mr_user",target_name_entity.user_id)
 			lds_target_user = target_user_key.get()
 			if not network_id in lds_target_user.reserve_network_ids:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1120"
 				return False # target user has no reserve account on the named network
 			# So, the named users have accounts on the named networks.  But that
 			# doesn't mean the names match, as requester could have used the wrong
@@ -1254,11 +1369,11 @@ class metric(object):
 			target_account_id = lds_target_user.reserve_account_ids[lds_target_user.reserve_network_ids.index(network_id)]
 			if target_label == "username":
 				if not lds_target_user.username == fstr_target_name:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1121"
 					return False # target name does not resolve to correct user account.
 			else:
 				if not target_label == fstr_target_name:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1122"
 					return False # target name does not resolve to correct user account.
 		
 		# Should be good to go if we got this far.  It means the 
@@ -1307,15 +1422,15 @@ class metric(object):
 		
 		# error if source doesn't exist
 		if lds_source is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1123"
 			return False # error_source_id_not_valid
 		# error if trying to connect to self
 		if source_account_id == target_account_id: 
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1124"
 			return False # error_cant_connect_to_self
 		# error if not a reserve account
 		if not lds_source.account_type == "RESERVE" and not lds_source.account_status == "ACTIVE":
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1125"
 			return False # only active reserve accounts can connect, source is not
 		
 		key_part3 = str(target_account_id).zfill(12)
@@ -1324,36 +1439,36 @@ class metric(object):
 		
 		# error if target doesn't exist
 		if lds_target is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1126"
 			return False # error_target_id_not_valid
 		# error if not a reserve account
 		if not lds_target.account_type == "RESERVE" and not lds_target.account_status == "ACTIVE":
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1127"
 			return False # active reserve accounts can connect, target is not
 
 		# Five situations where we don't even try to connect
 		# 1. Source and target are already connected.
 		if target_account_id in lds_source.current_connections:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1128"
 			return False # return "error_already_connected"
 		# 2. Source already has outgoing connection request to target
 		if target_account_id in lds_source.outgoing_connection_requests:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1129"
 			return False # error_connection_already_requested"
 		# 3. Target incoming connection requests is maxed out
 		if len(lds_target.incoming_connection_requests) > 19:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1130"
 			return False # error_target_incoming_requests_maxed"
 		# 4. Source outgoing connection requests is maxed out
 		if len(lds_source.outgoing_connection_requests) > 19:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1131"
 			return False # error_target_incoming_requests_maxed"
 		# 5. Target or source has reached their maximum number of connections
 		if len(lds_source.current_connections) > 19:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1132"
 			return False # error_source_connections_maxed"
 		if len(lds_target.current_connections) > 19:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1133"
 			return False # error_target_connections_maxed"
 		
 		# should be ok to connect
@@ -1424,7 +1539,7 @@ class metric(object):
 			lstr_target_tx_description = "OUTGOING CONNECTION AUTHORIZED"
 			lds_source.current_timestamp = datetime.datetime.now()
 			lds_target.current_timestamp = datetime.datetime.now()			
-			self.PARENT.RETURN_CODE = "STUB" # success_connection_request_authorized
+			self.PARENT.RETURN_CODE = "7009" # success_connection_request_authorized
 			
 			
 		else:
@@ -1435,12 +1550,12 @@ class metric(object):
 			lstr_target_tx_description = "INCOMING CONNECTION REQUEST"
 			lds_source.outgoing_connection_requests.append(target_account_id)
 			lds_target.incoming_connection_requests.append(source_account_id)
-			self.PARENT.RETURN_CODE = "STUB" # success_connection_request_completed
+			self.PARENT.RETURN_CODE = "7010" # success_connection_request_completed
 		
 		
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1458,7 +1573,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part3,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
@@ -1614,7 +1729,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1634,7 +1749,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1833,7 +1948,7 @@ class metric(object):
 
 		lds_source.tx_index += 1
 		# source transaction log
-		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1942,7 +2057,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -1962,7 +2077,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -2338,7 +2453,7 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -2358,7 +2473,7 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -2452,7 +2567,7 @@ class metric(object):
 		lds_metric_account.tx_index += 1
 		# transaction log
 		key_part3 = str(lds_metric_account.tx_index).zfill(12)
-		tx_log_key = ndb.Key("MRTX%s%s%s", (key_part1,key_part2,key_part3))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part3))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
@@ -4447,6 +4562,7 @@ class ph_command(webapp2.RequestHandler):
 			blok["groups"] = self.master.metric._get_all_networks()
 			bloks.append(blok)
 			
+			
 			pass	
 		elif pqc[0] == 10:
 			# view specific network
@@ -4459,6 +4575,13 @@ class ph_command(webapp2.RequestHandler):
 				return None
 			page["title"] = blok["network"].network_name
 			bloks.append(blok)
+			
+			# now lets add the view of the users accounts
+			blok2 = {}
+			blok2["type"] = "all accounts"
+			blok2["groups"] = self.master.metric._get_all_accounts(fstr_network_name=pqc[1])
+			bloks.append(blok2)
+			
 		else:
 			# context not recognized
 			# show error
@@ -4719,7 +4842,7 @@ class ph_command(webapp2.RequestHandler):
 			# view context.  All other account functions are done from
 			# the single account view context.
 			###################################
-			efif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
+			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
 				# create a reserve account on this network for the user
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -4727,7 +4850,7 @@ class ph_command(webapp2.RequestHandler):
 					# need confirmation before creating a reserve account
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["xct"] = "reserve open" % ct[2]
+					ltemp["xct"] = "reserve open"
 					# Need to declare query vars necessary for 
 					# pqc[]/context on the confirm page or else
 					# we won't get back here on confirm.
@@ -4738,7 +4861,8 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["view_network"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="STUB"))
+					ltemp["xnetwork_name"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
 			
 			
 			
