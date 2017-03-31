@@ -2002,7 +2002,9 @@ class metric(object):
 			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE SUBTRACT"
 			self.PARENT.RETURN_CODE = "7018" # success_reserve_override_subtract
 			
-		else: return "error_invalid_transaction_type"
+		else:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_invalid_transaction_type
 		
 		# If we're here, then we modified something, so need to do 
 		# graph process time window check before saving data. Reserve
@@ -2063,65 +2065,77 @@ class metric(object):
 		lds_source.put()
 		return True
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	def _make_payment(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount):
+	
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _make_payment(self, fint_network_id, fint_source_account_id, fint_target_account_id, fstr_amount):
-	
+	def _make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
+
+		# first get id's instead of names
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+		if not validation_result:
+			# pass up error
+			return False
+		
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]		
+		target_account_id = validation_result[1]		
+		
 		# make a payment
 		# transfer network balance from one user to another
 		# this does not affect our global balance counters
 				
 		# get the source and target metric accounts
 		
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_source_account_id).zfill(12)
-		key_part3 = str(fint_target_account_id).zfill(12)
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
+		key_part3 = str(target_account_id).zfill(12)
 		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		lds_source = source_key.get()
 		
 		# error if source doesn't exist
-		if lds_source is None: return "error_source_id_not_valid"
+		if lds_source is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_source_id_not_valid
 		# error if trying to connect to self
-		if fint_source_account_id == fint_target_account_id: return "error_cant_pay_self"
+		if source_account_id == target_account_id:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_cant_pay_self
 		
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
 		lds_target = target_key.get()
 		
 		# error if target doesn't exist
-		if lds_target is None: return "error_target_id_not_valid"
+		if lds_target is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_target_id_not_valid
+		
 		# make sure fstr_amount actually is an integer
 		try:
-			lint_amount = int(float(fstr_amount)*100000)
+			lint_amount = int(float(fstr_amount)*fint_conversion)
 		except ValueError, ex:
-			return "error_invalid_amount_passed"
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_invalid_amount_passed
+		
+		# make sure amount isn't over the maximum
+		if lint_amount > MAX_RESERVE_MODIFY:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_amount_exceeds_maximum_allowed
+
 		# STUB make sure all lint_amount inputs are greater than 0
 		# can't pay if you don't have that much
-		if lds_source.current_network_balance < lint_amount: return "error_not_enough_balance_to_make_payment"
+		if lds_source.current_network_balance < lint_amount:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_not_enough_balance_to_make_payment
+			
 		# can't exceed maximum allowed payment
-		if lint_amount > MAX_PAYMENT: return "error_amount_exceeds_maximum_allowed"
+		if lint_amount > MAX_PAYMENT:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error_amount_exceeds_maximum_allowed
 		
 		# So everything checks out, payments are probably simplest things to do.
 		# We do count network balances as "graph affecting" even though the algorithms
@@ -2176,19 +2190,17 @@ class metric(object):
 		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
-		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
 		source_lds_tx_log.tx_index = lds_source.tx_index
 		source_lds_tx_log.tx_type = "PAYMENT MADE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		source_lds_tx_log.amount = lint_amount
 		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = "PAYMENT MADE" 
-		source_lds_tx_log.memo = ""
 		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = fint_network_id
-		source_lds_tx_log.account_id = fint_source_account_id
-		source_lds_tx_log.source_account = fint_source_account_id 
-		source_lds_tx_log.target_account = fint_target_account_id
+		source_lds_tx_log.network_id = network_id
+		source_lds_tx_log.account_id = source_account_id
+		source_lds_tx_log.source_account = source_account_id 
+		source_lds_tx_log.target_account = target_account_id
 		source_lds_tx_log.put()
 
 		lds_target.tx_index += 1
@@ -2196,7 +2208,6 @@ class metric(object):
 		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
-		target_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
 		target_lds_tx_log.tx_index = lds_target.tx_index
 		target_lds_tx_log.tx_type = "PAYMENT RECEIVED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
@@ -2205,17 +2216,40 @@ class metric(object):
 		# when looking at a system view, we don't see duplicates.
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		target_lds_tx_log.description = "PAYMENT RECEIVED" 
-		target_lds_tx_log.memo = ""
 		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = fint_network_id
-		target_lds_tx_log.account_id = fint_target_account_id
-		target_lds_tx_log.source_account = fint_source_account_id 
-		target_lds_tx_log.target_account = fint_target_account_id
+		target_lds_tx_log.network_id = network_id
+		target_lds_tx_log.account_id = target_account_id
+		target_lds_tx_log.source_account = source_account_id 
+		target_lds_tx_log.target_account = target_account_id
 		target_lds_tx_log.put()
 		
 		lds_source.put()
 		lds_target.put()
-		return "success_payment_succeeded"
+		elf.PARENT.RETURN_CODE = "STUB" # success_payment_succeeded
+		return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	@ndb.transactional(xg=True)
 	def _process_reserve_transfer(self, fint_network_id, fint_source_account_id, fint_target_account_id, fstr_amount, fstr_type):
