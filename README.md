@@ -25,10 +25,88 @@ git pull https://github.com/wizardwatson/metricreserve.git
 
 
 
+FUNCTIONS LEFT 
 
-command creation steps
+1. clone open
 
-	
+2. 
+	clone close
+	reserve close
+	joint close
+	client close
+3.
+	joint retrieve
+4.
+	alias change <name>
+	alias delete
+5. (textarea?)
+	network describe
+	message <user>
+
+6. invoice
+
+7.
+	gravatar email(email to use)
+	gravatar type(email|identicon|monstercon|anonymous|metric)
+	bio
+	location
+
+8.  (qr related)
+9.  (map related)
+
+10. Finish Templates
+
+11. (admin graph test related)
+12. Reporting
+13.  (cart/register related)
+
+		# cart and register
+		
+			register_program{
+				"id": <uid>
+				"name": <unique name>
+				"owner": account_id
+				"access": public|private
+				plu_data:[(<label>,<price>,<type>)...]}
+					# label is just text description
+					# price is a number
+					# type can be taxable|untaxable|percent
+
+			register_data{
+				"active": <uid>
+					# users can have up to 20 registers assigned, this tells which one currently in use
+				"assigned": [[<register program id>,<tax percent>]]...
+				"baskets":[(<label>,<amount>)]...
+
+
+
+
+			CONTEXT: register [id] AS user	
+				<id> plu [u]
+				[quantity] x [id] plu [u]
+				(<label>) ([amount]) [%] [u]
+				[quantity] x [label] [amount]
+				subtotal
+				suspend
+					# Suspends the current transaction in first available basket, else warns none available.
+				unsuspend
+				invoice [<account id of user>]
+				use <register program slot assigned to this user>|<register program name>
+
+				void [<line number>]
+					# void last entry
+					# if line number specified, void that line only			
+				clear
+					# restart transaction fresh
+				exit
+					# exit context to root
+				cash [<payment method description>]
+					# if not invoicing through metric reserve but want to save transaction
+					# any text after cash will be added to the memo portion of the transaction
+
+14. Bitcoin
+
+
 
 
 
@@ -92,13 +170,14 @@ COMMANDS
 		
 		
 		CONTEXT: admin	
-				COMMAND:network
-					COMMAND: add
-					COMMAND: del
-					COMMAND: name <name>
-					COMMAND: type <type>
-					COMMAND: activate
-					COMMAND: describe <description>
+			COMMAND:network 
+				COMMAND: network add <name>
+				COMMAND: network delete
+				COMMAND: network <name>
+				COMMAND: network type <LIVE|TEST>
+				COMMAND: network activate
+				COMMAND: network skintillionths <amount>
+				COMMAND: network describe <description>
 				
 		
 		CONTEXT: root
@@ -114,70 +193,6 @@ COMMANDS
 			COMMAND: location
 
 
-# this is the user Model.  Not to be confused with the account model
-class ds_mr_user(ndb.Model):
-
-	user_id = ndb.StringProperty(indexed=False)
-	username = ndb.StringProperty(indexed=False,default="EMPTY")
-	email = ndb.StringProperty(indexed=False)
-	
-	user_status = ndb.StringProperty(indexed=False)
-	
-	name_first = ndb.StringProperty(indexed=False)
-	name_middle = ndb.StringProperty(indexed=False)
-	name_last = ndb.StringProperty(indexed=False)
-	name_suffix = ndb.StringProperty(indexed=False)
-	
-	gravatar_url = ndb.StringProperty(indexed=False)
-	
-	# metric_reserve_accounts STUB
-	metric_network_ids = ndb.PickleProperty(default=[])
-	metric_account_ids = ndb.PickleProperty(default=[])
-	
-	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-	
-	new_alias = ndb.StringProperty(indexed=False)
-	
-	total_reserve_accounts = ndb.IntegerProperty(indexed=False) # 30 max
-	total_other_accounts = ndb.IntegerProperty(indexed=False) # 20 max
-	total_child_accounts = ndb.IntegerProperty(indexed=False) # 20 max
-	
-	reserve_network_ids = ndb.PickleProperty(default=[])
-	reserve_account_ids = ndb.PickleProperty(default=[])
-	reserve_labels = ndb.PickleProperty(default=[])
-	
-	client_network_ids = ndb.PickleProperty(default=[])
-	client_account_ids = ndb.PickleProperty(default=[])
-	client_parent_ids = ndb.PickleProperty(default=[])
-	client_labels = ndb.PickleProperty(default=[])
-	parent_client_offer_network_ids = ndb.PickleProperty(default=[])
-	parent_client_offer_account_ids = ndb.PickleProperty(default=[])
-	
-	joint_network_ids = ndb.PickleProperty(default=[])
-	joint_account_ids = ndb.PickleProperty(default=[])
-	joint_parent_ids = ndb.PickleProperty(default=[])
-	joint_labels = ndb.PickleProperty(default=[])
-	parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
-	parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
-	
-	clone_network_ids = ndb.PickleProperty(default=[])
-	clone_account_ids = ndb.PickleProperty(default=[])
-	clone_parent_ids = ndb.PickleProperty(default=[])
-	clone_labels = ndb.PickleProperty(default=[])
-	
-	child_client_network_ids = ndb.PickleProperty(default=[])
-	child_client_account_ids = ndb.PickleProperty(default=[])
-	child_client_parent_ids = ndb.PickleProperty(default=[])
-	child_client_offer_network_ids = ndb.PickleProperty(default=[])
-	child_client_offer_account_ids = ndb.PickleProperty(default=[])
-	
-	child_joint_network_ids = ndb.PickleProperty(default=[])
-	child_joint_account_ids = ndb.PickleProperty(default=[])
-	child_joint_parent_ids = ndb.PickleProperty(default=[])
-	child_joint_offer_network_ids = ndb.PickleProperty(default=[])
-	child_joint_offer_account_ids = ndb.PickleProperty(default=[])
-
-
 
 
 
@@ -191,6 +206,7 @@ alias delete
 PARENT
 	joint offer
 	joint close
+	joint retrieve
 CHILD
 	joint authorize
 	joint close
@@ -297,49 +313,7 @@ class ds_mr_metric_account(ndb.Model):
 	last_network_balance = ndb.IntegerProperty()
 	date_created = ndb.DateTimeProperty(auto_now_add=True)
 
-		# cart and register
-		
-			register_program{
-				"id": <uid>
-				"name": <unique name>
-				"owner": account_id
-				"access": public|private
-				plu_data:[(<label>,<price>,<type>)...]}
-					# label is just text description
-					# price is a number
-					# type can be taxable|untaxable|percent
 
-			register_data{
-				"active": <uid>
-					# users can have up to 20 registers assigned, this tells which one currently in use
-				"assigned": [[<register program id>,<tax percent>]]...
-				"baskets":[(<label>,<amount>)]...
-
-
-
-
-			CONTEXT: register [id] AS user	
-				<id> plu [u]
-				[quantity] x [id] plu [u]
-				(<label>) ([amount]) [%] [u]
-				[quantity] x [label] [amount]
-				subtotal
-				suspend
-					# Suspends the current transaction in first available basket, else warns none available.
-				unsuspend
-				invoice [<account id of user>]
-				use <register program slot assigned to this user>|<register program name>
-
-				void [<line number>]
-					# void last entry
-					# if line number specified, void that line only			
-				clear
-					# restart transaction fresh
-				exit
-					# exit context to root
-				cash [<payment method description>]
-					# if not invoicing through metric reserve but want to save transaction
-					# any text after cash will be added to the memo portion of the transaction
 		
 		
 		
