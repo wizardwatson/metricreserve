@@ -286,10 +286,11 @@
 			has no account on the named network.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1117" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Transaction type passed to reserve_modify()
+			function was not recognized.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1118" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.<br/>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source account name invalid.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1119" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account name is
@@ -300,9 +301,9 @@
 			has no account on the network specified.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% elif blok.error_code == "1121" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.</p>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cannot not make payment to self.</p>
 		{% elif blok.error_code == "1122" %}
-			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> STUB.</p>
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target account name is invalid.</p>
 		{% elif blok.error_code == "1123" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source metric account
 			is invalid.<br/>
@@ -371,6 +372,78 @@
 		{% elif blok.error_code == "1141" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Amount passed to modify reserve
 			function exceeds maximum.</p>
+		{% elif blok.error_code == "1142" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Invalid amount passed to make_payment().</p>
+		{% elif blok.error_code == "1143" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Payment amount exceeds maximum allowed.</p>
+		{% elif blok.error_code == "1144" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Insufficient network balance to make payment.</p>
+		{% elif blok.error_code == "1145" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Only active reserve accounts can disconnect, source is not.</p>
+		{% elif blok.error_code == "1146" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Only active reserve accounts can disconnect, target is not.</p>
+		{% elif blok.error_code == "1147" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Only active reserve accounts can disconnect, source is not.</p>
+		{% elif blok.error_code == "1148" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Only active reserve accounts can disconnect, source is not.</p>
+		{% elif blok.error_code == "1149" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Only active reserve accounts can disconnect, target is not.</p>
+		{% elif blok.error_code == "1150" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source name is not valid.</p>
+		{% elif blok.error_code == "1151" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source and target id cannot be the same.</p>
+		{% elif blok.error_code == "1152" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target name is not valid.</p>
+		{% elif blok.error_code == "1153" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Invalid amount passed to reserve transfer function.</p>
+		{% elif blok.error_code == "1154" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source and target are not connected.</p>
+		{% elif blok.error_code == "1155" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Suggested activation request has no match for target.</p>
+		{% elif blok.error_code == "1156" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Suggested activation request does not match on amount.</p>
+		{% elif blok.error_code == "1157" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Active suggestion request must be resolved before
+			new action on an inactive suggestion.</p>
+		{% elif blok.error_code == "1158" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Active suggestion request must be resolved before
+			new action on an inactive suggestion.</p>
+		{% elif blok.error_code == "1159" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Deactivation of suggested request has no match on amount.</p>
+		{% elif blok.error_code == "1160" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Denial of suggested request has no active match on amount.</p>
+		{% elif blok.error_code == "1161" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> No suggested active request between source and target.</p>
+		{% elif blok.error_code == "1162" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Existing transfer requests must be completed or cancelled
+			before creating new ones.</p>
+		{% elif blok.error_code == "1163" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Existing transfer requests must be completed or cancelled
+			before creating new ones.</p>
+		{% elif blok.error_code == "1164" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cancel of suggested request does not match on amount.</p>
+		{% elif blok.error_code == "1165" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cancel request for suggested does not have match in
+			outgoing requests for source.</p>
+		{% elif blok.error_code == "1166" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cancellation of suggested request does not match incoming amount.</p>
+		{% elif blok.error_code == "1167" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cancel request for suggested does not have match in
+			incoming requests for source.</p>
+		{% elif blok.error_code == "1168" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> No request in active suggested incoming for target.</p>
+		{% elif blok.error_code == "1169" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Authorization amount does not match incoming request.</p>
+		{% elif blok.error_code == "1170" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target has insufficient reserves for transfer.</p>
+		{% elif blok.error_code == "1171" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> No incoming reserve transfer requests for target.</p>
+		{% elif blok.error_code == "1172" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Authorization amount does not match incoming request.</p>
+		{% elif blok.error_code == "1173" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target has insufficient reserves for transfer.</p>
+		{% elif blok.error_code == "1174" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Reserve Transfer() transaction type invalid.</p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -459,6 +532,26 @@
 		{% elif blok.success_code == "7018" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			decreased your accounts reserve amount via override.</p>
+		{% elif blok.success_code == "7019" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Payment successful.</p>
+		{% elif blok.success_code == "7020" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request stored.</p>
+		{% elif blok.success_code == "7021" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request activated.</p>
+		{% elif blok.success_code == "7022" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request deactivated.</p>
+		{% elif blok.success_code == "7023" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request denied.</p>
+		{% elif blok.success_code == "7024" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> User reserve transfer requested.</p>
+		{% elif blok.success_code == "7025" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> User reserve transfer cancelled.</p>
+		{% elif blok.success_code == "7026" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> User reserve transfer denied.</p>
+		{% elif blok.success_code == "7027" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request authorized.</p>
+		{% elif blok.success_code == "7028" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> User reserve transfer authorized.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
