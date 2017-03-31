@@ -121,15 +121,17 @@ class ds_mr_user(ndb.Model):
 	client_account_ids = ndb.PickleProperty(default=[])
 	client_parent_ids = ndb.PickleProperty(default=[])
 	client_labels = ndb.PickleProperty(default=[])
-	parent_client_offer_network_ids = ndb.PickleProperty(default=[])
-	parent_client_offer_account_ids = ndb.PickleProperty(default=[])
+	parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
 	joint_network_ids = ndb.PickleProperty(default=[])
 	joint_account_ids = ndb.PickleProperty(default=[])
 	joint_parent_ids = ndb.PickleProperty(default=[])
 	joint_labels = ndb.PickleProperty(default=[])
-	parent_joint_offer_network_ids = ndb.PickleProperty(default=[])
-	parent_joint_offer_account_ids = ndb.PickleProperty(default=[])
+	parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
 	clone_network_ids = ndb.PickleProperty(default=[])
 	clone_account_ids = ndb.PickleProperty(default=[])
@@ -139,14 +141,16 @@ class ds_mr_user(ndb.Model):
 	child_client_network_ids = ndb.PickleProperty(default=[])
 	child_client_account_ids = ndb.PickleProperty(default=[])
 	child_client_parent_ids = ndb.PickleProperty(default=[])
-	child_client_offer_network_ids = ndb.PickleProperty(default=[])
-	child_client_offer_account_ids = ndb.PickleProperty(default=[])
+	child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
 	child_joint_network_ids = ndb.PickleProperty(default=[])
 	child_joint_account_ids = ndb.PickleProperty(default=[])
 	child_joint_parent_ids = ndb.PickleProperty(default=[])
-	child_joint_offer_network_ids = ndb.PickleProperty(default=[])
-	child_joint_offer_account_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
@@ -1217,6 +1221,239 @@ class metric(object):
 			return self.PARENT.user.entity.username
 
 	@ndb.transactional(xg=True)
+	def _joint_offer_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
+	
+		if not fstr_type == "clone open":
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+			if not validation_result:
+				# pass up error
+				return False
+		else:
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+		
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		source_user = validation_result[3]
+		target_account_id = validation_result[2]
+		target_user = validation_result[4]
+		
+		# transactionally get the source and target metric accounts
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		lds_source_metric = source_key.get()
+		
+		# error if source doesn't exist
+		if lds_source_metric is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error: source id is not valid
+		# error if trying to offer to self
+		if source_account_id == target_account_id: 
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error: cannot make account offer to self.
+		# error if not a reserve account
+		if not lds_source_metric.account_type == "RESERVE" and not lds_source_metric.account_status == "ACTIVE":
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error: only active reserve accounts can offer, source is not
+	
+		if fstr_type == "joint offer":
+		
+			"""
+			joint offer			
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""		
+
+			# 1. Source cannot have any existing child joint offers.
+			if not source_user.child_joint_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source currently has existing joint offer.  Previous offers must be cancelled/authorized before new ones created.
+			# 2. Target cannot have any existing joint offers.
+			if not target_user.parent_joint_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Target currently has offer for joint account.  Previous offers must be cancelled/authorized before new ones created.
+			# 3. Source must not be maxed out on child accounts.
+			if not source_user.total_child_accounts > 19:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source child accounts is currently at maximum.
+			# 4. Target must not be maxed out on alternate accounts.
+			if not target_user.total_other_accounts > 19:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Target other accounts is currently at maximum.
+				
+			# should be ok to create this offer
+			source_user.child_joint_offer_network_id = network_id
+			source_user.child_joint_offer_account_id = 0
+			source_user.child_joint_offer_user_id = target_user.user_id
+			target_user.parent_client_offer_network_id = network_id
+			target_user.parent_client_offer_account_id = source_account_id
+			target_user.parent_client_offer_user_id = source_user.user_id
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully created.
+			
+		if fstr_type == "joint offer cancel":
+		
+			"""
+			joint offer	cancel		
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""		
+			# as long as joint offer matches both source and target, either can delete
+			if source_user.child_joint_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has no active joint offer.			
+			# We allow for the fact that cancelling offers can be done from any context
+			# so we may not have a handle on the target user_id.  So lets just re-query
+			# the target just to be sure.		
+			# load user transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.child_joint_offer_user_id)
+			target_user = source_user_key.get()
+			
+			source_user.child_joint_offer_network_id = 0
+			source_user.child_joint_offer_account_id = 0
+			source_user.child_joint_offer_user_id = "EMPTY"
+			target_user.parent_joint_offer_network_id = 0
+			target_user.parent_joint_offer_account_id = 0
+			target_user.parent_joint_offer_user_id = "EMPTY"
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully cancelled.
+
+		elif fstr_type == "joint authorize":
+		
+			"""
+			joint authorize		
+				SOURCE: current user object				
+				TARGET: other user object/account
+				ACTION: Modifies user objects AND makes new account
+			"""		
+			pass
+			
+
+		"""
+# this is the user Model.  Not to be confused with the account model
+class ds_mr_user(ndb.Model):
+
+	user_id = ndb.StringProperty(indexed=False)
+	username = ndb.StringProperty(indexed=False,default="EMPTY")
+	email = ndb.StringProperty(indexed=False)
+	
+	user_status = ndb.StringProperty(indexed=False)
+	
+	name_first = ndb.StringProperty(indexed=False)
+	name_middle = ndb.StringProperty(indexed=False)
+	name_last = ndb.StringProperty(indexed=False)
+	name_suffix = ndb.StringProperty(indexed=False)
+	
+	gravatar_url = ndb.StringProperty(indexed=False)
+	
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	
+	total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
+	total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
+	total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
+	
+	reserve_network_ids = ndb.PickleProperty(default=[])
+	reserve_account_ids = ndb.PickleProperty(default=[])
+	reserve_labels = ndb.PickleProperty(default=[])
+	
+	client_network_ids = ndb.PickleProperty(default=[])
+	client_account_ids = ndb.PickleProperty(default=[])
+	client_parent_ids = ndb.PickleProperty(default=[])
+	client_labels = ndb.PickleProperty(default=[])
+	parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+	
+	joint_network_ids = ndb.PickleProperty(default=[])
+	joint_account_ids = ndb.PickleProperty(default=[])
+	joint_parent_ids = ndb.PickleProperty(default=[])
+	joint_labels = ndb.PickleProperty(default=[])
+	parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+	
+	clone_network_ids = ndb.PickleProperty(default=[])
+	clone_account_ids = ndb.PickleProperty(default=[])
+	clone_parent_ids = ndb.PickleProperty(default=[])
+	clone_labels = ndb.PickleProperty(default=[])
+	
+	child_client_network_ids = ndb.PickleProperty(default=[])
+	child_client_account_ids = ndb.PickleProperty(default=[])
+	child_client_parent_ids = ndb.PickleProperty(default=[])
+	child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+	
+	child_joint_network_ids = ndb.PickleProperty(default=[])
+	child_joint_account_ids = ndb.PickleProperty(default=[])
+	child_joint_parent_ids = ndb.PickleProperty(default=[])
+	child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+		"""
+
+			
+
+
+		elif fstr_type == "client offer":
+		
+			"""
+			client offer		
+				SOURCE: current user object/account		
+				TARGET: other user object
+				ACTION: Modifies user objects
+			"""		
+			pass
+
+		elif fstr_type == "client offer cancel":
+		
+			"""
+			client offer cancel		
+				SOURCE: current user object/account		
+				TARGET: other user object
+				ACTION: Modifies user objects
+			"""		
+			pass
+			
+		elif fstr_type == "client authorize":
+		
+			"""
+			client authorize	
+				SOURCE: current user object				
+				TARGET: other user object/account
+				ACTION: Modifies user objects AND makes new account
+			"""		
+			pass
+			
+		elif fstr_type == "joint authorize":
+		
+			"""
+			clone open			
+				SOURCE: current user object/account		
+				TARGET: None
+				ACTION: Modifies this user AND makes new account
+			"""		
+			pass
+			
+		else:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error transaction type not recognized
+
+
+
+
+	@ndb.transactional(xg=True)
 	def _reserve_open_transactional(self,fstr_network_name):
 	
 		# A user can create a reserve account if:
@@ -1325,6 +1562,7 @@ class metric(object):
 		
 		if fstr_source_name is None:
 			source_account_id = 0
+			lds_source_user = None
 		else:		
 			source_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_source_name)
 			source_name_entity = source_name_key.get()
@@ -1400,6 +1638,7 @@ class metric(object):
 		
 		if fstr_target_name is None:
 			target_account_id = 0
+			lds_target_user = None
 		else:			
 			target_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
 			target_name_entity = target_name_key.get()
@@ -1468,11 +1707,11 @@ class metric(object):
 		# account on the network that the network name passed maps
 		# to.
 			
-		return (network_id,source_account_id,target_account_id)
+		return (network_id,source_account_id,target_account_id,lds_source_user,lds_target_user)
 	
 	@ndb.transactional(xg=True)
 	def _connect_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name):
-		fint_target_account_id
+		
 		# connect() corresponds to a "friending" to use a Facebook
 		# term.  Basically reserves pass through your connections and
 		# the network is literally defined by these bilateral connections.
