@@ -1221,43 +1221,7 @@ class metric(object):
 			return self.PARENT.user.entity.username
 
 	@ndb.transactional(xg=True)
-	def _joint_offer_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
-	
-		if not fstr_type == "clone open":
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
-			if not validation_result:
-				# pass up error
-				return False
-		else:
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
-			if not validation_result:
-				# pass up error
-				return False
-		
-		network_id = validation_result[0]
-		source_account_id = validation_result[1]
-		source_user = validation_result[3]
-		target_account_id = validation_result[2]
-		target_user = validation_result[4]
-		
-		# transactionally get the source and target metric accounts
-		key_part1 = str(network_id).zfill(8)
-		key_part2 = str(source_account_id).zfill(12)
-		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-		lds_source_metric = source_key.get()
-		
-		# error if source doesn't exist
-		if lds_source_metric is None:
-			self.PARENT.RETURN_CODE = "STUB"
-			return False # error: source id is not valid
-		# error if trying to offer to self
-		if source_account_id == target_account_id: 
-			self.PARENT.RETURN_CODE = "STUB"
-			return False # error: cannot make account offer to self.
-		# error if not a reserve account
-		if not lds_source_metric.account_type == "RESERVE" and not lds_source_metric.account_status == "ACTIVE":
-			self.PARENT.RETURN_CODE = "STUB"
-			return False # error: only active reserve accounts can offer, source is not
+	def _other_account_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
 	
 		if fstr_type == "joint offer":
 		
@@ -1267,7 +1231,36 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_account_id = validation_result[1]
+			source_user = validation_result[3]
+			target_account_id = validation_result[2]
+			target_user = validation_result[4]
+			
+			# transactionally get the source and target metric accounts
+			key_part1 = str(network_id).zfill(8)
+			key_part2 = str(source_account_id).zfill(12)
+			source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+			lds_source_metric = source_key.get()
 
+			# error if source doesn't exist
+			if lds_source_metric is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: source id is not valid
+			# error if trying to offer to self
+			if source_account_id == target_account_id: 
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: cannot make account offer to self.
+			# error if not a reserve account
+			if not lds_source_metric.account_type == "RESERVE" and not lds_source_metric.account_status == "ACTIVE":
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: only active reserve accounts can offer, source is not
+				
 			# 1. Source cannot have any existing child joint offers.
 			if not source_user.child_joint_offer_network_id == 0:
 				self.PARENT.RETURN_CODE = "STUB"
@@ -1289,9 +1282,9 @@ class metric(object):
 			source_user.child_joint_offer_network_id = network_id
 			source_user.child_joint_offer_account_id = 0
 			source_user.child_joint_offer_user_id = target_user.user_id
-			target_user.parent_client_offer_network_id = network_id
-			target_user.parent_client_offer_account_id = source_account_id
-			target_user.parent_client_offer_user_id = source_user.user_id
+			target_user.parent_joint_offer_network_id = network_id
+			target_user.parent_joint_offer_account_id = source_account_id
+			target_user.parent_joint_offer_user_id = source_user.user_id
 			
 			source_user.put()
 			target_user.put()
@@ -1305,7 +1298,15 @@ class metric(object):
 				SOURCE: current user object/account		
 				TARGET: other user object			
 				ACTION: Modifies user objects
-			"""		
+			"""	
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
 			# as long as joint offer matches both source and target, either can delete
 			if source_user.child_joint_offer_network_id == 0:
 				self.PARENT.RETURN_CODE = "STUB"
@@ -1316,6 +1317,10 @@ class metric(object):
 			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.child_joint_offer_user_id)
 			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
 			
 			source_user.child_joint_offer_network_id = 0
 			source_user.child_joint_offer_account_id = 0
@@ -1329,6 +1334,49 @@ class metric(object):
 			
 			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully cancelled.
 
+		if fstr_type == "joint offer deny":
+		
+			"""
+			joint offer	cancel		
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
+			# as long as joint offer matches both source and target, either can delete
+			if source_user.parent_joint_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has not been offered a joint account.			
+			# We allow for the fact that cancelling offers can be done from any context
+			# so we may not have a handle on the target user_id.  So lets just re-query
+			# the target just to be sure.		
+			# load user transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.parent_joint_offer_user_id)
+			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
+			
+			target_user.child_joint_offer_network_id = 0
+			target_user.child_joint_offer_account_id = 0
+			target_user.child_joint_offer_user_id = "EMPTY"
+			source_user.parent_joint_offer_network_id = 0
+			source_user.parent_joint_offer_account_id = 0
+			source_user.parent_joint_offer_user_id = "EMPTY"
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully cancelled.
+			
 		elif fstr_type == "joint authorize":
 		
 			"""
@@ -1337,10 +1385,424 @@ class metric(object):
 				TARGET: other user object/account
 				ACTION: Modifies user objects AND makes new account
 			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
+			# make sure source actually has a joint offer
+			if source_user.parent_joint_offer_user_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has no active joint offer.
+			
+			# load target transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.parent_joint_offer_user_id)
+			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
+			
+			fail_this = False
+			if not source_user.parent_joint_offer_network_id == target_user.child_joint_offer_network_id: fail_this = True
+			if not source_user.parent_joint_offer_account_id == target_user.child_joint_offer_account_id: fail_this = True
+			if not source_user.parent_joint_offer_user_id == target_user.child_joint_offer_user_id: fail_this = True
+
+			if not fail_this:
+				# We're good to go.
+				# load cursor transactionally
+				cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(network_id).zfill(8))		
+				lds_cursor = cursor_key.get()
+				lds_cursor.current_index += 1
+				# 1. Get label for the new account
+				label = self._get_account_label(network_id,lds_cursor.current_index)
+				# 2. Create new account
+				# create a new metric account with key equal to current cursor/index for this network
+				new_metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
+				lds_new_metric_account = ds_mr_metric_account()
+				
+				lds_new_metric_account.network_id = network_id
+				lds_new_metric_account.account_id = lds_cursor.current_index
+				lds_new_metric_account.user_id = source_user.user_id
+				# creating the account is our first transaction
+				lds_new_metric_account.tx_index = 1
+				lds_new_metric_account.account_status = "ACTIVE"		
+				lds_new_metric_account.account_type = "JOINT"
+				lds_new_metric_account.account_parent = source_user.parent_joint_offer_account_id
+				lds_new_metric_account.key = new_metric_account_key
+				
+				# update the source user object
+				source_user.total_other_accounts += 1
+				source_user.joint_network_ids.append(network_id)
+				source_user.joint_account_ids.append(lds_cursor.current_index)
+				source_user.joint_labels.append(label)
+				source_user.parent_joint_offer_network_id = 0
+				source_user.parent_joint_offer_account_id = 0
+				source_user.parent_joint_offer_user_id = "EMPTY"
+				# update the target user object
+				target_user.total_other_accounts += 1
+				target_user.joint_network_ids.append(network_id)
+				target_user.joint_account_ids.append(lds_cursor.current_index)
+				target_user.joint_labels.append(label)
+				target_user.child_joint_offer_network_id = 0
+				target_user.child_joint_offer_account_id = 0
+				target_user.child_joint_offer_user_id = "EMPTY"
+				
+				# transaction log
+				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
+				lds_source_tx_log = ds_mr_tx_log()
+				lds_source_tx_log.key = tx_source_log_key
+				lds_source_tx_log.tx_index = 1
+				lds_source_tx_log.tx_type = "JOINT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+				lds_source_tx_log.description = "A joint account was created for you." 
+				lds_source_tx_log.user_id_created = source_user.user_id
+				lds_source_tx_log.network_id = network_id
+				lds_source_tx_log.account_id = lds_cursor.current_index
+				lds_source_tx_log.source_account = lds_cursor.current_index
+				lds_source_tx_log.target_account = source_user.parent_joint_offer_account_id
+				lds_source_tx_log.put()
+
+				# transactionally get the target metric account for transaction increment
+				key_part1 = str(network_id).zfill(8)
+				key_part2 = str(source_user.parent_joint_offer_account_id).zfill(12)
+				target_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+				lds_target_metric = target_metric_key.get()
+				lds_target_metric.tx_index += 1
+
+				# transaction log
+				tx_target_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_target_metric.tx_index).zfill(12)))
+				lds_target_tx_log = ds_mr_tx_log()
+				lds_target_tx_log.key = tx_target_log_key
+				lds_target_tx_log.tx_index = lds_target_metric.tx_index
+				lds_target_tx_log.tx_type = "JOINED NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+				lds_target_tx_log.description = "A user joined a network." 
+				lds_target_tx_log.user_id_created = source_user.user_id
+				lds_target_tx_log.network_id = network_id
+				lds_target_tx_log.account_id = lds_cursor.current_index
+				lds_target_tx_log.source_account = lds_cursor.current_index 
+				lds_target_tx_log.target_account = lds_target_metric.account_id
+				lds_target_tx_log.put()
+
+				# save the transaction
+				source_user.put()
+				target_user.put()
+				lds_new_metric_account.put()
+				lds_target_metric.put()
+				lds_cursor.put()
+
+				self.PARENT.RETURN_CODE = "STUB" # success: Joint account account successfully created.
+
+				return True
+			else:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source and target joint offers did not match.
+					
+		if fstr_type == "client offer":
+		
+			"""
+			client offer			
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_account_id = validation_result[1]
+			source_user = validation_result[3]
+			target_account_id = validation_result[2]
+			target_user = validation_result[4]
+			
+			# transactionally get the source and target metric accounts
+			key_part1 = str(network_id).zfill(8)
+			key_part2 = str(source_account_id).zfill(12)
+			source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+			lds_source_metric = source_key.get()
+
+			# error if source doesn't exist
+			if lds_source_metric is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: source id is not valid
+			# error if trying to offer to self
+			if source_account_id == target_account_id: 
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: cannot make account offer to self.
+			# error if not a reserve account
+			if not lds_source_metric.account_type == "RESERVE" and not lds_source_metric.account_status == "ACTIVE":
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: only active reserve accounts can offer, source is not
+				
+			# 1. Source cannot have any existing child client offers.
+			if not source_user.child_client_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source currently has existing client offer.  Previous offers must be cancelled/authorized before new ones created.
+			# 2. Target cannot have any existing client offers.
+			if not target_user.parent_client_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Target currently has offer for client account.  Previous offers must be cancelled/authorized before new ones created.
+			# 3. Source must not be maxed out on child accounts.
+			if not source_user.total_child_accounts > 19:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source child accounts is currently at maximum.
+			# 4. Target must not be maxed out on alternate accounts.
+			if not target_user.total_other_accounts > 19:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Target other accounts is currently at maximum.
+				
+			# should be ok to create this offer
+			source_user.child_client_offer_network_id = network_id
+			source_user.child_client_offer_account_id = 0
+			source_user.child_client_offer_user_id = target_user.user_id
+			target_user.parent_client_offer_network_id = network_id
+			target_user.parent_client_offer_account_id = source_account_id
+			target_user.parent_client_offer_user_id = source_user.user_id
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully created.
+			
+		if fstr_type == "client offer cancel":
+		
+			"""
+			client offer	cancel		
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""	
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
+			# as long as client offer matches both source and target, either can delete
+			if source_user.child_client_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has no active client offer.			
+			# We allow for the fact that cancelling offers can be done from any context
+			# so we may not have a handle on the target user_id.  So lets just re-query
+			# the target just to be sure.		
+			# load user transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.child_client_offer_user_id)
+			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
+			
+			source_user.child_client_offer_network_id = 0
+			source_user.child_client_offer_account_id = 0
+			source_user.child_client_offer_user_id = "EMPTY"
+			target_user.parent_client_offer_network_id = 0
+			target_user.parent_client_offer_account_id = 0
+			target_user.parent_client_offer_user_id = "EMPTY"
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully cancelled.
+
+		if fstr_type == "client offer deny":
+		
+			"""
+			client offer	deny		
+				SOURCE: current user object/account		
+				TARGET: other user object			
+				ACTION: Modifies user objects
+			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
+			# as long as client offer matches both source and target, either can delete
+			if source_user.parent_client_offer_network_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has not been offered a client account.			
+			# We allow for the fact that cancelling offers can be done from any context
+			# so we may not have a handle on the target user_id.  So lets just re-query
+			# the target just to be sure.		
+			# load user transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.parent_client_offer_user_id)
+			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
+			
+			target_user.child_client_offer_network_id = 0
+			target_user.child_client_offer_account_id = 0
+			target_user.child_client_offer_user_id = "EMPTY"
+			source_user.parent_client_offer_network_id = 0
+			source_user.parent_client_offer_account_id = 0
+			source_user.parent_client_offer_user_id = "EMPTY"
+			
+			source_user.put()
+			target_user.put()
+			
+			self.PARENT.RETURN_CODE = "STUB" # success: Joint account offer successfully cancelled.
+			
+		elif fstr_type == "client authorize":
+		
+			"""
+			client authorize		
+				SOURCE: current user object				
+				TARGET: other user object/account
+				ACTION: Modifies user objects AND makes new account
+			"""		
+			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			source_user = validation_result[3]
+			
+			# make sure source actually has a client offer
+			if source_user.parent_client_offer_user_id == 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: The source has no active client offer.
+			
+			# load target transactionally
+			target_user_key = ndb.Key("ds_mr_user",source_user.parent_client_offer_user_id)
+			target_user = source_user_key.get()
+			# error if target doesn't exist
+			if target_user is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: target id is not valid
+			
+			fail_this = False
+			if not source_user.parent_client_offer_network_id == target_user.child_client_offer_network_id: fail_this = True
+			if not source_user.parent_client_offer_account_id == target_user.child_client_offer_account_id: fail_this = True
+			if not source_user.parent_client_offer_user_id == target_user.child_client_offer_user_id: fail_this = True
+
+			if not fail_this:
+				# We're good to go.
+				# load cursor transactionally
+				cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(network_id).zfill(8))		
+				lds_cursor = cursor_key.get()
+				lds_cursor.current_index += 1
+				# 1. Get label for the new account
+				label = self._get_account_label(network_id,lds_cursor.current_index)
+				# 2. Create new account
+				# create a new metric account with key equal to current cursor/index for this network
+				new_metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12)))
+				lds_new_metric_account = ds_mr_metric_account()
+				
+				lds_new_metric_account.network_id = network_id
+				lds_new_metric_account.account_id = lds_cursor.current_index
+				lds_new_metric_account.user_id = source_user.user_id
+				# creating the account is our first transaction
+				lds_new_metric_account.tx_index = 1
+				lds_new_metric_account.account_status = "ACTIVE"		
+				lds_new_metric_account.account_type = "JOINT"
+				lds_new_metric_account.account_parent = source_user.parent_client_offer_account_id
+				lds_new_metric_account.key = new_metric_account_key
+				
+				# update the source user object
+				source_user.total_other_accounts += 1
+				source_user.client_network_ids.append(network_id)
+				source_user.client_account_ids.append(lds_cursor.current_index)
+				source_user.client_labels.append(label)
+				source_user.parent_client_offer_network_id = 0
+				source_user.parent_client_offer_account_id = 0
+				source_user.parent_client_offer_user_id = "EMPTY"
+				# update the target user object
+				target_user.total_other_accounts += 1
+				target_user.client_network_ids.append(network_id)
+				target_user.client_account_ids.append(lds_cursor.current_index)
+				target_user.client_labels.append(label)
+				target_user.child_client_offer_network_id = 0
+				target_user.child_client_offer_account_id = 0
+				target_user.child_client_offer_user_id = "EMPTY"
+				
+				# transaction log
+				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
+				lds_source_tx_log = ds_mr_tx_log()
+				lds_source_tx_log.key = tx_source_log_key
+				lds_source_tx_log.tx_index = 1
+				lds_source_tx_log.tx_type = "JOINT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+				lds_source_tx_log.description = "A client account was created for you." 
+				lds_source_tx_log.user_id_created = source_user.user_id
+				lds_source_tx_log.network_id = network_id
+				lds_source_tx_log.account_id = lds_cursor.current_index
+				lds_source_tx_log.source_account = lds_cursor.current_index
+				lds_source_tx_log.target_account = source_user.parent_client_offer_account_id
+				lds_source_tx_log.put()
+
+				# transactionally get the target metric account for transaction increment
+				key_part1 = str(network_id).zfill(8)
+				key_part2 = str(source_user.parent_client_offer_account_id).zfill(12)
+				target_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+				lds_target_metric = target_metric_key.get()
+				lds_target_metric.tx_index += 1
+
+				# transaction log
+				tx_target_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_target_metric.tx_index).zfill(12)))
+				lds_target_tx_log = ds_mr_tx_log()
+				lds_target_tx_log.key = tx_target_log_key
+				lds_target_tx_log.tx_index = lds_target_metric.tx_index
+				lds_target_tx_log.tx_type = "JOINED NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+				lds_target_tx_log.description = "A user joined a network." 
+				lds_target_tx_log.user_id_created = source_user.user_id
+				lds_target_tx_log.network_id = network_id
+				lds_target_tx_log.account_id = lds_cursor.current_index
+				lds_target_tx_log.source_account = lds_cursor.current_index 
+				lds_target_tx_log.target_account = lds_target_metric.account_id
+				lds_target_tx_log.put()
+
+				# save the transaction
+				source_user.put()
+				target_user.put()
+				lds_new_metric_account.put()
+				lds_target_metric.put()
+				lds_cursor.put()
+
+				self.PARENT.RETURN_CODE = "STUB" # success: Joint account account successfully created.
+
+				return True
+			else:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error: Source and target client offers did not match.
+				
+		elif fstr_type == "clone open":
+		
+			"""
+			clone open			
+				SOURCE: current user object/account		
+				TARGET: None
+				ACTION: Modifies this user AND makes new account
+			"""		
 			pass
+			
+		else:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error transaction type not recognized
+			
 			
 
 		"""
+	account_id = ndb.IntegerProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
+	tx_index = ndb.IntegerProperty(indexed=False)
+	account_status = ndb.StringProperty(indexed=False)
+	account_type = ndb.StringProperty(indexed=False)
+	account_parent = ndb.IntegerProperty(default=0,indexed=False)
+		
+		
 # this is the user Model.  Not to be confused with the account model
 class ds_mr_user(ndb.Model):
 
@@ -1436,7 +1898,7 @@ class ds_mr_user(ndb.Model):
 			"""		
 			pass
 			
-		elif fstr_type == "joint authorize":
+		elif fstr_type == "clone open":
 		
 			"""
 			clone open			
