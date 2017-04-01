@@ -1251,22 +1251,22 @@ class metric(object):
 		for i in range(len(current_user.reserve_network_ids)):
 			if current_user.reserve_network_ids[i] == current_alias_entity.network_id:
 				if current_user.reserve_account_ids[i] == current_alias_entity.account_id:
-					current_user.reserve_labels[i] = new_label:
+					current_user.reserve_labels[i] = new_label
 					break
 		for i in range(len(current_user.client_network_ids)):
 			if current_user.client_network_ids[i] == current_alias_entity.network_id:
 				if current_user.client_account_ids[i] == current_alias_entity.account_id:
-					current_user.client_labels[i] = new_label:
+					current_user.client_labels[i] = new_label
 					break
 		for i in range(len(current_user.joint_network_ids)):
 			if current_user.joint_network_ids[i] == current_alias_entity.network_id:
 				if current_user.joint_account_ids[i] == current_alias_entity.account_id:
-					current_user.joint_labels[i] = new_label:
+					current_user.joint_labels[i] = new_label
 					break		
 		for i in range(len(current_user.clone_network_ids)):
 			if current_user.clone_network_ids[i] == current_alias_entity.network_id:
 				if current_user.clone_account_ids[i] == current_alias_entity.account_id:
-					current_user.clone_labels[i] = new_label:
+					current_user.clone_labels[i] = new_label
 					break
 						
 		current_user.put()
@@ -3771,9 +3771,9 @@ class metric(object):
 		# make sure source actually has rights to do this
 		child_has_parent = False
 		for i in range(len(target_user.joint_network_ids)):
-			if target_user.joint_network_ids[i] = network_id:
-				if target_user.joint_account_ids[i] = target_account_id:
-					if target_user.joint_parent_ids[i] = source_account_id:
+			if target_user.joint_network_ids[i] == network_id:
+				if target_user.joint_account_ids[i] == target_account_id:
+					if target_user.joint_parent_ids[i] == source_account_id:
 						child_has_parent = True
 						break
 		
@@ -3783,9 +3783,9 @@ class metric(object):
 		
 		parent_has_child = False
 		for i in range(len(source_user.child_joint_network_ids)):
-			if source_user.child_joint_network_ids[i] = network_id:
-				if source_user.child_joint_account_ids[i] = target_account_id:
-					if source_user.child_joint_parent_ids[i] = source_account_id:
+			if source_user.child_joint_network_ids[i] == network_id:
+				if source_user.child_joint_account_ids[i] == target_account_id:
+					if source_user.child_joint_parent_ids[i] == source_account_id:
 						parent_has_child = True
 						break
 						
