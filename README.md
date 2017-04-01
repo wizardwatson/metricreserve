@@ -27,16 +27,8 @@ git pull https://github.com/wizardwatson/metricreserve.git
 
 TASKS LEFT 
 
-2. 
-	clone close
-	reserve close
-	joint close
-	client close
-3.
-	joint retrieve
-4.
-	alias change <name>
-	alias delete
+
+
 5. (textarea?)
 	network describe
 	message <user>
