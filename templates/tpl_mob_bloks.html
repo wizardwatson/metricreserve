@@ -693,6 +693,9 @@
 		{% if blok.error_code == "1229" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cannot delete alias as username already a label on this network. </p>
 		{% endif %}
+		{% if blok.error_code == "1230" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target name invalid. </p>
+		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -875,6 +878,10 @@
 		{% endif %}
 		{% if blok.success_code == "7044" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully deleted alias. Account now uses username.</p>
+		{% endif %}
+		{% if blok.success_code == "7045" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+			changed the network description for network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% endif %}
 	{% else %}
 
