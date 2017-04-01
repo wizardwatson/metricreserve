@@ -25,9 +25,7 @@ git pull https://github.com/wizardwatson/metricreserve.git
 
 
 
-FUNCTIONS LEFT 
-
-1. clone open
+TASKS LEFT 
 
 2. 
 	clone close
@@ -58,6 +56,7 @@ FUNCTIONS LEFT
 
 11. (admin graph test related)
 12. Reporting
+
 13.  (cart/register related)
 
 		# cart and register
