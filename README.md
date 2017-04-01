@@ -29,11 +29,17 @@ TASKS LEFT
 
 
 
-5. (textarea?)
-	network describe
+5. 
 	message <user>
 
 6. invoice
+
+invoice : summary
+invoice <amount> : create a generic invoice
+invoice <user> <amount> : create an invoice for a specific user
+ticket <amount> <label>
+ticket <label>
+
 
 7.
 	gravatar email(email to use)
