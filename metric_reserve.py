@@ -152,6 +152,14 @@ class ds_mr_user(ndb.Model):
 	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 
+# a Model for user messages
+class ds_mr_user_message(ndb.Model):
+
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	create_user_id = ndb.StringProperty()
+	target_user_id = ndb.StringProperty()
+	message_content = ndb.PickleProperty()
+
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
 # to enforce a unique constraint
@@ -750,6 +758,31 @@ class user(object):
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
+		
+	def _message(self,fstr_target_name,fstr_text):
+	
+		"""
+		# a Model for user messages
+		class ds_mr_user_message(ndb.Model):
+
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			create_user_id = ndb.StringProperty()
+			target_user_id = ndb.StringProperty()
+			message_content = ndb.PickleProperty()
+		"""
+		
+		# get target user_id
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
+		name_entity = name_key.get()
+		if name_entity is None:
+			self.PARENT.RETURN_CODE = "1230"
+			return False # error Target name invalid.
+		new_message = ds_mr_user_message()
+		new_message.create_user_id = self.PARENT.user.entity.user_id
+		new_message.target_user_id = name_entity.user_id
+		new_message.message_content = fstr_text
+		new_message.put()
+		return True
 			
 # this is metric reserve class, containing the P2P network/accounting related functionality
 class metric(object):
@@ -3902,11 +3935,15 @@ class metric(object):
 		self.PARENT.RETURN_CODE = "7042" # success Joint account retrieval successful.
 		return True
 
+	def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name):
 
+		pass
 
+	@ndb.transactional(xg=True)
+	def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion):
 
-
-
+		pass
+		
 
 
 
@@ -5742,6 +5779,16 @@ class ph_command(webapp2.RequestHandler):
 			# we assume a string was passed like 'queryvar=queryvalue'
 			path_string += new_vars			
 		return path_string	
+		
+	def get_text_for(self,marker_word,command_text):
+	
+		# Commands we split() into a list, but if this was a command
+		# intended to submit raw text like a bio, description, or 
+		# message, we need to reparse it to get our raw text.  This 
+		# function basically says, "give me everything after 'marker_word'
+		# as a string".
+		end_of_marker_word = command_text.index(marker_word) + len(marker_word)
+		return command_text[end_of_marker_word:].strip()		
 	
 	def get(self):
 		
@@ -5991,8 +6038,38 @@ class ph_command(webapp2.RequestHandler):
 			Most of the logic/rules/permissions for various
 			functions/pages are handled here.
 			
-			"""			
+			"""
 			
+			
+			
+			"""
+			# create shorter references to our objects
+			lobj_master.bloks = []
+			lobj_master.page = {}
+			context = lobj_master.PATH_CONTEXT
+			bloks = lobj_master.bloks
+			page = lobj_master.page
+			lobj_master.TRACE.append("%s" %(ct))
+			lobj_master.TRACE.append("%s" %(pqc[0]))
+			lobj_master.TRACE.append("%s" %(1))
+			lobj_master.TRACE.append("%s" %(1))
+			lobj_master.TRACE.append("%s" %(1))
+			lobj_master.TRACE.append("%s" %(1))
+			lobj_master.TRACE.append("%s" %(1))
+			template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
+			self.response.write(template.render(master=lobj_master))
+			return
+			
+			"""
+			
+			###################################
+			# long command
+			# 
+			# from any context
+			###################################
+			if  len(ct) == 1 and ct[0] == "l":
+				r.redirect(self.url_path(new_vars="xcs=long"))
+				return		
 			###################################
 			# menu
 			# 
@@ -6000,12 +6077,13 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 			if  len(ct) == 1 and ct[0] == "menu":
 				r.redirect(self.url_path(new_vars="view_menu=1",new_path="/"))
+				return
 			###################################
 			# username change <USERNAME>
 			# 
 			# from any context
 			###################################
-			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
+			if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				elif not self.is_valid_name(ct[2]):
@@ -6123,6 +6201,19 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
+			elif pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
+				# only admins can change the description of a network
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master.metric._network_modify(fname=pqc[1],fdescription=self.get_text_for("describe",lstr_command_text)):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["xnetwork_name"] = pqc[1]
+					ltemp["view_network"] = pqc[1]
+					r.redirect(self.url_path(new_vars=ltemp,success_code="7045"))
 			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
