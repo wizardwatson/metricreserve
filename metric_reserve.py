@@ -1882,80 +1882,7 @@ class metric(object):
 		else:
 			self.PARENT.RETURN_CODE = "1205"
 			return False # error transaction type not recognized		
-			
-
-		"""
-			account_id = ndb.IntegerProperty(indexed=False)
-			network_id = ndb.IntegerProperty(indexed=False)
-			user_id = ndb.StringProperty(indexed=False)
-			tx_index = ndb.IntegerProperty(indexed=False)
-			account_status = ndb.StringProperty(indexed=False)
-			account_type = ndb.StringProperty(indexed=False)
-			account_parent = ndb.IntegerProperty(default=0,indexed=False)
-
-
-		# this is the user Model.  Not to be confused with the account model
-		class ds_mr_user(ndb.Model):
-
-			user_id = ndb.StringProperty(indexed=False)
-			username = ndb.StringProperty(indexed=False,default="EMPTY")
-			email = ndb.StringProperty(indexed=False)
-
-			user_status = ndb.StringProperty(indexed=False)
-
-			name_first = ndb.StringProperty(indexed=False)
-			name_middle = ndb.StringProperty(indexed=False)
-			name_last = ndb.StringProperty(indexed=False)
-			name_suffix = ndb.StringProperty(indexed=False)
-
-			gravatar_url = ndb.StringProperty(indexed=False)
-
-			date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-
-			total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
-			total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
-			total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
-
-			reserve_network_ids = ndb.PickleProperty(default=[])
-			reserve_account_ids = ndb.PickleProperty(default=[])
-			reserve_labels = ndb.PickleProperty(default=[])
-
-			client_network_ids = ndb.PickleProperty(default=[])
-			client_account_ids = ndb.PickleProperty(default=[])
-			client_parent_ids = ndb.PickleProperty(default=[])
-			client_labels = ndb.PickleProperty(default=[])
-			parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			joint_network_ids = ndb.PickleProperty(default=[])
-			joint_account_ids = ndb.PickleProperty(default=[])
-			joint_parent_ids = ndb.PickleProperty(default=[])
-			joint_labels = ndb.PickleProperty(default=[])
-			parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			clone_network_ids = ndb.PickleProperty(default=[])
-			clone_account_ids = ndb.PickleProperty(default=[])
-			clone_parent_ids = ndb.PickleProperty(default=[])
-			clone_labels = ndb.PickleProperty(default=[])
-
-			child_client_network_ids = ndb.PickleProperty(default=[])
-			child_client_account_ids = ndb.PickleProperty(default=[])
-			child_client_parent_ids = ndb.PickleProperty(default=[])
-			child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			child_joint_network_ids = ndb.PickleProperty(default=[])
-			child_joint_account_ids = ndb.PickleProperty(default=[])
-			child_joint_parent_ids = ndb.PickleProperty(default=[])
-			child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-		"""
-
+	
 	@ndb.transactional(xg=True)
 	def _reserve_open_transactional(self,fstr_network_name):
 	
@@ -3434,17 +3361,314 @@ class metric(object):
 		lds_target.put()
 		return True
 
+	@ndb.transactional(xg=True)
+	def _leave_network(self, fstr_network_name,fstr_source_name):
+
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_type)
+		if not validation_result:
+			# pass up error
+			return False
+
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		source_user = validation_result[3]
+
+		def delete_if_not_username(fstr_label):			
+			if not fstr_label == source_user.username:			
+				label_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_label)
+				label_key.delete()
+
+		# transactionally get the source and target metric accounts
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		lds_source_metric = source_key.get()
+
+		# error if source doesn't exist
+		if lds_source_metric is None:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Source id is invalid.
+						
+		if fstr_type == "joint close":
+			if lds_source_metric.current_network_balance > 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Network balance must be zero in order to close joint account.
+			
+			for i in range(len(source_user.joint_network_ids)):
+				if source_user.joint_network_ids[i] == network_id:
+					if source_user.joint_account_ids[i] == source_account_id:
+						# load parent metric account
+						key_part3 = str(source_user.joint_parent_ids[i]).zfill(12)
+						parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
+						lds_parent_metric = parent_metric_key.get()
+						# load parent user object
+						parent_user_key = ndb.Key("ds_mr_user",lds_parent_metric.user_id)
+						parent_user = parent_user_key.get()
+						# error if parent doesn't exist
+						if parent_user is None:
+							self.PARENT.RETURN_CODE = "STUB"
+							return False # error: parent id is not valid
+						# update source user object
+						source_user.total_other_accounts -= 1
+						del source_user.joint_network_ids[i]
+						del source_user.joint_account_ids[i]
+						del source_user.joint_parent_ids[i]
+						delete_if_not_username(source_user.joint_labels[i])
+						del source_user.joint_labels[i]						
+						# update parent user object
+						parent_user.total_child_accounts -= 1
+						for j in range (len(parent_user.child_joint_network_ids)):
+							if parent_user.child_joint_network_ids[j] == network_id:
+								if parent_user.child_joint_account_ids[j] == source_account_id:
+									del parent_user.child_joint_network_ids[i]
+									del parent_user.child_joint_account_ids[i]
+									del parent_user.child_joint_parent_ids[i]						
+						# update source metric account
+						lds_source_metric.tx_index += 1
+						lds_source_metric.account_status = "DELETED"
+						lds_source_metric.current_timestamp = datetime.datetime.now()
+						# create transaction						
+						# transaction log
+						key_part4 = str(lds_source_metric.tx_index).zfill(12)
+						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
+						lds_tx_log = ds_mr_tx_log()
+						lds_tx_log.key = tx_log_key
+						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+						# tx_index should be based on incremented metric_account value
+						lds_tx_log.tx_index = lds_source_metric.tx_index
+						lds_tx_log.tx_type = "JOINT CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+						lds_tx_log.amount = 0
+						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+						lds_tx_log.description = "A user closed a joint account." 
+						lds_tx_log.user_id_created = source_user.user_id
+						lds_tx_log.network_id = network_id
+						lds_tx_log.account_id = source_account_id
+						lds_tx_log.source_account = source_account_id
+						lds_tx_log.put()
+						source_user.put()
+						parent_user.put()
+						lds_source_metric.put()						
+						break
+						
+			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed joint account.			
+			return True
+		
+		elif fstr_type == "client close":
+			if lds_source_metric.current_network_balance > 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Network balance must be zero in order to close client account. 
+
+			for i in range(len(source_user.client_network_ids)):
+				if source_user.client_network_ids[i] == network_id:
+					if source_user.client_account_ids[i] == source_account_id:
+						# load parent metric account
+						key_part3 = str(source_user.client_parent_ids[i]).zfill(12)
+						parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
+						lds_parent_metric = parent_metric_key.get()
+						# load parent user object
+						parent_user_key = ndb.Key("ds_mr_user",lds_parent_metric.user_id)
+						parent_user = parent_user_key.get()
+						# error if parent doesn't exist
+						if parent_user is None:
+							self.PARENT.RETURN_CODE = "STUB"
+							return False # error: parent id is not valid
+						# update source user object
+						source_user.total_other_accounts -= 1
+						del source_user.client_network_ids[i]
+						del source_user.client_account_ids[i]
+						del source_user.client_parent_ids[i]
+						delete_if_not_username(source_user.client_labels[i])
+						del source_user.client_labels[i]						
+						# update parent user object
+						parent_user.total_child_accounts -= 1
+						for j in range (len(parent_user.child_client_network_ids)):
+							if parent_user.child_client_network_ids[j] == network_id:
+								if parent_user.child_client_account_ids[j] == source_account_id:
+									del parent_user.child_client_network_ids[i]
+									del parent_user.child_client_account_ids[i]
+									del parent_user.child_client_parent_ids[i]						
+						# update source metric account
+						lds_source_metric.tx_index += 1
+						lds_source_metric.account_status = "DELETED"
+						lds_source_metric.current_timestamp = datetime.datetime.now()
+						# create transaction						
+						# transaction log
+						key_part4 = str(lds_source_metric.tx_index).zfill(12)
+						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
+						lds_tx_log = ds_mr_tx_log()
+						lds_tx_log.key = tx_log_key
+						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+						# tx_index should be based on incremented metric_account value
+						lds_tx_log.tx_index = lds_source_metric.tx_index
+						lds_tx_log.tx_type = "CLIENT CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+						lds_tx_log.amount = 0
+						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+						lds_tx_log.description = "A user closed a client account." 
+						lds_tx_log.user_id_created = source_user.user_id
+						lds_tx_log.network_id = network_id
+						lds_tx_log.account_id = source_account_id
+						lds_tx_log.source_account = source_account_id
+						lds_tx_log.put()
+						source_user.put()
+						parent_user.put()
+						lds_source_metric.put()						
+						break
+						
+			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed client account.			
+			return True
+
+		elif fstr_type == "clone close":
+			if lds_source_metric.current_network_balance > 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Network balance must be zero in order to close clone account. 
+
+			for i in range(len(source_user.clone_network_ids)):
+				if source_user.clone_network_ids[i] == network_id:
+					if source_user.clone_account_ids[i] == source_account_id:
+						# update source user object
+						source_user.total_other_accounts -= 1
+						del source_user.clone_network_ids[i]
+						del source_user.clone_account_ids[i]
+						del source_user.clone_parent_ids[i]
+						delete_if_not_username(source_user.clone_labels[i])
+						del source_user.clone_labels[i]						
+						# update source metric account
+						lds_source_metric.tx_index += 1
+						lds_source_metric.account_status = "DELETED"
+						lds_source_metric.current_timestamp = datetime.datetime.now()
+						# create transaction						
+						# transaction log
+						key_part4 = str(lds_source_metric.tx_index).zfill(12)
+						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
+						lds_tx_log = ds_mr_tx_log()
+						lds_tx_log.key = tx_log_key
+						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+						# tx_index should be based on incremented metric_account value
+						lds_tx_log.tx_index = lds_source_metric.tx_index
+						lds_tx_log.tx_type = "CLONE CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+						lds_tx_log.amount = 0
+						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+						lds_tx_log.description = "A user closed a clone account." 
+						lds_tx_log.user_id_created = source_user.user_id
+						lds_tx_log.network_id = network_id
+						lds_tx_log.account_id = source_account_id
+						lds_tx_log.source_account = source_account_id
+						lds_tx_log.put()
+						source_user.put()
+						lds_source_metric.put()						
+						break
+						
+			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed clone account.			
+			return True
+
+		elif fstr_type == "reserve close":
+		
+			# error if account still has connections
+			if len(lds_metric_account.current_connections) > 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Account still has connections.
+		
+			if lds_source_metric.current_network_balance > 0:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Network balance must be zero in order to close clone account.
+				
+				
+				
+				
+		else:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Transaction type not recognized. 
 
 
+		
 
+		"""
+	account_id = ndb.IntegerProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
+	tx_index = ndb.IntegerProperty(indexed=False)
+	account_status = ndb.StringProperty(indexed=False)
+	account_type = ndb.StringProperty(indexed=False)
+	account_parent = ndb.IntegerProperty(default=0,indexed=False)
+	outgoing_connection_requests = ndb.PickleProperty(default=[])
+	incoming_connection_requests = ndb.PickleProperty(default=[])
+	incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	current_connections = ndb.PickleProperty(default=[])
+	current_reserve_balance = ndb.IntegerProperty(default=0)
+	current_network_balance = ndb.IntegerProperty(default=0)	
+	last_connections = ndb.PickleProperty(default=[])
+	last_reserve_balance = ndb.IntegerProperty(default=0)
+	last_network_balance = ndb.IntegerProperty(default=0)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	extra_pickle = ndb.PickleProperty()
+	
+		# this is the user Model.  Not to be confused with the account model
+		class ds_mr_user(ndb.Model):
 
+			user_id = ndb.StringProperty(indexed=False)
+			username = ndb.StringProperty(indexed=False,default="EMPTY")
+			email = ndb.StringProperty(indexed=False)
 
+			user_status = ndb.StringProperty(indexed=False)
 
+			name_first = ndb.StringProperty(indexed=False)
+			name_middle = ndb.StringProperty(indexed=False)
+			name_last = ndb.StringProperty(indexed=False)
+			name_suffix = ndb.StringProperty(indexed=False)
 
+			gravatar_url = ndb.StringProperty(indexed=False)
 
+			date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
+			total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
+			total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
+			total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
 
+			reserve_network_ids = ndb.PickleProperty(default=[])
+			reserve_account_ids = ndb.PickleProperty(default=[])
+			reserve_labels = ndb.PickleProperty(default=[])
 
+			client_network_ids = ndb.PickleProperty(default=[])
+			client_account_ids = ndb.PickleProperty(default=[])
+			client_parent_ids = ndb.PickleProperty(default=[])
+			client_labels = ndb.PickleProperty(default=[])
+			parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+			parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+			parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+			joint_network_ids = ndb.PickleProperty(default=[])
+			joint_account_ids = ndb.PickleProperty(default=[])
+			joint_parent_ids = ndb.PickleProperty(default=[])
+			joint_labels = ndb.PickleProperty(default=[])
+			parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+			parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+			parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+			clone_network_ids = ndb.PickleProperty(default=[])
+			clone_account_ids = ndb.PickleProperty(default=[])
+			clone_parent_ids = ndb.PickleProperty(default=[])
+			clone_labels = ndb.PickleProperty(default=[])
+
+			child_client_network_ids = ndb.PickleProperty(default=[])
+			child_client_account_ids = ndb.PickleProperty(default=[])
+			child_client_parent_ids = ndb.PickleProperty(default=[])
+			child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+			child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+			child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+			child_joint_network_ids = ndb.PickleProperty(default=[])
+			child_joint_account_ids = ndb.PickleProperty(default=[])
+			child_joint_parent_ids = ndb.PickleProperty(default=[])
+			child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+			child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+			child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+		"""
 
 
 
@@ -3482,27 +3706,6 @@ class metric(object):
 	
 		# must have zero connections in order to leave the network
 		# graph process cannot be going on when we delete
-		
-		# BEGIN THOUGHT
-		# OK, so I just thought of something.  For the graph process, I felt
-		# it was necessary to use integer based keys to make the algorithm more
-		# simplistic.  I knew that if we had each "chunk" hold say 2000 accounts
-		# that first chunk would be 1-2000.  The whole point being that we can 
-		# query by keys.  Originally, I envisioned-when someone leaves the network-
-		# that we'd have to swap out their index with the account at last index.
-		#
-		# But I don't think this is necessary, and we can avoid I think having
-		# to transactionally swap all the connections for the last account we're
-		# moving into the vacant spot.  What we need to store is the "chunk ranges".
-		# Starting is: chunk#1 = 1-2000, chunk#2 = 2001-4000, etc.  If you delete
-		# an account you just need to adjust the chunk ranges.  It makes it a little
-		# more complex when running the graph process, but no deleting will occur
-		# during the process, so the chunk range structure can stay in memory without
-		# worry of it being modified.
-		# 
-		# This lets us also avoid ever having to change a network account id for a 
-		# user on a specific network.
-		# END THOUGHT
 		
 		# first retrieve and check the metric account
 		key_part1 = str(fint_network_id).zfill(8)
@@ -3542,7 +3745,6 @@ class metric(object):
 
 		lstr_return_message = "success_reserve_normal_subtract"
 		
-		lds_chunk_catalog.put()
 		
 		lds_metric_account.tx_index += 1
 		# transaction log
