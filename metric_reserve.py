@@ -3620,201 +3620,213 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1216"
 			return False # error Transaction type not recognized. 
 
-
-		
-
-		"""
-	account_id = ndb.IntegerProperty(indexed=False)
-	network_id = ndb.IntegerProperty(indexed=False)
-	user_id = ndb.StringProperty(indexed=False)
-	tx_index = ndb.IntegerProperty(indexed=False)
-	account_status = ndb.StringProperty(indexed=False)
-	account_type = ndb.StringProperty(indexed=False)
-	account_parent = ndb.IntegerProperty(default=0,indexed=False)
-	outgoing_connection_requests = ndb.PickleProperty(default=[])
-	incoming_connection_requests = ndb.PickleProperty(default=[])
-	incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-	current_connections = ndb.PickleProperty(default=[])
-	current_reserve_balance = ndb.IntegerProperty(default=0)
-	current_network_balance = ndb.IntegerProperty(default=0)	
-	last_connections = ndb.PickleProperty(default=[])
-	last_reserve_balance = ndb.IntegerProperty(default=0)
-	last_network_balance = ndb.IntegerProperty(default=0)
-	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-	extra_pickle = ndb.PickleProperty()
+	def _joint_retrieve(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount):
 	
-		# this is the user Model.  Not to be confused with the account model
-		class ds_mr_user(ndb.Model):
-
-			user_id = ndb.StringProperty(indexed=False)
-			username = ndb.StringProperty(indexed=False,default="EMPTY")
-			email = ndb.StringProperty(indexed=False)
-
-			user_status = ndb.StringProperty(indexed=False)
-
-			name_first = ndb.StringProperty(indexed=False)
-			name_middle = ndb.StringProperty(indexed=False)
-			name_last = ndb.StringProperty(indexed=False)
-			name_suffix = ndb.StringProperty(indexed=False)
-
-			gravatar_url = ndb.StringProperty(indexed=False)
-
-			date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-
-			total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
-			total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
-			total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
-
-			reserve_network_ids = ndb.PickleProperty(default=[])
-			reserve_account_ids = ndb.PickleProperty(default=[])
-			reserve_labels = ndb.PickleProperty(default=[])
-
-			client_network_ids = ndb.PickleProperty(default=[])
-			client_account_ids = ndb.PickleProperty(default=[])
-			client_parent_ids = ndb.PickleProperty(default=[])
-			client_labels = ndb.PickleProperty(default=[])
-			parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			joint_network_ids = ndb.PickleProperty(default=[])
-			joint_account_ids = ndb.PickleProperty(default=[])
-			joint_parent_ids = ndb.PickleProperty(default=[])
-			joint_labels = ndb.PickleProperty(default=[])
-			parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			clone_network_ids = ndb.PickleProperty(default=[])
-			clone_account_ids = ndb.PickleProperty(default=[])
-			clone_parent_ids = ndb.PickleProperty(default=[])
-			clone_labels = ndb.PickleProperty(default=[])
-
-			child_client_network_ids = ndb.PickleProperty(default=[])
-			child_client_account_ids = ndb.PickleProperty(default=[])
-			child_client_parent_ids = ndb.PickleProperty(default=[])
-			child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-			child_joint_network_ids = ndb.PickleProperty(default=[])
-			child_joint_account_ids = ndb.PickleProperty(default=[])
-			child_joint_parent_ids = ndb.PickleProperty(default=[])
-			child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-			child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-		"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._joint_retrieve_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _leave_network(self, fint_account_id, fint_network_id):
-	
-		# must have zero connections in order to leave the network
-		# graph process cannot be going on when we delete
+	def _joint_retrieve_transactional(self, fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
+
+		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		if not validation_result:
+			# pass up error
+			return False
+
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		source_user = validation_result[3]
+		target_account_id = validation_result[2]
+		target_user = validation_result[4]
+
+		# a "joint retrieve" is a reverse payment.  A parent account
+		# is taking money out of a child account.  So it's basically
+		# the same process as a payment with a couple extra 
+		# permission checks.
 		
-		# first retrieve and check the metric account
-		key_part1 = str(fint_network_id).zfill(8)
-		key_part2 = str(fint_account_id).zfill(12)
-		metric_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-		lds_metric_account = metric_account_key.get()
-		
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = str(source_account_id).zfill(12)
+		key_part3 = str(target_account_id).zfill(12)
+		source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		lds_source_metric = source_key.get()
+
+
 		# error if source doesn't exist
-		if lds_metric_account is None: return "error_account_id_invalid"
+		if lds_source_metric is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Source id is invalid.
+		# error if trying to connect to self
+		if source_account_id == target_account_id:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Can't retrieve from self.
 		
-		# error if account still has connections
-		if len(lds_metric_account.current_connections) > 0: return "error_account_still_has_connections"		
+		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
+		lds_target_metric = target_key.get()
+		
+		# error if target doesn't exist
+		if lds_target_metric is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Target id is invalid.
+		
+		# make sure source actually has rights to do this
+		child_has_parent = False
+		for i in range(len(target_user.joint_network_ids)):
+			if target_user.joint_network_ids[i] = network_id:
+				if target_user.joint_account_ids[i] = target_account_id:
+					if target_user.joint_parent_ids[i] = source_account_id:
+						child_has_parent = True
+						break
+		
+		if not child_has_parent:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Target is not a child joint account of source.
+		
+		parent_has_child = False
+		for i in range(len(source_user.child_joint_network_ids)):
+			if source_user.child_joint_network_ids[i] = network_id:
+				if source_user.child_joint_account_ids[i] = target_account_id:
+					if source_user.child_joint_parent_ids[i] = source_account_id:
+						parent_has_child = True
+						break
+						
+		if not parent_has_child:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Target is not a child joint account of source.
+						
+		# make sure fstr_amount actually is an integer
+		try:
+			lint_amount = int(float(fstr_amount)*fint_conversion)
+		except ValueError, ex:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Invalid amount passed.
+		
+		# can't exceed maximum allowed payment
+		if lint_amount > MAX_PAYMENT:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Retrieve amount exceeds maximum payment allowed.
 
-		# the only two values in a metric account that really matter during a deletion
-		# will be the network and reserve remaining balances.  We do one finally transaction
-		# on this account that works like a "modify_reserve", "normal_subtract" only we ignore
-		# any checks and we remove entire balance even if it exceeds the reserve amount.  All
-		# reserves and balances are forfeit, essentially.
+		# make sure all lint_amount inputs are greater than 0
+		# can't pay if you don't have that much
+		if lds_target_metric.current_network_balance < lint_amount:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Joint account does not have enough balance for the retrieval requested.
 		
-		# increment negative balance shard
-		if lds_metric_account.current_network_balance > 0:
-			lint_shard_string_index = str(random.randint(0, NUM_BALANCE_NEGATIVE_SHARDS - 1))
-			lds_counter1 = ds_mr_negative_balance_shard.get_by_id(lint_shard_string_index)
-			if lds_counter1 is None:
-				lds_counter1 = ds_mr_negative_balance_shard(id=lint_shard_string_index)
-			lds_counter1.count += lds_metric_account.current_network_balance
-			lds_counter1.put()
+		# So everything checks out, payments are probably simplest things to do.
+		# We do count network balances as "graph affecting" even though the algorithms
+		# don't deal with balances (yet).  It's still an important summarized statistic
+		# so we will check the cutoff time as with other graph affecting functions.
+		
+		# calculate cutoff time
+		t_now = datetime.datetime.now()
+		d_since = t_now - T_EPOCH
+		# this requests cutoff time
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		
+		# update the source account
+		if lds_source_metric.current_timestamp > t_cutoff:
 
-		# increment negative reserve shard
-		if lds_metric_account.current_reserve_balance > 0:
-			lint_shard_string_index = str(random.randint(0, NUM_RESERVE_NEGATIVE_SHARDS - 1))
-			lds_counter2 = ds_mr_negative_reserve_shard.get_by_id(lint_shard_string_index)
-			if lds_counter2 is None:
-				lds_counter2 = ds_mr_negative_reserve_shard(id=lint_shard_string_index)
-			lds_counter2.count += lds_metric_account.current_reserve_balance
-			lds_counter2.put()
+			# last transaction was in current time window, no need to swap
+			# a.k.a. overwrite current
+			lds_source_metric.current_network_balance -= lint_amount
 
-		lstr_return_message = "success_reserve_normal_subtract"
+		else:
+
+			# last transaction was in previous time window, swap
+			# a.k.a. move "old" current into "last" before overwriting
+			lds_source_metric.last_connections = lds_source_metric.current_connections
+			lds_source_metric.last_reserve_balance = lds_source_metric.current_reserve_balance
+			lds_source_metric.last_network_balance = lds_source_metric.current_network_balance
+			lds_source_metric.current_network_balance += lint_amount				
+
+		# update the target account
+		if lds_target_metric.current_timestamp > t_cutoff:
+
+			# last transaction was in current time window, no need to swap
+			# a.k.a. overwrite current
+			lds_target_metric.current_network_balance += lint_amount
+
+		else:
+
+			# last transaction was in previous time window, swap
+			# a.k.a. move "old" current into "last" before overwriting
+			lds_target_metric.last_connections = lds_target_metric.current_connections
+			lds_target_metric.last_reserve_balance = lds_target_metric.current_reserve_balance
+			lds_target_metric.last_network_balance = lds_target_metric.current_network_balance
+			lds_target_metric.current_network_balance -= lint_amount
+
+		# only update current_timestamp for graph dependent transactions??? STUB
+		lds_source_metric.current_timestamp = datetime.datetime.now()
+		lds_target_metric.current_timestamp = datetime.datetime.now()
 		
-		
-		lds_metric_account.tx_index += 1
-		# transaction log
-		key_part3 = str(lds_metric_account.tx_index).zfill(12)
-		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part3))
-		lds_tx_log = ds_mr_tx_log()
-		lds_tx_log.key = tx_log_key
-		lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+		# ADD TWO TRANSACTIONS LIKE CONNECT()
+		lds_source_metric.tx_index += 1
+		# source transaction log
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source_metric.tx_index).zfill(12)))
+		source_lds_tx_log = ds_mr_tx_log()
+		source_lds_tx_log.key = source_tx_log_key
 		# tx_index should be based on incremented metric_account value
-		lds_tx_log.tx_index = lds_metric_account.tx_index
-		lds_tx_log.tx_type = "LEFT NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		lds_tx_log.amount = 0
-		lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-		lds_tx_log.description = "A user left a network." 
-		lds_tx_log.memo = ""
-		lds_tx_log.user_id_created = lds_metric_account.user_id
-		lds_tx_log.network_id = fint_network_id
-		lds_tx_log.account_id = fint_account_id
-		lds_tx_log.source_account = fint_account_id 
-		lds_tx_log.target_account = 0
-		lds_tx_log.put()
+		source_lds_tx_log.tx_index = lds_source_metric.tx_index
+		source_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.amount = lint_amount
+		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+		source_lds_tx_log.description = "JOINT ACCOUNT FUNDS RETRIEVED" 
+		source_lds_tx_log.user_id_created = lds_source_metric.user_id
+		source_lds_tx_log.network_id = network_id
+		source_lds_tx_log.account_id = source_account_id
+		source_lds_tx_log.source_account = source_account_id 
+		source_lds_tx_log.target_account = target_account_id
+		source_lds_tx_log.put()
+
+		lds_target_metric.tx_index += 1
+		# target transaction log
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target_metric.tx_index).zfill(12)))
+		target_lds_tx_log = ds_mr_tx_log()
+		target_lds_tx_log.key = target_tx_log_key
+		# tx_index should be based on incremented metric_account value
+		target_lds_tx_log.tx_index = lds_target_metric.tx_index
+		target_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.amount = lint_amount
+		# typically we'll make target private for bilateral transactions so that
+		# when looking at a system view, we don't see duplicates.
+		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+		target_lds_tx_log.description = "JOINT ACCOUNT FUNDS TO PARENT ACCOUNT" 
+		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.network_id = network_id
+		target_lds_tx_log.account_id = target_account_id
+		target_lds_tx_log.source_account = source_account_id 
+		target_lds_tx_log.target_account = target_account_id
+		target_lds_tx_log.put()
 		
-		# don't delete an account, just set it's status to "deleted", and delete it along with
-		# it's transactions when however much time passes where we no longer want to keep them
-		lds_metric_account.current_network_balance = 0
-		lds_metric_account.current_reserve_balance = 0
-		lds_metric_account.account_status = "DELETED"
-		lds_metric_account.current_timestamp = datetime.datetime.now()
-		lds_metric_account.put()
+		lds_source_metric.put()
+		lds_target_metric.put()
+		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Joint account retrieval successful.
+		return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		
 	def _process_graph(self, fint_network_id):
 	
