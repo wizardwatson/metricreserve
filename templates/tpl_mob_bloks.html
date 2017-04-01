@@ -444,6 +444,75 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target has insufficient reserves for transfer.</p>
 		{% elif blok.error_code == "1174" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Reserve Transfer() transaction type invalid.</p>
+		{% elif blok.error_code == "1175" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> cannot make account offer to self.</p>
+		{% elif blok.error_code == "1176" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> only active reserve accounts can offer, source is not</p>
+		{% elif blok.error_code == "1177" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source currently has existing joint offer.
+			Previous offers must be cancelled/authorized before new ones created.</p>
+		{% elif blok.error_code == "1178" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target currently has offer for joint account.
+			Previous offers must be cancelled/authorized before new ones created.</p>
+		{% elif blok.error_code == "1179" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source child accounts is currently at maximum.</p>
+		{% elif blok.error_code == "1180" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target other accounts is currently at maximum.</p>
+		{% elif blok.error_code == "1181" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has no active joint offer.	</p>
+		{% elif blok.error_code == "1182" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1183" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has not been offered a joint account.</p>
+		{% elif blok.error_code == "1184" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1185" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has no active joint offer.</p>
+		{% elif blok.error_code == "1186" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1187" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source and target joint offers did not match.</p>
+		{% elif blok.error_code == "1188" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> source id is not valid</p>
+		{% elif blok.error_code == "1189" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> cannot make account offer to self.</p>
+		{% elif blok.error_code == "1190" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> only active reserve accounts can offer, source is not</p>
+		{% elif blok.error_code == "1191" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source currently has existing client offer.
+			Previous offers must be cancelled/authorized before new ones created.</p>
+		{% elif blok.error_code == "1192" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target currently has offer for client account.
+			Previous offers must be cancelled/authorized before new ones created.</p>
+		{% elif blok.error_code == "1193" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source child accounts is currently at maximum.</p>
+		{% elif blok.error_code == "1194" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target other accounts is currently at maximum.</p>
+		{% elif blok.error_code == "1195" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has no active client offer.</p>
+		{% elif blok.error_code == "1196" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1197" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has not been offered a client account.</p>
+		{% elif blok.error_code == "1198" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1199" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> The source has no active client offer.</p>
+		{% elif blok.error_code == "1200" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> target id is not valid</p>
+		{% elif blok.error_code == "1201" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source and target client offers did not match.</p>
+		{% elif blok.error_code == "1202" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> source id is not valid</p>
+		{% elif blok.error_code == "1203" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> only active reserve accounts can create
+			clone accounts, source is not</p>
+		{% elif blok.error_code == "1204" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source other accounts is currently at maximum.</p>
+		{% elif blok.error_code == "1205" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> error transaction type not recognized</p>
+		{% elif blok.error_code == "1206" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> source id is not valid</p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -552,6 +621,24 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Suggested reserve transfer request authorized.</p>
 		{% elif blok.success_code == "7028" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> User reserve transfer authorized.</p>
+		{% elif blok.success_code == "7029" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account offer successfully created.</p>
+		{% elif blok.success_code == "7030" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account offer successfully cancelled.</p>
+		{% elif blok.success_code == "7031" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account offer successfully denied.</p>
+		{% elif blok.success_code == "7032" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account successfully created.</p>
+		{% elif blok.success_code == "7033" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Client account offer successfully created.</p>
+		{% elif blok.success_code == "7034" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Client account offer successfully cancelled.</p>
+		{% elif blok.success_code == "7035" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Client account offer successfully denied.</p>
+		{% elif blok.success_code == "7036" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Client account successfully created.</p>
+		{% elif blok.success_code == "7037" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Clone account successfully created.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
