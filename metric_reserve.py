@@ -1175,6 +1175,104 @@ class metric(object):
 		return True # True meaning "created"
 
 	@ndb.transactional(xg=True)
+	def _alias_change_transactional(self,fstr_current_alias,fstr_new_alias=None,fbool_delete=False):
+	
+		"""
+		
+		TRANSACTIONAL OBJECTS FOR THIS FUNCTION:
+		
+		(modified) current user object : ds_mr_user
+		(deleted) current alias name object : ds_mr_unique_dummy_entity
+		
+		if changing rather than deleting:
+			(created) new alias name object : ds_mr_unique_dummy_entity
+			
+		"""
+		
+		# Get current alias
+		current_alias_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_alias)
+		current_alias_entity = current_alias_key.get()
+		if current_alias_entity is None:
+				self.PARENT.RETURN_CODE = "1225"
+				return None # error Current alias invalid
+		if not current_alias_entity.name_type == "alias":
+				self.PARENT.RETURN_CODE = "1226"
+				return None # error Name passed is not an alias of a metric account.
+		
+		# Get the current user transactionally.
+		current_user_key = ndb.Key("ds_mr_user",current_alias_entity.user_id)
+		current_user = current_user_key.get()
+		if current_user is None:
+				self.PARENT.RETURN_CODE = "1227"
+				return None # error User id from current alias is invalid.
+			
+		if not fbool_delete:
+			new_label = fstr_new_alias		
+			if self._save_unique_alias(self,fstr_new_alias,current_alias_entity.network_id,current_alias_entity.account_id):
+				current_alias_key.delete()
+				self.PARENT.RETURN_CODE = "7043" # Successfully changed alias.
+			else:
+				self.PARENT.RETURN_CODE = "1228"
+				return False # error New alias chosen is not unique.
+		else:
+			new_label = current_user.username
+			# We are wanting to delete this alias, but for that, the 
+			# username must be available.
+			username_in_use = False
+			for i in range(len(current_user.reserve_network_ids)):
+				if current_user.reserve_network_ids[i] == current_alias_entity.network_id:
+					if current_user.reserve_labels[i] == current_user.username:
+						username_in_use = True
+						break
+			for i in range(len(current_user.client_network_ids)):
+				if current_user.client_network_ids[i] == current_alias_entity.network_id:
+					if current_user.client_labels[i] == current_user.username:
+						username_in_use = True
+						break
+			for i in range(len(current_user.joint_network_ids)):
+				if current_user.joint_network_ids[i] == current_alias_entity.network_id:
+					if current_user.joint_labels[i] == current_user.username:
+						username_in_use = True
+						break		
+			for i in range(len(current_user.clone_network_ids)):
+				if current_user.clone_network_ids[i] == current_alias_entity.network_id:
+					if current_user.clone_labels[i] == current_user.username:
+						username_in_use = True
+						break
+			if username_in_use:
+				self.PARENT.RETURN_CODE = "1229"
+				return False # error Cannot delete alias as username already a label on this network.
+			else:
+				# delete the alias
+				current_alias_key.delete()
+				self.PARENT.RETURN_CODE = "7044" # Successfully deleted alias. Account now uses username.
+				
+		# put the new label in the users account list
+		for i in range(len(current_user.reserve_network_ids)):
+			if current_user.reserve_network_ids[i] == current_alias_entity.network_id:
+				if current_user.reserve_account_ids[i] == current_alias_entity.account_id:
+					current_user.reserve_labels[i] = new_label:
+					break
+		for i in range(len(current_user.client_network_ids)):
+			if current_user.client_network_ids[i] == current_alias_entity.network_id:
+				if current_user.client_account_ids[i] == current_alias_entity.account_id:
+					current_user.client_labels[i] = new_label:
+					break
+		for i in range(len(current_user.joint_network_ids)):
+			if current_user.joint_network_ids[i] == current_alias_entity.network_id:
+				if current_user.joint_account_ids[i] == current_alias_entity.account_id:
+					current_user.joint_labels[i] = new_label:
+					break		
+		for i in range(len(current_user.clone_network_ids)):
+			if current_user.clone_network_ids[i] == current_alias_entity.network_id:
+				if current_user.clone_account_ids[i] == current_alias_entity.account_id:
+					current_user.clone_labels[i] = new_label:
+					break
+						
+		current_user.put()
+		return True
+
+	@ndb.transactional(xg=True)
 	def _get_account_label(self,fint_network_id,fint_account_id):
 	
 		# Create a new alias if the user has more than one account
@@ -3655,11 +3753,11 @@ class metric(object):
 
 		# error if source doesn't exist
 		if lds_source_metric is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1217"
 			return False # error Source id is invalid.
 		# error if trying to connect to self
 		if source_account_id == target_account_id:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1218"
 			return False # error Can't retrieve from self.
 		
 		target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
@@ -3667,7 +3765,7 @@ class metric(object):
 		
 		# error if target doesn't exist
 		if lds_target_metric is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1219"
 			return False # error Target id is invalid.
 		
 		# make sure source actually has rights to do this
@@ -3680,7 +3778,7 @@ class metric(object):
 						break
 		
 		if not child_has_parent:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1220"
 			return False # error Target is not a child joint account of source.
 		
 		parent_has_child = False
@@ -3692,25 +3790,25 @@ class metric(object):
 						break
 						
 		if not parent_has_child:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1221"
 			return False # error Target is not a child joint account of source.
 						
 		# make sure fstr_amount actually is an integer
 		try:
 			lint_amount = int(float(fstr_amount)*fint_conversion)
 		except ValueError, ex:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1222"
 			return False # error Invalid amount passed.
 		
 		# can't exceed maximum allowed payment
 		if lint_amount > MAX_PAYMENT:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1223"
 			return False # error Retrieve amount exceeds maximum payment allowed.
 
 		# make sure all lint_amount inputs are greater than 0
 		# can't pay if you don't have that much
 		if lds_target_metric.current_network_balance < lint_amount:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1224"
 			return False # error Joint account does not have enough balance for the retrieval requested.
 		
 		# So everything checks out, payments are probably simplest things to do.
@@ -3801,7 +3899,7 @@ class metric(object):
 		
 		lds_source_metric.put()
 		lds_target_metric.put()
-		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Joint account retrieval successful.
+		self.PARENT.RETURN_CODE = "7042" # success Joint account retrieval successful.
 		return True
 
 
