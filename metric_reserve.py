@@ -3386,12 +3386,12 @@ class metric(object):
 
 		# error if source doesn't exist
 		if lds_source_metric is None:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1207"
 				return False # error Source id is invalid.
 						
 		if fstr_type == "joint close":
 			if lds_source_metric.current_network_balance > 0:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1208"
 				return False # error Network balance must be zero in order to close joint account.
 			
 			for i in range(len(source_user.joint_network_ids)):
@@ -3406,7 +3406,7 @@ class metric(object):
 						parent_user = parent_user_key.get()
 						# error if parent doesn't exist
 						if parent_user is None:
-							self.PARENT.RETURN_CODE = "STUB"
+							self.PARENT.RETURN_CODE = "1209"
 							return False # error: parent id is not valid
 						# update source user object
 						source_user.total_other_accounts -= 1
@@ -3450,12 +3450,12 @@ class metric(object):
 						lds_source_metric.put()						
 						break
 						
-			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed joint account.			
+			self.PARENT.RETURN_CODE = "7038" # Successfully closed joint account.			
 			return True
 		
 		elif fstr_type == "client close":
 			if lds_source_metric.current_network_balance > 0:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1210"
 				return False # error Network balance must be zero in order to close client account. 
 
 			for i in range(len(source_user.client_network_ids)):
@@ -3470,7 +3470,7 @@ class metric(object):
 						parent_user = parent_user_key.get()
 						# error if parent doesn't exist
 						if parent_user is None:
-							self.PARENT.RETURN_CODE = "STUB"
+							self.PARENT.RETURN_CODE = "1211"
 							return False # error: parent id is not valid
 						# update source user object
 						source_user.total_other_accounts -= 1
@@ -3514,12 +3514,12 @@ class metric(object):
 						lds_source_metric.put()						
 						break
 						
-			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed client account.			
+			self.PARENT.RETURN_CODE = "7039" # Successfully closed client account.			
 			return True
 
 		elif fstr_type == "clone close":
 			if lds_source_metric.current_network_balance > 0:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1212"
 				return False # error Network balance must be zero in order to close clone account. 
 
 			for i in range(len(source_user.clone_network_ids)):
@@ -3558,25 +3558,66 @@ class metric(object):
 						lds_source_metric.put()						
 						break
 						
-			self.PARENT.RETURN_CODE = "STUBSUCCESS" # Successfully closed clone account.			
+			self.PARENT.RETURN_CODE = "7040" # Successfully closed reserve account.			
 			return True
 
 		elif fstr_type == "reserve close":
 		
 			# error if account still has connections
-			if len(lds_metric_account.current_connections) > 0:
-				self.PARENT.RETURN_CODE = "STUB"
+			if len(lds_source_metric.current_connections) > 0:
+				self.PARENT.RETURN_CODE = "1213"
 				return False # error Account still has connections.
 		
+			# error if account still has child accounts
+			if lds_source_metric.total_child_accounts > 0:
+				self.PARENT.RETURN_CODE = "1214"
+				return False # error Account still has child accounts.
+			
 			if lds_source_metric.current_network_balance > 0:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1215"
 				return False # error Network balance must be zero in order to close clone account.
-				
-				
-				
+
+			for i in range(len(source_user.reserve_network_ids)):
+				if source_user.reserve_network_ids[i] == network_id:
+					if source_user.reserve_account_ids[i] == source_account_id:
+						# update source user object
+						source_user.total_reserve_accounts -= 1
+						del source_user.reserve_network_ids[i]
+						del source_user.reserve_account_ids[i]
+						del source_user.reserve_parent_ids[i]
+						delete_if_not_username(source_user.reserve_labels[i])
+						del source_user.reserve_labels[i]	
+						# update source metric account
+						lds_source_metric.tx_index += 1
+						lds_source_metric.account_status = "DELETED"
+						lds_source_metric.current_timestamp = datetime.datetime.now()
+						# create transaction						
+						# transaction log
+						key_part4 = str(lds_source_metric.tx_index).zfill(12)
+						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
+						lds_tx_log = ds_mr_tx_log()
+						lds_tx_log.key = tx_log_key
+						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
+						# tx_index should be based on incremented metric_account value
+						lds_tx_log.tx_index = lds_source_metric.tx_index
+						lds_tx_log.tx_type = "RESERVE CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+						lds_tx_log.amount = 0
+						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+						lds_tx_log.description = "A user closed a reserve account." 
+						lds_tx_log.user_id_created = source_user.user_id
+						lds_tx_log.network_id = network_id
+						lds_tx_log.account_id = source_account_id
+						lds_tx_log.source_account = source_account_id
+						lds_tx_log.put()
+						source_user.put()
+						lds_source_metric.put()						
+						break
+						
+			self.PARENT.RETURN_CODE = "7041" # Successfully closed clone account.			
+			return True
 				
 		else:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1216"
 			return False # error Transaction type not recognized. 
 
 
