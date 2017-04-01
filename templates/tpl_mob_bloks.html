@@ -513,6 +513,28 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> error transaction type not recognized</p>
 		{% elif blok.error_code == "1206" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> source id is not valid</p>
+		{% elif blok.error_code == "1207" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source id is invalid.</p>
+		{% elif blok.error_code == "1208" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network balance must be
+			zero in order to close joint account.</p>
+		{% elif blok.error_code == "1209" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> parent id is not valid</p>
+		{% elif blok.error_code == "1210" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network balance must be zero in
+			order to close client account. </p>
+		{% elif blok.error_code == "1211" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> parent id is not valid</p>
+		{% elif blok.error_code == "1212" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network balance must be zero in order to close clone account. </p>
+		{% elif blok.error_code == "1213" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Account still has connections.</p>
+		{% elif blok.error_code == "1214" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Account still has child accounts.</p>
+		{% elif blok.error_code == "1215" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network balance must be zero in order to close clone account.</p>
+		{% elif blok.error_code == "1216" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Transaction type not recognized. </p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -639,6 +661,14 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Client account successfully created.</p>
 		{% elif blok.success_code == "7037" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Clone account successfully created.</p>
+		{% elif blok.success_code == "7038" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed joint account.</p>
+		{% elif blok.success_code == "7039" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed client account.</p>
+		{% elif blok.success_code == "7040" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed clone account.</p>
+		{% elif blok.success_code == "7041" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed reserve account.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
