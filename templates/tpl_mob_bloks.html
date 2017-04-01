@@ -535,6 +535,32 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network balance must be zero in order to close clone account.</p>
 		{% elif blok.error_code == "1216" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Transaction type not recognized. </p>
+		{% elif blok.error_code == "1217" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Source id is invalid. </p>
+		{% elif blok.error_code == "1218" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Can't retrieve from self. </p>
+		{% elif blok.error_code == "1219" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target id is invalid. </p>
+		{% elif blok.error_code == "1220" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target is not a child joint account of source. </p>
+		{% elif blok.error_code == "1221" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Target is not a child joint account of source. </p>
+		{% elif blok.error_code == "1222" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Invalid amount passed. </p>
+		{% elif blok.error_code == "1223" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Retrieve amount exceeds maximum payment allowed. </p>
+		{% elif blok.error_code == "1224" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Joint account does not have enough balance for the retrieval requested. </p>
+		{% elif blok.error_code == "1225" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Current alias invalid. </p>
+		{% elif blok.error_code == "1226" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Name passed is not an alias of a metric account. </p>
+		{% elif blok.error_code == "1227" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> User id from current alias is invalid. </p>
+		{% elif blok.error_code == "1228" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> New alias chosen is not unique. </p>
+		{% elif blok.error_code == "1229" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Cannot delete alias as username already a label on this network. </p>
 		{% elif blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -669,6 +695,12 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed clone account.</p>
 		{% elif blok.success_code == "7041" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed reserve account.</p>
+		{% elif blok.success_code == "7042" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account retrieval successful.</p>
+		{% elif blok.success_code == "7043" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully changed alias.</p>
+		{% elif blok.success_code == "7044" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully deleted alias. Account now uses username.</p>
 		{% else %}
 			<p>Unrecognized Confirm Code</p>
 		{% endif %}
