@@ -1,4 +1,3 @@
-# metricreserve
 Metric Reserve Stuff
 
 * must be logged in
@@ -23,6 +22,8 @@ SPECIFIC NETWORK CONTEXT:
 	**network describe <description> : add description to inactive network
 
 	*reserve open
+	
+	*tickets : go to your accounts ticket page
 
 SPECIFIC ACCOUNT [SELF] CONTEXT: 
 
@@ -62,6 +63,42 @@ SPECIFIC ACCOUNT [OTHER] CONTEXT:
 	*transfer authorize <amount>
 	*transfer cancel <amount>
 	*transfer deny <amount>
+
+TICKETS ALL [OWNER] CONTEXT: 
+
+open <name>
+open <name> <user>
+open <name> <amount>
+open <name> <amount> m <memo>
+open <name> <amount> <user>
+open <name> <amount> <user> m <memo>
+
+close <name> : close an open ticket
+remove <ticket> : remove user association with a ticket
+
+
+
+
+TICKETS SPECIFIC [OWNER] CONTEXT: 
+
+close : close the ticket
+attach <user> : associate a specific user with a ticket
+
+
+TICKETS ALL [OTHER] CONTEXT:
+
+
+TICKETS SPECIFIC [OTHER] CONTEXT: 
+
+pay <amount> : pay a ticket
+pay <amount> <amount|percent> : pay a ticket plus add gratuity
+
+
+
+
+
+
+
 
 
 
