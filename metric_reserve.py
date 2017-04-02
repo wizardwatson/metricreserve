@@ -1,3 +1,126 @@
+"""
+
+
+DATASTORE: METRIC
+
+	ds_mr_user
+	ds_mr_user_message
+	ds_mr_unique_dummy_entity
+	ds_mr_network_profile
+	ds_mr_system_cursor
+	ds_mr_network_cursor
+	ds_mr_metric_account
+	ds_mr_tx_log
+
+DATASTORE: COUNTERS
+
+	ds_mr_positive_balance_shard
+	ds_mr_negative_balance_shard
+	ds_mr_positive_reserve_shard
+	ds_mr_negative_reserve_shard
+
+DATASTORE: GRAPH
+
+	ds_mrgp_profile
+	ds_mrgp_staging_chunk
+	ds_mrgp_index_chunk
+	ds_mrgp_tree_chunk
+	ds_mrgp_report_chunk
+	ds_mrgp_map_chunk
+
+DATASTORE: DEBUG
+
+	ds_mrgp_big_pickle
+
+
+CLASS: master(object)
+
+	def __init__(self, fobj_request,fstr_request_type,fstr_security_req)
+
+CLASS: user(object)
+
+	def __init__(self, fobj_master)
+	def _load_user(self,fobj_google_account)
+	def _create_user_transactional(self,fstr_username,fobj_google_obj)
+
+	@ndb.transactional(xg=True)
+	def _create_user_transactional(self,fstr_username,fobj_google_obj)
+
+	@ndb.transactional(xg=True)
+	def _change_username_transactional(self,fstr_username)
+
+	def _message(self,fstr_target_name,fstr_text)
+
+CLASS: metric(object)
+
+	def __init__(self, fobj_master)
+
+	@ndb.transactional(xg=True)
+	def _network_add(self,fname)
+
+	@ndb.transactional(xg=True)
+	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,delete_network=False)
+
+	def _get_all_accounts(self,fstr_network_name)
+	def _get_all_networks(self)
+	def _get_network(self,fstr_network_name=None,fint_network_id=None)
+
+	@ndb.transactional(xg=True)
+	def _save_unique_alias(self,fstr_alias,fint_network_id,fint_account_id)
+
+	@ndb.transactional(xg=True)
+	def _alias_change_transactional(self,fstr_current_alias,fstr_new_alias=None,fbool_delete=False)
+
+	@ndb.transactional(xg=True)
+	def _get_account_label(self,fint_network_id,fint_account_id)
+
+	@ndb.transactional(xg=True)
+	def _other_account_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type)
+
+	@ndb.transactional(xg=True)
+	def _reserve_open_transactional(self,fstr_network_name)
+
+	@ndb.transactional(xg=True)
+	def _name_validate_transactional(self,fstr_network_name,fstr_source_name=None,fstr_target_name=None)
+	
+	@ndb.transactional(xg=True)
+	def _connect_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name)	
+	
+	@ndb.transactional(xg=True)
+	def _disconnect_transactional(self, fstr_network_name, fstr_source_name, fstr_target_name)	
+	
+	def _modify_reserve(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount)	
+	
+	@ndb.transactional(xg=True)
+	def _modify_reserve_transactional(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount,fint_conversion)
+	
+	def _make_payment(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount)
+	
+	@ndb.transactional(xg=True)
+	def _make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion)
+
+	def _process_reserve_transfer(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fstr_type)
+
+	@ndb.transactional(xg=True)
+	def _process_reserve_transfer_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,fint_conversion)
+
+	@ndb.transactional(xg=True)
+	def _leave_network(self, fstr_network_name,fstr_source_name)
+
+	@ndb.transactional(xg=True)
+	def _joint_retrieve_transactional(self, fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion)
+
+	STUB def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name)
+	
+	STUB @ndb.transactional(xg=True)
+	STUB def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion)	
+
+	def _process_graph(self, fint_network_id)
+
+
+"""
+
+
 ############################################################################79
 ###
 ###  IMPORTS
@@ -631,7 +754,7 @@ class user(object):
 		self.LOG_OUT_GAE_HREF = users.create_logout_url('/')
 		self.LOG_OUT_GAE_LINKTEXT = 'Logout'
 		
-   	def _load_user(self, fobj_google_account):
+   	def _load_user(self,fobj_google_account):
    
 		# this function loads a user entity from a key
 		ldata_user_key = ndb.Key("ds_mr_user",fobj_google_account.user_id())
@@ -3937,11 +4060,13 @@ class metric(object):
 
 	def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name):
 
+		# STUB
 		pass
 
 	@ndb.transactional(xg=True)
 	def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion):
 
+		# STUB
 		pass
 		
 
