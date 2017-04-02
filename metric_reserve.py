@@ -229,6 +229,9 @@ class ds_mr_user(ndb.Model):
 	name_suffix = ndb.StringProperty(indexed=False)
 	
 	gravatar_url = ndb.StringProperty(indexed=False)
+	gravatar_type = ndb.StringProperty(indexed=False)
+	bio = ndb.StringProperty(indexed=False)
+	location = ndb.StringProperty(indexed=False)
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	
@@ -347,6 +350,7 @@ class ds_mr_metric_account(ndb.Model):
 	last_network_balance = ndb.IntegerProperty(default=0)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	extra_pickle = ndb.PickleProperty()
+	tickets = ndb.PickleProperty(default={})
  
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
