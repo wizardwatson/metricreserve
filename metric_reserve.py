@@ -242,11 +242,13 @@ class ds_mr_user(ndb.Model):
 	reserve_network_ids = ndb.PickleProperty(default=[])
 	reserve_account_ids = ndb.PickleProperty(default=[])
 	reserve_labels = ndb.PickleProperty(default=[])
+	reserve_default = ndb.PickleProperty(default=[])
 	
 	client_network_ids = ndb.PickleProperty(default=[])
 	client_account_ids = ndb.PickleProperty(default=[])
 	client_parent_ids = ndb.PickleProperty(default=[])
 	client_labels = ndb.PickleProperty(default=[])
+	client_default = ndb.PickleProperty(default=[])
 	parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
@@ -255,6 +257,7 @@ class ds_mr_user(ndb.Model):
 	joint_account_ids = ndb.PickleProperty(default=[])
 	joint_parent_ids = ndb.PickleProperty(default=[])
 	joint_labels = ndb.PickleProperty(default=[])
+	joint_default = ndb.PickleProperty(default=[])
 	parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
@@ -263,6 +266,7 @@ class ds_mr_user(ndb.Model):
 	clone_account_ids = ndb.PickleProperty(default=[])
 	clone_parent_ids = ndb.PickleProperty(default=[])
 	clone_labels = ndb.PickleProperty(default=[])
+	clone_default = ndb.PickleProperty(default=[])
 	
 	child_client_network_ids = ndb.PickleProperty(default=[])
 	child_client_account_ids = ndb.PickleProperty(default=[])
@@ -1481,6 +1485,68 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _other_account_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
 	
+		def check_default(self,fobj_user):
+		
+			# Check default is just making sure a default account exists
+			# when a user adds or deletes accounts.  They may delete the
+			# default, or they may add a second account without designating
+			# a default.  This makes sure they always have a default if 
+			# there is more than one account for them in that network and
+			# the system needs to pick one for a function where the user
+			# doesn't specifically designate manually.  For instance, a 
+			# "search and pay" after deleting 1 of 3 accounts in a network
+			# which happens to be the default.
+		
+			checker = {}
+			# first loop set sets checker to True from default of False
+			# if a default account is found.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if not fobj_user.reserve_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.reserve_network_ids[i]] = fobj_user.reserve_default[i]
+				if fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.client_network_ids)):
+				if not fobj_user.client_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.client_network_ids[i]] = fobj_user.client_default[i]
+				if fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.joint_network_ids)):
+				if not fobj_user.joint_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.joint_network_ids[i]] = fobj_user.joint_default[i]
+				if fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.clone_network_ids)):
+				if not fobj_user.clone_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.clone_network_ids[i]] = fobj_user.clone_default[i]
+				if fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+
+			# second loop says, if the checker for that network id is False
+			# set the checker for that network id and the default value on
+			# that account to True.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if checker[fobj_user.reserve_network_ids[i]] == False:
+					checker[fobj_user.reserve_network_ids[i]] = True
+					fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+					
+			for i in range(len(fobj_user.client_network_ids)):
+				if checker[fobj_user.client_network_ids[i]] == False:
+					checker[fobj_user.client_network_ids[i]] = True
+					fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+
+			for i in range(len(fobj_user.joint_network_ids)):
+				if checker[fobj_user.joint_network_ids[i]] == False:
+					checker[fobj_user.joint_network_ids[i]] = True
+					fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+
+			for i in range(len(fobj_user.clone_network_ids)):
+				if checker[fobj_user.clone_network_ids[i]] == False:
+					checker[fobj_user.clone_network_ids[i]] = True
+					fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+					
 		if fstr_type == "joint offer":
 		
 			"""
@@ -1703,14 +1769,15 @@ class metric(object):
 				source_user.joint_network_ids.append(network_id)
 				source_user.joint_account_ids.append(lds_cursor.current_index)
 				source_user.joint_labels.append(label)
+				source_user.joint_default.append(False)
 				source_user.parent_joint_offer_network_id = 0
 				source_user.parent_joint_offer_account_id = 0
 				source_user.parent_joint_offer_user_id = "EMPTY"
 				# update the target user object
 				target_user.total_other_accounts += 1
-				target_user.joint_network_ids.append(network_id)
-				target_user.joint_account_ids.append(lds_cursor.current_index)
-				target_user.joint_labels.append(label)
+				target_user.child_joint_network_ids.append(network_id)
+				target_user.child_joint_account_ids.append(lds_cursor.current_index)
+				target_user.child_joint_parent_ids.append(lds_new_metric_account.account_parent)
 				target_user.child_joint_offer_network_id = 0
 				target_user.child_joint_offer_account_id = 0
 				target_user.child_joint_offer_user_id = "EMPTY"
@@ -1751,6 +1818,7 @@ class metric(object):
 				lds_target_tx_log.put()
 
 				# save the transaction
+				self.check_default(source_user)
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
@@ -1986,14 +2054,15 @@ class metric(object):
 				source_user.client_network_ids.append(network_id)
 				source_user.client_account_ids.append(lds_cursor.current_index)
 				source_user.client_labels.append(label)
+				source_user.client_default.append(False)
 				source_user.parent_client_offer_network_id = 0
 				source_user.parent_client_offer_account_id = 0
 				source_user.parent_client_offer_user_id = "EMPTY"
 				# update the target user object
 				target_user.total_other_accounts += 1
-				target_user.client_network_ids.append(network_id)
-				target_user.client_account_ids.append(lds_cursor.current_index)
-				target_user.client_labels.append(label)
+				target_user.child_client_network_ids.append(network_id)
+				target_user.child_client_account_ids.append(lds_cursor.current_index)
+				target_user.child_client_parent_ids.append(lds_new_metric_account.account_parent)
 				target_user.child_client_offer_network_id = 0
 				target_user.child_client_offer_account_id = 0
 				target_user.child_client_offer_user_id = "EMPTY"
@@ -2034,6 +2103,7 @@ class metric(object):
 				lds_target_tx_log.put()
 
 				# save the transaction
+				self.check_default(source_user)
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
@@ -2113,6 +2183,7 @@ class metric(object):
 			source_user.clone_account_ids.append(lds_cursor.current_index)
 			source_user.clone_parent_ids.append(lds_source_metric.account_id)
 			source_user.clone_labels.append(label)
+			source_user.clone_default.append(False)
 
 			# transaction log
 			tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
@@ -2129,6 +2200,7 @@ class metric(object):
 			lds_source_tx_log.put()
 
 			# save the transaction
+			self.check_default(source_user)
 			source_user.put()
 			lds_new_metric_account.put()
 			lds_cursor.put()
@@ -2143,7 +2215,69 @@ class metric(object):
 	
 	@ndb.transactional(xg=True)
 	def _reserve_open_transactional(self,fstr_network_name):
-	
+
+		def check_default(self,fobj_user):
+		
+			# Check default is just making sure a default account exists
+			# when a user adds or deletes accounts.  They may delete the
+			# default, or they may add a second account without designating
+			# a default.  This makes sure they always have a default if 
+			# there is more than one account for them in that network and
+			# the system needs to pick one for a function where the user
+			# doesn't specifically designate manually.  For instance, a 
+			# "search and pay" after deleting 1 of 3 accounts in a network
+			# which happens to be the default.
+		
+			checker = {}
+			# first loop set sets checker to True from default of False
+			# if a default account is found.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if not fobj_user.reserve_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.reserve_network_ids[i]] = fobj_user.reserve_default[i]
+				if fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.client_network_ids)):
+				if not fobj_user.client_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.client_network_ids[i]] = fobj_user.client_default[i]
+				if fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.joint_network_ids)):
+				if not fobj_user.joint_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.joint_network_ids[i]] = fobj_user.joint_default[i]
+				if fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.clone_network_ids)):
+				if not fobj_user.clone_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.clone_network_ids[i]] = fobj_user.clone_default[i]
+				if fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+
+			# second loop says, if the checker for that network id is False
+			# set the checker for that network id and the default value on
+			# that account to True.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if checker[fobj_user.reserve_network_ids[i]] == False:
+					checker[fobj_user.reserve_network_ids[i]] = True
+					fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+					
+			for i in range(len(fobj_user.client_network_ids)):
+				if checker[fobj_user.client_network_ids[i]] == False:
+					checker[fobj_user.client_network_ids[i]] = True
+					fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+
+			for i in range(len(fobj_user.joint_network_ids)):
+				if checker[fobj_user.joint_network_ids[i]] == False:
+					checker[fobj_user.joint_network_ids[i]] = True
+					fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+
+			for i in range(len(fobj_user.clone_network_ids)):
+				if checker[fobj_user.clone_network_ids[i]] == False:
+					checker[fobj_user.clone_network_ids[i]] = True
+					fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+
 		# A user can create a reserve account if:
 		# 1. They are not already a member.
 		# 2. They haven't reached there maximum number of accounts.
@@ -2201,6 +2335,7 @@ class metric(object):
 		lds_user.reserve_network_ids.append(network_id)
 		lds_user.reserve_account_ids.append(lds_cursor.current_index)
 		lds_user.reserve_labels.append(label)
+		lds_user.reserve_default.append(False)
 		
 		# transaction log
 		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
@@ -2216,6 +2351,7 @@ class metric(object):
 		lds_tx_log.put()
 		
 		# save the transaction
+		self.check_default(lds_user)
 		lds_user.put()
 		lds_metric_account.put()
 		lds_cursor.put()
@@ -3672,7 +3808,8 @@ class metric(object):
 						del source_user.joint_account_ids[i]
 						del source_user.joint_parent_ids[i]
 						delete_if_not_username(source_user.joint_labels[i])
-						del source_user.joint_labels[i]						
+						del source_user.joint_labels[i]
+						del source_user.joint_default[i]		
 						# update parent user object
 						parent_user.total_child_accounts -= 1
 						for j in range (len(parent_user.child_joint_network_ids)):
@@ -3736,7 +3873,8 @@ class metric(object):
 						del source_user.client_account_ids[i]
 						del source_user.client_parent_ids[i]
 						delete_if_not_username(source_user.client_labels[i])
-						del source_user.client_labels[i]						
+						del source_user.client_labels[i]
+						del source_user.client_default[i]
 						# update parent user object
 						parent_user.total_child_accounts -= 1
 						for j in range (len(parent_user.child_client_network_ids)):
@@ -3789,7 +3927,8 @@ class metric(object):
 						del source_user.clone_account_ids[i]
 						del source_user.clone_parent_ids[i]
 						delete_if_not_username(source_user.clone_labels[i])
-						del source_user.clone_labels[i]						
+						del source_user.clone_labels[i]
+						del source_user.clone_default[i]
 						# update source metric account
 						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
@@ -3844,7 +3983,8 @@ class metric(object):
 						del source_user.reserve_account_ids[i]
 						del source_user.reserve_parent_ids[i]
 						delete_if_not_username(source_user.reserve_labels[i])
-						del source_user.reserve_labels[i]	
+						del source_user.reserve_labels[i]
+						del source_user.reserve_default[i]
 						# update source metric account
 						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
