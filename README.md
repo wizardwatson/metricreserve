@@ -1,6 +1,71 @@
 # metricreserve
 Metric Reserve Stuff
 
+* must be logged in
+** must be admin
+
+ANY CONTEXT:
+
+	l : change to long command
+	menu : navigate to menu
+	*username change <name> : change primary username
+	network : show summary of all networks
+	network <name> : switch to specific network view
+	*message <name> : attach a message to a users profile
+	
+SPECIFIC NETWORK CONTEXT:
+ 
+	**network add <name> : add a new network 
+	**network delete : delete an inactive network
+	**network type <live|test> : change network type of inactive network
+	**network activate : activate an inactive network
+	**network skintillionths <amount> : change inactive network conversion ratio
+	**network describe <description> : add description to inactive network
+
+	*reserve open
+
+SPECIFIC ACCOUNT [SELF] CONTEXT: 
+
+	*alias change <alias>
+	*alias delete
+
+	*joint close
+	
+	*client close
+	
+	*clone open
+	*clone close
+	
+	*reserve close
+
+	*modify up|down|destroy|create <amount>
+
+SPECIFIC ACCOUNT [OTHER] CONTEXT:
+
+	*joint authorize
+	*joint offer
+	*joint retrieve
+
+	*client offer
+	*client authorize
+
+	*connect
+	*disconnect
+
+	*pay <amount>
+
+	*suggested request <amount>
+	*suggested authorize <amount>
+	*suggested cancel <amount>
+	*suggested deny <amount>
+	*transfer request <amount>
+	*transfer authorize <amount>
+	*transfer cancel <amount>
+	*transfer deny <amount>
+
+
+
+
 dev_appserver.py --clear_datastore=yes app.yaml
 
 
