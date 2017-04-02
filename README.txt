@@ -66,33 +66,29 @@ SPECIFIC ACCOUNT [OTHER] CONTEXT:
 
 TICKETS ALL [OWNER] CONTEXT: 
 
-open <name>
-open <name> <user>
-open <name> <amount>
-open <name> <amount> m <memo>
-open <name> <amount> <user>
-open <name> <amount> <user> m <memo>
+*open <name>
+*open <name> <user>
+*open <name> <amount>
+*open <name> <amount> m <memo>
+*open <name> <amount> <user>
+*open <name> <amount> <user> m <memo>
 
-close <name> : close an open ticket
-remove <ticket> : remove user association with a ticket
-
-
-
+*close <name> : close an open ticket
+*remove <ticket> : remove user association with a ticket
 
 TICKETS SPECIFIC [OWNER] CONTEXT: 
 
-close : close the ticket
-attach <user> : associate a specific user with a ticket
-
-
-TICKETS ALL [OTHER] CONTEXT:
-
+*close : close the ticket
+*attach <user> : associate a specific user with a ticket
+*remove : removes any associated user
+*amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+*amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
 
 TICKETS SPECIFIC [OTHER] CONTEXT: 
 
-pay <amount> : pay a ticket
-pay <amount> <amount|percent> : pay a ticket plus add gratuity
-
+*pay <amount> : pay a ticket
+*pay <amount> <amount|percent> : pay a ticket plus add gratuity
+*remove : removes visiting users association from a ticket
 
 
 
