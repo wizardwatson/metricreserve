@@ -1,5 +1,48 @@
 Metric Reserve Stuff
 
+
+
+PAGES
+
+[root]
+	anon message
+	logged in message
+	
+[all networks summary]
+	clickable networks
+	
+[one network summary]
+	clickable accounts you have
+	
+[one account]
+	status
+	type
+	balance
+	activity
+	reserve stuff if any
+
+[all tickets]
+	list of created ones
+	list of tagged ones
+	
+[one ticket]
+	qr code
+	amount
+	memo
+	name
+
+[profile]
+	messages
+	bio
+	location
+	list of accounts and networks
+	
+	
+	
+
+
+
+
 * must be logged in
 ** must be admin
 
@@ -10,7 +53,6 @@ ANY CONTEXT:
 	*username change <name> : change primary username
 	network : show summary of all networks
 	network <name> : switch to specific network view
-	*message <name> : attach a message to a users profile
 	
 SPECIFIC NETWORK CONTEXT:
  
@@ -23,15 +65,18 @@ SPECIFIC NETWORK CONTEXT:
 
 	*reserve open
 	
-	*tickets : go to your accounts ticket page
+	*default <username|alias> : set default account to use on this network
 
 SPECIFIC ACCOUNT [SELF] CONTEXT: 
 
 	*alias change <alias>
 	*alias delete
-
+	
+	*joint offer
+	*joint retrieve
 	*joint close
 	
+	*client offer
 	*client close
 	
 	*clone open
@@ -40,14 +85,13 @@ SPECIFIC ACCOUNT [SELF] CONTEXT:
 	*reserve close
 
 	*modify up|down|destroy|create <amount>
+	
+	*tickets : go to your accounts ticket page
 
 SPECIFIC ACCOUNT [OTHER] CONTEXT:
 
 	*joint authorize
-	*joint offer
-	*joint retrieve
 
-	*client offer
 	*client authorize
 
 	*connect
@@ -59,6 +103,7 @@ SPECIFIC ACCOUNT [OTHER] CONTEXT:
 	*suggested authorize <amount>
 	*suggested cancel <amount>
 	*suggested deny <amount>
+	
 	*transfer request <amount>
 	*transfer authorize <amount>
 	*transfer cancel <amount>
@@ -76,6 +121,10 @@ TICKETS ALL [OWNER] CONTEXT:
 *close <name> : close an open ticket
 *remove <ticket> : remove user association with a ticket
 
+TICKETS ALL [OTHER] CONTEXT:
+
+*ticket <name> : search/go to a specific ticket
+
 TICKETS SPECIFIC [OWNER] CONTEXT: 
 
 *close : close the ticket
@@ -90,6 +139,17 @@ TICKETS SPECIFIC [OTHER] CONTEXT:
 *pay <amount> <amount|percent> : pay a ticket plus add gratuity
 *remove : removes visiting users association from a ticket
 
+PROFILE [SELF] CONTEXT:
+
+*message <text> : post message to own feed
+*bio <text> : update/set/delete public biographical information
+*gravatar email <email> : update email address to use for gravatar
+*gravatar type <email|identicon|monstercon|anonymous|metric> : switch gravatar display format
+*location <lat> <lng> : set your public location
+
+PROFILE [OTHER] CONTEXT:
+
+*message <text> : post message to anothers feed
 
 
 
