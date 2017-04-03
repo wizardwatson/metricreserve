@@ -1,5 +1,8 @@
 Metric Reserve Stuff
 
+TO DO:
+
+	valid names should be 50 character or less?
 
 
 PAGES
