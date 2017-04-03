@@ -361,8 +361,24 @@ class ds_mr_metric_account(ndb.Model):
 	last_network_balance = ndb.IntegerProperty(default=0)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	extra_pickle = ndb.PickleProperty()
-	tickets = ndb.PickleProperty(default={})
- 
+
+# metric ticket
+class ds_mr_metric_ticket_index(ndb.Model):
+
+	account_id = ndb.IntegerProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
+	ticket_data = ndb.PickleProperty(default={})
+	
+class ds_mr_metric_ticket_tape(ndb.Model):
+
+	ticket_name = ndb.StringProperty(indexed=False)
+	ticket_tape = ndb.PickleProperty(default={})
+
+class ds_mr_metric_ticket_plu(ndb.Model):
+
+	plu_data = ndb.PickleProperty(default={})
+
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
 
@@ -3410,7 +3426,7 @@ class metric(object):
 
 		# make sure fstr_amount actually is an integer
 		try:
-			lint_amount = int(float(fstr_amount)*100000)
+			lint_amount = int(float(fstr_amount)*fint_conversion)
 		except ValueError, ex:
 			self.PARENT.RETURN_CODE = "1153"
 			return False # error_invalid_amount_passed
@@ -4313,22 +4329,6 @@ class metric(object):
 		self.PARENT.RETURN_CODE = "7042" # success Joint account retrieval successful.
 		return True
 
-	def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name):
-
-		# STUB
-		pass
-
-	@ndb.transactional(xg=True)
-	def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion):
-
-		# STUB
-		pass
-
-
-
-
-
-
 	def _get_default(self,fstr_network_name,fstr_source_name):
 
 		network = self._get_network(fstr_network_name)
@@ -4412,25 +4412,337 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1231" # error Could not find account in user object.
 			return False
 
-	def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name):
+	def _process_ticket(self,fstr_network_name,fstr_source_name,fstr_target_name,fct,fstr_ticket_name=None):
 
-		# STUB
-		pass
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._process_ticket_transactional(network.network_id,fstr_source_name,fstr_target_name,fct,network.skintillionths,fstr_ticket_name)
 
 	@ndb.transactional(xg=True)
-	def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion):
+	def _process_ticket_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fct,fint_conversion,fstr_ticket_name):
 
-		# STUB
-		pass
+		amount = None
+		user = None
+		memo = None
+		ticket_name = None
+		
+		def is_valid_number(self,fstr_num):
+		
+			# make sure fstr_amount actually is an integer
+			try:
+				lint_amount = int(float(fstr_num)*fint_conversion)
+				amount = lint_amount
+				return True
+			except ValueError, ex:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Invalid amount passed.
+		
+		def is_valid_name(self,fstr_name,fstr_type=None):
+
+			# a valid name is comprised of re.match(r'^[a-z0-9_]+$',fstr_name)
+			# so only a-z, 0-9, or an underscore
+			# additionally:
+			# 1. Can't end or begin with an underscore
+			# 2. Can't be less than three characters
+			# 3. Must contain at least one letter.
+			# 4. If 10 or less in length, must contain at lease one
+			# number and at least one letternumber as keywords 
+			# reserve the 10 or less space without numbers
+			# or underscores.
+			if not re.match(r'^[a-z0-9_]+$',fstr_name):
+				return False
+			if not re.search('[a-z]',fstr_name):
+				return False
+			if not len(fstr_name) > 2:
+				return False
+			if fstr_name[:1] == "_" or fstr_name[-1:] == "_":
+				return False
+			if len(fstr_name) < 11 and not re.search('[0-9]',fstr_name):
+				return False
+			if fstr_type == "user":
+				user = fstr_name
+			if fstr_type == "ticket":
+				ticket_name = fstr_name
+			return True
+		
+		def parse_for_memo(self,command_seq,index_max):
+		
+			found = False
+			new_command_seq = []
+			m_count = 0
+			for i in range(len(command_seq)):
+				if i > index_max:
+					break
+				else:
+					new_command_seq.append()
+					if command_seq[i] == "m":
+						found = True
+						# Find the index of the 'nth' occurrence of "m" 
+						# from raw command. Take everything after that
+						# point as the memo variable.
+						start = command_seq[-1].find("m")
+						while start > 0 and m_count > 0:
+							start = command_seq[-1].find("m",start + 1)
+							m_count -= 1
+						# now start equals the index of the "m" we want
+						memo = command_seq[-1][(start + 1):]
+						break
+					else:
+						m_count += command_seq[i].count("m")
+						new_command_seq.append(command_seq[i])
+			if found:
+				return (new_command_seq,memo)
+			else:
+				return (command_seq,memo)
+		
+		def get_or_insert_ticket_index(self,fint_network_id,fint_account_id,fstr_user_id)
+		
+			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fint_network_id, fint_account_id))
+			ticket_index_entity = ticket_index_key.get()
+			if ticket_index_entity is None:
+				ticket_index_entity = ds_mr_metric_ticket_index()
+				ticket_index_entity.key = ticket_index_key
+				ticket_index_entity.account_id = fint_account_id
+				ticket_index_entity.user_id = fstr_user_id
+				ticket_index_entity.network_id = fint_network_id
+			return ticket_index_entity
+			
+		raw_command = fct[-1]
+		
+		# If the ticket hasn't been created yet then
+		# only available command is "open".
+		
+		if fstr_ticket_name is None:
+			result = parse_for_memo(fct,4)
+			ct = result[0]
+			memo = result[1]
+			
+			# we can only be doing "open" command, which creates a new ticket
+			if not ct[0] == "open":
+				self.PARENT.RETURN_CODE = "STUB" # error Command not valid.  No ticket name specified.
+				return False
+			
+			if not len(ct) > 1:
+				self.PARENT.RETURN_CODE = "STUB" # error Not enough arguments for open ticket command.
+				return False
+			
+			if not self.is_valid_name(ct[1],"ticket"):
+				self.PARENT.RETURN_CODE = "STUB" # error Ticket name provided is not valid.
+				return False			
+			
+			if len(ct) > 4:
+				self.PARENT.RETURN_CODE = "STUB" # error Too many arguments for open ticket command.
+				return False
+				
+			# Now we know:
+			# 1. command is 2, 3, or 4 in length				
+			# 2. first token is "open"
+			# 3. if they passed a memo it's in the memo variable or memo is None
+			#
+			# Length 3 is the only variable now, it could be "user" or "amount"
+			# in index 2.
+			if len(ct) == 3:
+				if self.is_valid_name(ct[2],"user"):
+					# Then it's not an amount, so take as user
+					# open <name> <user>
+					
+				elif self.is_valid_number(ct[2]):
+					# Valid number, take as amount
+					# open <name> <amount>
+				
+				else:
+					self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 3rd token. Must be valid username or amount.
+					return False
+			if len(ct) == 4: 
+				# open <name> <user> <amount>	
+				if not self.is_valid_name(ct[2],"user"):
+					self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 3rd token. Must be valid username.
+					return False
+					
+				if not self.is_valid_number(ct[3]):
+					self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 4th token. Must be valid amount.
+					return False
+
+			# At this point, regardless of length, we have our
+			# four variables.  
+			validation_result = self._name_validate_transactional(None,fstr_source_name,user,fint_network_id)
+			if not validation_result:
+				# pass up error
+				return False
+
+			network_id = validation_result[0]
+			source_account_id = validation_result[1]
+			source_user = validation_result[3]
+			source_ticket_index = self.get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
+			if not "ticket_count" in source_ticket_index.ticket_data:
+				# initialize ticket_data
+				source_ticket_index.ticket_data["ticket_count"] = 0
+				source_ticket_index.ticket_data["ticket_labels"] = []
+				source_ticket_index.ticket_data["ticket_amounts"] = []
+				source_ticket_index.ticket_data["ticket_memos"] = []
+				source_ticket_index.ticket_data["ticket_tag_network_ids"] = []
+				source_ticket_index.ticket_data["ticket_tag_account_ids"] = []
+				source_ticket_index.ticket_data["ticket_tag_user_ids"] = []
+				
+				source_ticket_index.ticket_data["tag_count"] = []
+				source_ticket_index.ticket_data["tag_network_ids"] = []
+				source_ticket_index.ticket_data["tag_account_ids"] = []
+				source_ticket_index.ticket_data["tag_user_ids"] = []
+
+			# Now we just need to make sure the ticket name is available
+			# in the source's index and that the target, if exists, isn't
+			# maxed out in ticket tags.
+
+				
+			if source_ticket_index.ticket_data["ticket_count"] > 999:
+				self.PARENT.RETURN_CODE = "STUB" # error Open tickets already at maximum.
+				return False
+			
+			if ticket_name in source_ticket_index.ticket_data["ticket_labels"]:
+				self.PARENT.RETURN_CODE = "STUB" # error Ticket name already in use.
+				return False
+			
+			# add ticket data for source
+			source_ticket_index.ticket_data["ticket_count"] += 1
+			source_ticket_index.ticket_data["ticket_labels"].append(ticket_name)
+			source_ticket_index.ticket_data["ticket_amounts"].append(amount)
+			source_ticket_index.ticket_data["ticket_memos"].append(memo)
+			source_ticket_index.ticket_data["ticket_tag_network_ids"].append(None) 
+			source_ticket_index.ticket_data["ticket_tag_account_ids"].append(None) 
+			source_ticket_index.ticket_data["ticket_tag_user_ids"].append(None) 
+			
+			if not user is None:
+				target_account_id = validation_result[2]
+				target_user = validation_result[4]
+				target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
+				
+				if not "ticket_count" in target_ticket_index.ticket_data:
+					# initialize ticket_data
+					target_ticket_index.ticket_data["ticket_count"] = 0
+					target_ticket_index.ticket_data["ticket_labels"] = []
+					target_ticket_index.ticket_data["ticket_amounts"] = []
+					target_ticket_index.ticket_data["ticket_memos"] = []
+					target_ticket_index.ticket_data["ticket_tag_network_ids"] = []
+					target_ticket_index.ticket_data["ticket_tag_account_ids"] = []
+					target_ticket_index.ticket_data["ticket_tag_user_ids"] = []
+
+					target_ticket_index.ticket_data["tag_count"] = []
+					target_ticket_index.ticket_data["tag_network_ids"] = []
+					target_ticket_index.ticket_data["tag_account_ids"] = []
+					target_ticket_index.ticket_data["tag_user_ids"] = []
+				if target_ticket_index.ticket_data["tag_count"] > 19:
+					self.PARENT.RETURN_CODE = "STUB" # error Target tag count already at maximum.
+					return False
+
+				target_ticket_index.ticket_data["tag_count"] += 1
+				target_ticket_index.ticket_data["tag_network_ids"].append(network_id)
+				target_ticket_index.ticket_data["tag_account_ids"].append(source_account_id)
+				target_ticket_index.ticket_data["tag_user_ids"].append(source_user.user_id)
+					
+				source_ticket_index.ticket_data["ticket_tag_network_ids"][-1] = network_id
+				source_ticket_index.ticket_data["ticket_tag_account_ids"][-1] = target_account_id
+				source_ticket_index.ticket_data["ticket_tag_user_ids"][-1] = target_user.user_id
+				
+				source_ticket_index.put()
+				target_ticket_index.put()	
+				self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully opened.
+				return True
+			else:
+				source_ticket_index.put()
+				self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully opened.
+				return True		
+		else:
+			# We have a ticket name.
+			#
+			# OWNER FUNCTIONS:
+			# 1. close : close the ticket
+			# 2. remove : removes any user tags
+			# 3. attach <username> : tags a user with this ticket
+			# 4. amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+			# 5. amount <amount> m <memo> : same as amount but with memo
+			# 
+			# TAGGED USER FUNCTIONS
+			# 1. remove : removes a users tag from a ticket
+			#
+			# ANYONE FUNCTIONS
+			# 1. pay <amount> : pay a ticket
+			# 2. pay <amount> <amount|percent> : pay a ticket plus add gratuity
+
+
+	"""
+
+	TICKETS ALL [OWNER] CONTEXT: 
+
+	*open <name>
+	*open <name> m <memo>
+	*open <name> <user>
+	*open <name> <user> m <memo>
+	*open <name> <amount>
+	*open <name> <amount> m <memo>
+	*open <name> <user> <amount>
+	*open <name> <user> <amount> m <memo>
+
+	*close <name> : close an open ticket
+	*remove <ticket> : remove user association with a ticket
+
+	TICKETS ALL [OTHER] CONTEXT:
+
+	*ticket <name> : search/go to a specific ticket
+
+	TICKETS SPECIFIC [OWNER] CONTEXT: 
+
+	*close : close the ticket
+	*attach <user> : associate a specific user with a ticket
+	*remove : removes any associated user
+	*amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+	*amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
+
+	TICKETS SPECIFIC [OTHER] CONTEXT: 
+
+	*pay <amount> : pay a ticket
+	*pay <amount> <amount|percent> : pay a ticket plus add gratuity
+	*remove : removes visiting users association from a ticket
+
+	# metric account: this is the main account information
+	class ds_mr_metric_account(ndb.Model):
+
+		account_id = ndb.IntegerProperty(indexed=False)
+		network_id = ndb.IntegerProperty(indexed=False)
+		user_id = ndb.StringProperty(indexed=False)
+		tx_index = ndb.IntegerProperty(indexed=False)
+		account_status = ndb.StringProperty(indexed=False)
+		account_type = ndb.StringProperty(indexed=False)
+		account_parent = ndb.IntegerProperty(default=0,indexed=False)
+		outgoing_connection_requests = ndb.PickleProperty(default=[])
+		incoming_connection_requests = ndb.PickleProperty(default=[])
+		incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+		outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+		suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+		suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+		suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
+		suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+		current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+		current_connections = ndb.PickleProperty(default=[])
+		current_reserve_balance = ndb.IntegerProperty(default=0)
+		current_network_balance = ndb.IntegerProperty(default=0)	
+		last_connections = ndb.PickleProperty(default=[])
+		last_reserve_balance = ndb.IntegerProperty(default=0)
+		last_network_balance = ndb.IntegerProperty(default=0)
+		date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+		extra_pickle = ndb.PickleProperty()
+
+	# metric ticket
+	class ds_mr_metric_ticket_index(ndb.Model):
+
+		account_id = ndb.IntegerProperty(indexed=False)
+		network_id = ndb.IntegerProperty(indexed=False)
+		user_id = ndb.StringProperty(indexed=False)
+		ticket_data = ndb.PickleProperty(default={})
 
 
 
-
-
-
-
-
-
+	"""
 
 
 
