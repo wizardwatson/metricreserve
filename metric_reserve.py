@@ -110,6 +110,13 @@ CLASS: metric(object)
 	@ndb.transactional(xg=True)
 	def _joint_retrieve_transactional(self, fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion)
 
+	def _get_default(self,fstr_network_name,fstr_source_name):
+
+	def _set_default(self,fstr_network_name,fstr_source_name):
+
+	@ndb.transactional(xg=True)
+	def _set_default_transactional(self,fint_network_id,fstr_source_name):
+
 	STUB def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name)
 	
 	STUB @ndb.transactional(xg=True)
@@ -3796,6 +3803,68 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _leave_network_transactional(self,fint_network_id,fstr_source_name):
 
+		def check_default(self,fobj_user):
+		
+			# Check default is just making sure a default account exists
+			# when a user adds or deletes accounts.  They may delete the
+			# default, or they may add a second account without designating
+			# a default.  This makes sure they always have a default if 
+			# there is more than one account for them in that network and
+			# the system needs to pick one for a function where the user
+			# doesn't specifically designate manually.  For instance, a 
+			# "search and pay" after deleting 1 of 3 accounts in a network
+			# which happens to be the default.
+		
+			checker = {}
+			# first loop set sets checker to True from default of False
+			# if a default account is found.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if not fobj_user.reserve_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.reserve_network_ids[i]] = fobj_user.reserve_default[i]
+				if fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.client_network_ids)):
+				if not fobj_user.client_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.client_network_ids[i]] = fobj_user.client_default[i]
+				if fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.joint_network_ids)):
+				if not fobj_user.joint_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.joint_network_ids[i]] = fobj_user.joint_default[i]
+				if fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+				
+			for i in range(len(fobj_user.clone_network_ids)):
+				if not fobj_user.clone_network_ids[i] in checker:
+					# add the network id as a key to our checker if it doesn't exist
+					checker[fobj_user.clone_network_ids[i]] = fobj_user.clone_default[i]
+				if fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+
+			# second loop says, if the checker for that network id is False
+			# set the checker for that network id and the default value on
+			# that account to True.
+			for i in range(len(fobj_user.reserve_network_ids)):
+				if checker[fobj_user.reserve_network_ids[i]] == False:
+					checker[fobj_user.reserve_network_ids[i]] = True
+					fobj_user.reserve_default[i] = True
+					
+			for i in range(len(fobj_user.client_network_ids)):
+				if checker[fobj_user.client_network_ids[i]] == False:
+					checker[fobj_user.client_network_ids[i]] = True
+					fobj_user.client_default[i] = True
+
+			for i in range(len(fobj_user.joint_network_ids)):
+				if checker[fobj_user.joint_network_ids[i]] == False:
+					checker[fobj_user.joint_network_ids[i]] = True
+					fobj_user.joint_default[i] = True
+
+			for i in range(len(fobj_user.clone_network_ids)):
+				if checker[fobj_user.clone_network_ids[i]] == False:
+					checker[fobj_user.clone_network_ids[i]] = True
+					fobj_user.clone_default[i] = True
+					
 		validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 		if not validation_result:
 			# pass up error
@@ -3878,6 +3947,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
+						self.check_default(source_user)
 						source_user.put()
 						parent_user.put()
 						lds_source_metric.put()						
@@ -3943,6 +4013,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
+						self.check_default(source_user)
 						source_user.put()
 						parent_user.put()
 						lds_source_metric.put()						
@@ -3989,6 +4060,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
+						self.check_default(source_user)
 						source_user.put()
 						lds_source_metric.put()						
 						break
@@ -4045,6 +4117,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
+						self.check_default(source_user)
 						source_user.put()
 						lds_source_metric.put()						
 						break
@@ -4256,17 +4329,96 @@ class metric(object):
 
 
 
+	def _get_default(self,fstr_network_name,fstr_source_name):
 
-
-
-
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		validation_result = self._name_validate_transactional(None,fstr_source_name,None,network.network_id)
+		if not validation_result:
+			# pass up error
+			return False
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		source_user = validation_result[3]
+		for i in range(len(source_user.reserve_network_ids)):
+			if source_user.reserve_default[i] == True:
+				return source_user.reserve_account_ids[i]
+		for i in range(len(source_user.client_network_ids)):
+			if source_user.client_default[i] == True:
+				return source_user.client_account_ids[i]
+		for i in range(len(source_user.joint_network_ids)):
+			if source_user.joint_default[i] == True:
+				return source_user.joint_account_ids[i]
+		for i in range(len(source_user.clone_network_ids)):
+			if source_user.clone_default[i] == True:
+				return source_user.clone_account_ids[i]
+				
 	def _set_default(self,fstr_network_name,fstr_source_name):
 
-		# STUB
-		pass
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._set_default_transactional(network.network_id,fstr_source_name)
 		
 	@ndb.transactional(xg=True)
-	def _set_default_transactional(self,fstr_network_name,fstr_source_name):
+	def _set_default_transactional(self,fint_network_id,fstr_source_name):
+
+		validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
+		if not validation_result:
+			# pass up error
+			return False
+
+		network_id = validation_result[0]
+		source_account_id = validation_result[1]
+		source_user = validation_result[3]
+		set_successful = False
+		for i in range(len(source_user.reserve_network_ids)):
+			if source_user.reserve_network_ids[i] == network_id:
+				if source_user.reserve_account_ids[i] == source_account_id:
+					source_user.reserve_default[i] = True
+					set_successful = True
+				else:
+					source_user.reserve_default[i] = False
+			
+		for i in range(len(source_user.client_network_ids)):
+			if source_user.client_network_ids[i] == network_id:
+				if source_user.client_account_ids[i] == source_account_id:
+					source_user.client_default[i] = True
+					set_successful = True
+				else:
+					source_user.client_default[i] = False
+					
+		for i in range(len(source_user.joint_network_ids)):
+			if source_user.joint_network_ids[i] == network_id:
+				if source_user.joint_account_ids[i] == source_account_id:
+					source_user.joint_default[i] = True
+					set_successful = True
+				else:
+					source_user.joint_default[i] = False
+					
+		for i in range(len(source_user.clone_network_ids)):
+			if source_user.clone_network_ids[i] == network_id:
+				if source_user.clone_account_ids[i] == source_account_id:
+					source_user.clone_default[i] = True
+					set_successful = True
+				else:
+					source_user.clone_default[i] = False
+			
+		if set_successful:
+			self.PARENT.RETURN_CODE = "7046" # Successfully set default account.
+			source_user.put()
+			return True
+		else:
+			self.PARENT.RETURN_CODE = "1231" # error Could not find account in user object.
+			return False
+
+	def _create_ticket(self,fstr_network_name,fstr_source_name,fstr_amount,fstr_ticket_name):
+
+		# STUB
+		pass
+
+	@ndb.transactional(xg=True)
+	def _create_ticket_transactional(self,fstr_network_name,fstr_source_name,fstr_amount,fint_conversion):
 
 		# STUB
 		pass
@@ -4287,7 +4439,21 @@ class metric(object):
 
 
 
-		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	def _process_graph(self, fint_network_id):
 	
 		# So...we meet again.
