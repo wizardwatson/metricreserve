@@ -1372,7 +1372,7 @@ class metric(object):
 			
 		if not fbool_delete:
 			new_label = fstr_new_alias		
-			if self._save_unique_alias(self,fstr_new_alias,current_alias_entity.network_id,current_alias_entity.account_id):
+			if self._save_unique_alias(fstr_new_alias,current_alias_entity.network_id,current_alias_entity.account_id):
 				current_alias_key.delete()
 				self.PARENT.RETURN_CODE = "7043" # Successfully changed alias.
 			else:
@@ -1482,8 +1482,15 @@ class metric(object):
 			# "username" is available
 			return self.PARENT.user.entity.username
 
+	def _other_account(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
+
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._other_account_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_type)
+		
 	@ndb.transactional(xg=True)
-	def _other_account_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
+	def _other_account_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_type):
 	
 		def check_default(self,fobj_user):
 		
@@ -1530,22 +1537,22 @@ class metric(object):
 			for i in range(len(fobj_user.reserve_network_ids)):
 				if checker[fobj_user.reserve_network_ids[i]] == False:
 					checker[fobj_user.reserve_network_ids[i]] = True
-					fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+					fobj_user.reserve_default[i] = True
 					
 			for i in range(len(fobj_user.client_network_ids)):
 				if checker[fobj_user.client_network_ids[i]] == False:
 					checker[fobj_user.client_network_ids[i]] = True
-					fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+					fobj_user.client_default[i] = True
 
 			for i in range(len(fobj_user.joint_network_ids)):
 				if checker[fobj_user.joint_network_ids[i]] == False:
 					checker[fobj_user.joint_network_ids[i]] = True
-					fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+					fobj_user.joint_default[i] = True
 
 			for i in range(len(fobj_user.clone_network_ids)):
 				if checker[fobj_user.clone_network_ids[i]] == False:
 					checker[fobj_user.clone_network_ids[i]] = True
-					fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+					fobj_user.clone_default[i] = True
 					
 		if fstr_type == "joint offer":
 		
@@ -1555,7 +1562,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1625,7 +1632,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""	
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1670,7 +1677,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1715,7 +1722,7 @@ class metric(object):
 				TARGET: other user object/account
 				ACTION: Modifies user objects AND makes new account
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1840,7 +1847,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1910,7 +1917,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""	
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -1955,7 +1962,7 @@ class metric(object):
 				TARGET: other user object			
 				ACTION: Modifies user objects
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -2000,7 +2007,7 @@ class metric(object):
 				TARGET: other user object/account
 				ACTION: Modifies user objects AND makes new account
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -2126,7 +2133,7 @@ class metric(object):
 				TARGET: None
 				ACTION: Modifies this user AND makes new account
 			"""		
-			validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+			validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 			if not validation_result:
 				# pass up error
 				return False
@@ -2213,8 +2220,15 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1205"
 			return False # error transaction type not recognized		
 	
+	def _reserve_open(self,fstr_network_name):
+	
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._reserve_open_transactional(network.network_id)
+	
 	@ndb.transactional(xg=True)
-	def _reserve_open_transactional(self,fstr_network_name):
+	def _reserve_open_transactional(self,fint_network_id):
 
 		def check_default(self,fobj_user):
 		
@@ -2261,22 +2275,22 @@ class metric(object):
 			for i in range(len(fobj_user.reserve_network_ids)):
 				if checker[fobj_user.reserve_network_ids[i]] == False:
 					checker[fobj_user.reserve_network_ids[i]] = True
-					fobj_user.reserve_default[i]: checker[fobj_user.reserve_network_ids[i]] = True
+					fobj_user.reserve_default[i] = True
 					
 			for i in range(len(fobj_user.client_network_ids)):
 				if checker[fobj_user.client_network_ids[i]] == False:
 					checker[fobj_user.client_network_ids[i]] = True
-					fobj_user.client_default[i]: checker[fobj_user.client_network_ids[i]] = True
+					fobj_user.client_default[i] = True
 
 			for i in range(len(fobj_user.joint_network_ids)):
 				if checker[fobj_user.joint_network_ids[i]] == False:
 					checker[fobj_user.joint_network_ids[i]] = True
-					fobj_user.joint_default[i]: checker[fobj_user.joint_network_ids[i]] = True
+					fobj_user.joint_default[i] = True
 
 			for i in range(len(fobj_user.clone_network_ids)):
 				if checker[fobj_user.clone_network_ids[i]] == False:
 					checker[fobj_user.clone_network_ids[i]] = True
-					fobj_user.clone_default[i]: checker[fobj_user.clone_network_ids[i]] = True
+					fobj_user.clone_default[i] = True
 
 		# A user can create a reserve account if:
 		# 1. They are not already a member.
@@ -2285,7 +2299,7 @@ class metric(object):
 		# Fewer restrictions on reserve accounts as opposed to other
 		# types as they are not dependent on any other account.
 
-		validation_result = self._name_validate_transactional(fstr_network_name)
+		validation_result = self._name_validate_transactional(None,None,None,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -2359,7 +2373,7 @@ class metric(object):
 		return True
 	
 	@ndb.transactional(xg=True)
-	def _name_validate_transactional(self,fstr_network_name,fstr_source_name=None,fstr_target_name=None):
+	def _name_validate_transactional(self,fstr_network_name=None,fstr_source_name=None,fstr_target_name=None,fint_network_id=None):
 	
 		# return network id, and source/target id associated with that network transactionally.
 		
@@ -2371,14 +2385,17 @@ class metric(object):
 		# GET NETWORK INFO FIRST
 		##########
 		
-		# transactionally get the name/users to get to the network/account ids
-		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
-		network_name_entity = network_name_key.get()
-		if network_name_entity is None:
-			self.PARENT.RETURN_CODE = "1113"
-			return False # network name invalid
-			
-		network_id = network_name_entity.network_id
+		if fint_network_id is None:
+			# transactionally get the name/users to get to the network/account ids
+			network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
+			network_name_entity = network_name_key.get()
+			if network_name_entity is None:
+				self.PARENT.RETURN_CODE = "1113"
+				return False # network name invalid
+
+			network_id = network_name_entity.network_id
+		else:
+			network_id = fint_network_id
 		
 		##########
 		# GET SOURCE INFO IF REQUESTED
@@ -2532,9 +2549,16 @@ class metric(object):
 		# to.
 			
 		return (network_id,source_account_id,target_account_id,lds_source_user,lds_target_user)
+		
+	def _connect(self,fstr_network_name,fstr_source_name,fstr_target_name):
+	
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._connect_transactional(network.network_id,fstr_source_name,fstr_target_name)
 	
 	@ndb.transactional(xg=True)
-	def _connect_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name):
+	def _connect_transactional(self,fint_network_id,fstr_source_name,fstr_target_name):
 		
 		# connect() corresponds to a "friending" to use a Facebook
 		# term.  Basically reserves pass through your connections and
@@ -2555,7 +2579,7 @@ class metric(object):
 		# timestamp to determine whether to only change the current state, or
 		# move the current to the last state before updating the current.
 		
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -2742,11 +2766,18 @@ class metric(object):
 		lds_target.put()
 		return True	
 
+	def _disconnect(self, fstr_network_name, fstr_source_name, fstr_target_name):
+	
+		# we don't want/need to get the network conversion rate inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._disconnect_transactional(network.network_id,fstr_source_name,fstr_target_name)
+
 	@ndb.transactional(xg=True)
-	def _disconnect_transactional(self, fstr_network_name, fstr_source_name, fstr_target_name):
+	def _disconnect_transactional(self, fint_network_id, fstr_source_name, fstr_target_name):
 
 		# first get id's instead of names
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -2922,15 +2953,15 @@ class metric(object):
 	def _modify_reserve(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount):
 	
 		# we don't want/need to get the network conversion rate inside a transaction.
-		network = self._get_network(fstr_network_name=fstr_network_name)
+		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._modify_reserve_transactional(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount,network.skintillionths)
+		return self._modify_reserve_transactional(network.network_id,fstr_source_name,fstr_type,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _modify_reserve_transactional(self,fstr_network_name,fstr_source_name,fstr_type,fstr_amount,fint_conversion):
+	def _modify_reserve_transactional(self,fint_network_id,fstr_source_name,fstr_type,fstr_amount,fint_conversion):
 
 		# first get id's instead of names
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -3146,15 +3177,15 @@ class metric(object):
 	def _make_payment(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount):
 	
 		# we don't want/need to get the network conversion rate inside a transaction.
-		network = self._get_network(fstr_network_name=fstr_network_name)
+		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
+		return self._make_payment_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
+	def _make_payment_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
 
 		# first get id's instead of names
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -3304,15 +3335,15 @@ class metric(object):
 	def _process_reserve_transfer(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fstr_type):
 	
 		# we don't want/need to get the network conversion rate inside a transaction.
-		network = self._get_network(fstr_network_name=fstr_network_name)
+		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._make_payment_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,network.skintillionths)
+		return self._make_payment_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _process_reserve_transfer_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,fint_conversion):
+	def _process_reserve_transfer_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,fint_conversion):
 
 		# first get id's instead of names
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -3755,10 +3786,17 @@ class metric(object):
 		lds_target.put()
 		return True
 
-	@ndb.transactional(xg=True)
 	def _leave_network(self, fstr_network_name,fstr_source_name):
+	
+		# we don't want/need to get the network info inside a transaction.
+		network = self._get_network(fstr_network_name)
+		if network is None: return False # pass up error code
+		return self._leave_network_transactional(network.network_id,fstr_source_name)
+		
+	@ndb.transactional(xg=True)
+	def _leave_network_transactional(self,fint_network_id,fstr_source_name):
 
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_type)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,None,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -4023,12 +4061,12 @@ class metric(object):
 		# we don't want/need to get the network conversion rate inside a transaction.
 		network = self._get_network(fstr_network_name=fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._joint_retrieve_transactional(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
+		return self._joint_retrieve_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_amount,network.skintillionths)
 
 	@ndb.transactional(xg=True)
-	def _joint_retrieve_transactional(self, fstr_network_name,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
+	def _joint_retrieve_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_amount,fint_conversion):
 
-		validation_result = self._name_validate_transactional(fstr_network_name,fstr_source_name,fstr_target_name)
+		validation_result = self._name_validate_transactional(None,fstr_source_name,fstr_target_name,fint_network_id)
 		if not validation_result:
 			# pass up error
 			return False
@@ -4212,8 +4250,17 @@ class metric(object):
 
 		# STUB
 		pass
-		
 
+	def _set_default(self,fstr_network_name,fstr_source_name):
+
+		# STUB
+		pass
+		
+	@ndb.transactional(xg=True)
+	def _set_default_transactional(self,fstr_network_name,fstr_source_name):
+
+		# STUB
+		pass
 
 
 
