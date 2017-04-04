@@ -700,9 +700,125 @@
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Could not find account in user object in order
 			to set default. </p>
 		{% endif %}
+		{% if blok.error_code == "1232" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid amount passed.</p>
+		{% endif %}
+		{% if blok.error_code == "1233" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid amount passed.</p>
+		{% endif %}
+		{% if blok.error_code == "1234" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Gratuity missing percent.</p>
+		{% endif %}
+		{% if blok.error_code == "1235" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid gratuity percent passed.</p>
+		{% endif %}
+		{% if blok.error_code == "1236" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid type passed.</p>
+		{% endif %}
+		{% if blok.error_code == "1237" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Command not valid.  No ticket name specified.</p>
+		{% endif %}
+		{% if blok.error_code == "1238" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Not enough arguments for open ticket command.</p>
+		{% endif %}
+		{% if blok.error_code == "1239" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket name provided is not valid.</p>
+		{% endif %}
+		{% if blok.error_code == "1240" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Too many arguments for open ticket command.</p>
+		{% endif %}
+		{% if blok.error_code == "1241" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> User name provided is not valid.</p>
+		{% endif %}
+		{% if blok.error_code == "1242" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Amount provided is not valid.</p>
+		{% endif %}
+		{% if blok.error_code == "1243" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket open() command parsing error on 3rd token. Must be valid username or amount.</p>
+		{% endif %}
+		{% if blok.error_code == "1244" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket open() command parsing error on 3rd token. Must be valid username.</p>
+		{% endif %}
+		{% if blok.error_code == "1245" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket open() command parsing error on 4th token. Must be valid amount.</p>
+		{% endif %}
+		{% if blok.error_code == "1246" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Open tickets already at maximum.</p>
+		{% endif %}
+		{% if blok.error_code == "1247" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket name already in use.</p>
+		{% endif %}
+		{% if blok.error_code == "1248" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Target tag count already at maximum.</p>
+		{% endif %}
+		{% if blok.error_code == "1249" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Amount provided is not valid.</p>
+		{% endif %}
+		{% if blok.error_code == "1250" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid ticket command. Failed to parse.</p>
+		{% endif %}
+		{% if blok.error_code == "1251" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket name not in source index.</p>
+		{% endif %}
+		{% if blok.error_code == "1252" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Target already has too many ticket tags.</p>
+		{% endif %}
+		{% if blok.error_code == "1253" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket is not currently tagged to a user.  Nothing to remove.</p>
+		{% endif %}
+		{% if blok.error_code == "1254" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket already tagged to a user.</p>
+		{% endif %}
+		{% if blok.error_code == "1255" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Source ticket not in tagged user ticket index.</p>
+		{% endif %}
+		{% if blok.error_code == "1256" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket name not in owner index.</p>
+		{% endif %}
+		{% if blok.error_code == "1257" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket name not in owner index.</p>
+		{% endif %}
+		{% if blok.error_code == "1258" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DATAERROR: Source ticket not in tagged user ticket index.</p>
+		{% endif %}
+		{% if blok.error_code == "1259" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid ticket command. Failed to parse.</p>
+		{% endif %}
+		{% if blok.error_code == "1260" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Payment amount must match ticket amount.</p>
+		{% endif %}
+		{% if blok.error_code == "1261" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Visitor metric account failed to load.</p>
+		{% endif %}
+		{% if blok.error_code == "1262" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Source and Target are the same.  Can't pay self.</p>
+		{% endif %}
+		{% if blok.error_code == "1263" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Owner metric account failed to load.</p>
+		{% endif %}
+		{% if blok.error_code == "1264" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Cannot have negative gratuity amount.</p>
+		{% endif %}
+		{% if blok.error_code == "1265" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Cannot have negative gratuity percent.</p>
+		{% endif %}
+		{% if blok.error_code == "1266" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Cannot have gratuity percent greater than 100.</p>
+		{% endif %}
+		{% if blok.error_code == "1267" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Payment amount exceeds maximum allowed.</p>
+		{% endif %}
+		{% if blok.error_code == "1268" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Visitor does not have sufficient balance to pay.</p>
+		{% endif %}
 		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> DEBUG Got this far.<br/>
-			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
 
 
@@ -891,6 +1007,31 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			set your default account.</p>
 		{% endif %}
+		{% if blok.success_code == "7047" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket successfully opened.</p>
+		{% endif %}
+		{% if blok.success_code == "7048" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket successfully opened.</p>
+		{% endif %}
+		{% if blok.success_code == "7049" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket successfully closed.</p>
+		{% endif %}
+		{% if blok.success_code == "7050" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket amount successfully changed.</p>
+		{% endif %}
+		{% if blok.success_code == "7051" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket tag successfully removed.</p>
+		{% endif %}
+		{% if blok.success_code == "7052" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket successfully closed.</p>
+		{% endif %}
+		{% if blok.success_code == "7053" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket tag successfully removed.</p>
+		{% endif %}
+		{% if blok.success_code == "7054" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket payment succeeded.</p>
+		{% endif %}
+
 	{% else %}
 
 	{% endif %}
