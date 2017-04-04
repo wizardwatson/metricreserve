@@ -3360,7 +3360,7 @@ class metric(object):
 		# we don't want/need to get the network conversion rate inside a transaction.
 		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._make_payment_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,network.skintillionths)
+		return self._process_reserve_transfer_transactional(network.network_id,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,network.skintillionths)
 
 	@ndb.transactional(xg=True)
 	def _process_reserve_transfer_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_amount,fstr_type,fint_conversion):
@@ -4426,17 +4426,42 @@ class metric(object):
 		user = None
 		memo = None
 		ticket_name = None
+		gratuity_amount = None
+		gratuity_percent = None
 		
-		def is_valid_number(self,fstr_num):
+		def is_valid_number(self,fstr_num,fstr_type="amount"):
 		
 			# make sure fstr_amount actually is an integer
-			try:
-				lint_amount = int(float(fstr_num)*fint_conversion)
-				amount = lint_amount
-				return True
-			except ValueError, ex:
-				self.PARENT.RETURN_CODE = "STUB"
-				return False # error Invalid amount passed.
+			if fstr_type == "amount":
+				try:
+					lint_amount = int(float(fstr_num)*fint_conversion)
+					amount = lint_amount
+					return True
+				except ValueError, ex:
+					self.PARENT.RETURN_CODE = "1232"
+					return False # error Invalid amount passed.
+			if fstr_type == "gratuity_amount":
+				try:
+					lint_amount = int(float(fstr_num)*fint_conversion)
+					gratuity_amount = lint_amount
+					return True
+				except ValueError, ex:
+					self.PARENT.RETURN_CODE = "1233"
+					return False # error Invalid amount passed.
+			if fstr_type == "gratuity_percent":
+				if not fstr_num[-1] == "%":
+					self.PARENT.RETURN_CODE = "1234"
+					return False # error Gratuity missing percent
+				del fstr_num[-1]					
+				try:
+					float_amount = float(fstr_num)
+					gratuity_percent = fstr_num
+					return True
+				except ValueError, ex:
+					self.PARENT.RETURN_CODE = "1235"
+					return False # error Invalid gratuity percent passed.
+			self.PARENT.RETURN_CODE = "1236"
+			return False # error Invalid type passed.
 		
 		def is_valid_name(self,fstr_name,fstr_type=None):
 
@@ -4571,19 +4596,19 @@ class metric(object):
 
 				# we can only be doing "open" command, which creates a new ticket
 				if not ct[0] == "open":
-					self.PARENT.RETURN_CODE = "STUB" # error Command not valid.  No ticket name specified.
+					self.PARENT.RETURN_CODE = "1237" # error Command not valid.  No ticket name specified.
 					return False
 
 				if not len(ct) > 1:
-					self.PARENT.RETURN_CODE = "STUB" # error Not enough arguments for open ticket command.
+					self.PARENT.RETURN_CODE = "1238" # error Not enough arguments for open ticket command.
 					return False
 
 				if not self.is_valid_name(ct[1],"ticket"):
-					self.PARENT.RETURN_CODE = "STUB" # error Ticket name provided is not valid.
+					self.PARENT.RETURN_CODE = "1239" # error Ticket name provided is not valid.
 					return False			
 
 				if len(ct) > 4:
-					self.PARENT.RETURN_CODE = "STUB" # error Too many arguments for open ticket command.
+					self.PARENT.RETURN_CODE = "1240" # error Too many arguments for open ticket command.
 					return False
 
 				# Now we know:
@@ -4595,22 +4620,22 @@ class metric(object):
 				# in index 2.
 				if len(ct) == 3:
 					if not self.is_valid_name(ct[2],"user"):
-						self.PARENT.RETURN_CODE = "STUB" # error User name provided is not valid.
+						self.PARENT.RETURN_CODE = "1241" # error User name provided is not valid.
 						return False
 					elif not self.is_valid_number(ct[2]):
-						self.PARENT.RETURN_CODE = "STUB" # error Amount provided is not valid.
+						self.PARENT.RETURN_CODE = "1242" # error Amount provided is not valid.
 						return False
 					else:
-						self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 3rd token. Must be valid username or amount.
+						self.PARENT.RETURN_CODE = "1243" # error Ticket open() command parsing error on 3rd token. Must be valid username or amount.
 						return False
 				if len(ct) == 4: 
 					# open <name> <user> <amount>	
 					if not self.is_valid_name(ct[2],"user"):
-						self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 3rd token. Must be valid username.
+						self.PARENT.RETURN_CODE = "1244" # error Ticket open() command parsing error on 3rd token. Must be valid username.
 						return False
 
 					if not self.is_valid_number(ct[3]):
-						self.PARENT.RETURN_CODE = "STUB" # error Ticket open() command parsing error on 4th token. Must be valid amount.
+						self.PARENT.RETURN_CODE = "1245" # error Ticket open() command parsing error on 4th token. Must be valid amount.
 						return False
 
 				# At this point, regardless of length, we have our
@@ -4631,11 +4656,11 @@ class metric(object):
 
 
 				if source_ticket_index.ticket_data["ticket_count"] > 999:
-					self.PARENT.RETURN_CODE = "STUB" # error Open tickets already at maximum.
+					self.PARENT.RETURN_CODE = "1246" # error Open tickets already at maximum.
 					return False
 
 				if ticket_name in source_ticket_index.ticket_data["ticket_labels"]:
-					self.PARENT.RETURN_CODE = "STUB" # error Ticket name already in use.
+					self.PARENT.RETURN_CODE = "1247" # error Ticket name already in use.
 					return False
 
 				# add ticket data for source
@@ -4653,7 +4678,7 @@ class metric(object):
 					target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
 
 					if target_ticket_index.ticket_data["tag_count"] > 19:
-						self.PARENT.RETURN_CODE = "STUB" # error Target tag count already at maximum.
+						self.PARENT.RETURN_CODE = "1248" # error Target tag count already at maximum.
 						return False
 
 					target_ticket_index.ticket_data["tag_count"] += 1
@@ -4670,11 +4695,11 @@ class metric(object):
 
 					source_ticket_index.put()
 					target_ticket_index.put()	
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully opened.
+					self.PARENT.RETURN_CODE = "7047" # success Ticket successfully opened.
 					return True
 				else:
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully opened.
+					self.PARENT.RETURN_CODE = "7048" # success Ticket successfully opened.
 					return True		
 			else:
 			
@@ -4703,13 +4728,13 @@ class metric(object):
 					ticket_name = fstr_ticket_name
 				if len(ct) == 2 and ct[0] == "amount":
 					if not self.is_valid_number(ct[2]):
-						self.PARENT.RETURN_CODE = "STUB" # error Amount provided is not valid.
+						self.PARENT.RETURN_CODE = "1249" # error Amount provided is not valid.
 						return False
 					parse_match = True
 					command_switch = "amount"
 					ticket_name = fstr_ticket_name
 				if not parse_match:
-					self.PARENT.RETURN_CODE = "STUB" # error Invalid ticket command. Failed to parse.
+					self.PARENT.RETURN_CODE = "1250" # error Invalid ticket command. Failed to parse.
 					return False
 				
 				# Get the owner user id and metric account id.  We don't know for sure yet what 
@@ -4724,7 +4749,7 @@ class metric(object):
 				source_user = validation_result[3]
 				source_ticket_index = self.get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
 				if not ticket_name in source_ticket_index["ticket_labels"]:
-					self.PARENT.RETURN_CODE = "STUB" # error Ticket name not in source index.
+					self.PARENT.RETURN_CODE = "1251" # error Ticket name not in source index.
 					return False
 				# Do we need to modify a tagged account ticket index? Does it have a tag.
 				ticket_name_index = source_ticket_index.ticket_data["ticket_labels"].index(ticket_name)
@@ -4735,16 +4760,20 @@ class metric(object):
 					if command_switch == "attach":
 						target_account_id = validation_result[2]
 						target_user = validation_result[4]
-						target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)					
+						target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
+						# Fail if target has too many tags already
+						if target_ticket_index.ticket_data["tag_count"] > 19:
+							self.PARENT.RETURN_CODE = "1252" # error Target already has too many ticket tags.
+							return False
 					# Fail if trying to remove.
 					if command_switch == "remove":
-						self.PARENT.RETURN_CODE = "STUB" # error Ticket is not currently tagged to a user.  Nothing to remove.
+						self.PARENT.RETURN_CODE = "1253" # error Ticket is not currently tagged to a user.  Nothing to remove.
 						return False
 				else
 					# It is tagged.
 					# Fail if trying to attach another.
 					if command_switch == "attach":
-						self.PARENT.RETURN_CODE = "STUB" # error Ticket already tagged to a user.
+						self.PARENT.RETURN_CODE = "1254" # error Ticket already tagged to a user.
 						return False
 					# tagged user wasn't passed in, it is implied in source's ticket index
 					target_account_id = source_ticket_index.ticket_data["ticket_tag_account_ids"][ticket_name_index]
@@ -4763,7 +4792,7 @@ class metric(object):
 						tagged_index = i
 						break							
 					if not found_tagged_index:
-						self.PARENT.RETURN_CODE = "STUB" # error DATAERROR: Source ticket not in tagged user ticket index.
+						self.PARENT.RETURN_CODE = "1255" # error DATAERROR: Source ticket not in tagged user ticket index.
 						return False
 				
 				# All checks/setup completed, ready to modify and save.
@@ -4785,7 +4814,7 @@ class metric(object):
 						del target_ticket_index.ticket_data["tag_user_ids"][tagged_index]
 						target_ticket_index.put()
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully closed.
+					self.PARENT.RETURN_CODE = "7049" # success Ticket successfully closed.
 					return True
 				if command_switch == "amount":
 					source_ticket_index.ticket_data["ticket_amounts"][ticket_name_index] = amount
@@ -4795,7 +4824,7 @@ class metric(object):
 						target_ticket_index.ticket_data["tag_memos"][tagged_index] = memo
 						target_ticket_index.put()
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket amount successfully changed.
+					self.PARENT.RETURN_CODE = "7050" # success Ticket amount successfully changed.
 					return True
 				if command_switch == "remove":
 					source_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] = None
@@ -4810,121 +4839,313 @@ class metric(object):
 					del target_ticket_index.ticket_data["tag_user_ids"][tagged_index]
 					target_ticket_index.put()
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket tag successfully removed.
+					self.PARENT.RETURN_CODE = "7051" # success Ticket tag successfully removed.
 					return True
 				if command_switch == "attach":
 					source_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] = network_id
 					source_ticket_index.ticket_data["ticket_tag_account_ids"][ticket_name_index] = target_account_id
 					source_ticket_index.ticket_data["ticket_tag_user_ids"][ticket_name_index] = target_user.user_id
 					target_ticket_index.ticket_data["tag_count"] += 1
-					
-					
-					
-					
-					
-					
-					
-					del target_ticket_index.ticket_data["tag_labels"][tagged_index]
-					del target_ticket_index.ticket_data["tag_amounts"][tagged_index]
-					del target_ticket_index.ticket_data["tag_memos"][tagged_index]
-					del target_ticket_index.ticket_data["tag_network_ids"][tagged_index]
-					del target_ticket_index.ticket_data["tag_account_ids"][tagged_index]
-					del target_ticket_index.ticket_data["tag_user_ids"][tagged_index]
+					target_ticket_index.ticket_data["tag_labels"].append(ticket_name)
+					target_ticket_index.ticket_data["tag_amounts"].append(source_ticket_index.ticket_data["ticket_amounts"][ticket_name_index])
+					target_ticket_index.ticket_data["tag_memos"].append(source_ticket_index.ticket_data["ticket_memos"][ticket_name_index])
+					target_ticket_index.ticket_data["tag_network_ids"].append(network_id)
+					target_ticket_index.ticket_data["tag_account_ids"].append(source_account_id)
+					target_ticket_index.ticket_data["tag_user_ids"].append(source_user.user_id)
 					target_ticket_index.put()
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Ticket successfully closed.
+					self.PARENT.RETURN_CODE = "7052" # success Ticket successfully closed.
 					return True
-				
-				
-				
-
-					
-					
-					
-					
-					
 		else:
 			
+			ticket_name = fstr_ticket_name
 			# implement visitor commands
+			# We will pass the visitor as the source to the validation function
+			# since we want it to fail if the visitor is not the one executing
+			# the command in these cases.  We will validate that the
+			# owner owns the ticket.
+			validation_result = self._name_validate_transactional(None,fstr_visitor_name,fstr_owner_name,fint_network_id)
+			if not validation_result:
+				# pass up error
+				return False
+			
+			network_id = validation_result[0]
+			visitor_account_id = validation_result[1]
+			visitor_user = validation_result[3]
+			visitor_ticket_index = self.get_or_insert_ticket_index(network_id,visitor_account_id,visitor_user.user_id)
+			owner_account_id = validation_result[2]
+			owner_user = validation_result[4]
+			owner_ticket_index = self.get_or_insert_ticket_index(network_id,owner_account_id,owner_user.user_id)
+			
+			if not ticket_name in owner_ticket_index["ticket_labels"]:
+				self.PARENT.RETURN_CODE = "1256" # error Ticket name not in owner index.
+				return False
+				
+			# get the ticket name index from owner
+			ticket_name_index = owner_ticket_index.ticket_data["ticket_labels"].index(ticket_name)
+			# is this ticket tagged?
+			tagged_index = None
+			if owner_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] is None:
+				# it is not tagged
+				# Fail if visitor trying to remove a tag
+				if ct[0] = "remove":
+					self.PARENT.RETURN_CODE = "1257" # error Ticket name not in owner index.
+					return False
+				
+			else:
+				# it is tagged
+				# find the tagged index for source ticket
+				found_tagged_index = False
+				for i in range(len(visitor_ticket_index["tag_network_ids"])):
+					if not visitor_ticket_index.ticket_data["tag_network_ids"][i] == network_id:
+						continue
+					if not visitor_ticket_index.ticket_data["tag_account_ids"][i] == owner_account_id:
+						continue
+					if not visitor_ticket_index.ticket_data["tag_labels"][i] == ticket_name:
+						continue
+					found_tagged_index = True
+					tagged_index = i
+					break							
+				if not found_tagged_index:
+					self.PARENT.RETURN_CODE = "1258" # error DATAERROR: Source ticket not in tagged user ticket index.
+					return False
+				if ct[0] == "remove" and len(ct) == 1:
+					# we can handle remove functionality right here
+					owner_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] = None
+					owner_ticket_index.ticket_data["ticket_tag_account_ids"][ticket_name_index] = None
+					owner_ticket_index.ticket_data["ticket_tag_user_ids"][ticket_name_index] = None
+					visitor_ticket_index.ticket_data["tag_count"] -= 1
+					del visitor_ticket_index.ticket_data["tag_labels"][tagged_index]
+					del visitor_ticket_index.ticket_data["tag_amounts"][tagged_index]
+					del visitor_ticket_index.ticket_data["tag_memos"][tagged_index]
+					del visitor_ticket_index.ticket_data["tag_network_ids"][tagged_index]
+					del visitor_ticket_index.ticket_data["tag_account_ids"][tagged_index]
+					del visitor_ticket_index.ticket_data["tag_user_ids"][tagged_index]
+					owner_ticket_index.put()
+					visitor_ticket_index.put()
+					self.PARENT.RETURN_CODE = "7053" # success Ticket tag successfully removed.
+					return True
+				
+			# only should have "pay" command now
+			parse_match = False
+			if len(ct) == 2 and ct[0] == "pay" and self.is_valid_number(ct[1]):
+				parse_match = True
+				# pay <amount>
 			
 			
+			if len(ct) == 3 and ct[0] == "pay" and self.is_valid_number(ct[1]) and self.is_valid_number(ct[2]):
+				parse_match = True
+				# pay <amount> <plus gratuity as flat amount>
 			
 			
-			
-			
-	"""
+			if len(ct) == 3 and ct[0] == "pay" and self.is_valid_number(ct[1]) and self.is_valid_percent(ct[2]):
+				parse_match = True
+				# pay <amount> <plus gratuity as percentage of previous amount>
+				
+			if not parse_match:
+				self.PARENT.RETURN_CODE = "1259" # error Invalid ticket command. Failed to parse.
+				return False
 
-	TICKETS ALL [OWNER] CONTEXT: 
+			# error if payment amount doesn't match ticket amount
+			if not amount == owner_ticket_index.ticket_data["ticket_amounts"][ticket_name_index]:
+				self.PARENT.RETURN_CODE = "1260"
+				return False # error Ticket pay fail. Payment amount must match ticket amount.
 
-	*open <name>
-	*open <name> m <memo>
-	*open <name> <user>
-	*open <name> <user> m <memo>
-	*open <name> <amount>
-	*open <name> <amount> m <memo>
-	*open <name> <user> <amount>
-	*open <name> <user> <amount> m <memo>
+			# STEPS FOR PAYING A TICKET
+			# 1. Visitor makes payment to owner.
+			# 2. If tag exists we remove tag.
 
-	*close <name> : close an open ticket
-	*remove <ticket> : remove user association with a ticket
+			pay_source_account_id = visitor_account_id		
+			pay_target_account_id = owner_account_id		
 
-	TICKETS ALL [OTHER] CONTEXT:
+			# make a payment
+			# transfer network balance from one user to another
+			# this does not affect our global balance counters
 
-	*ticket <name> : search/go to a specific ticket
+			# get the source and target metric accounts
 
-	TICKETS SPECIFIC [OWNER] CONTEXT: 
+			key_part1 = str(network_id).zfill(8)
+			key_part2 = str(pay_source_account_id).zfill(12)
+			key_part3 = str(pay_target_account_id).zfill(12)
+			pay_source_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+			lds_pay_source = pay_source_key.get()
 
-	*close : close the ticket
-	*attach <user> : associate a specific user with a ticket
-	*remove : removes any associated user
-	*amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
-	*amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
+			# error if source doesn't exist
+			if lds_pay_source is None:
+				self.PARENT.RETURN_CODE = "1261"
+				return False # error Ticket pay fail. Visitor metric account failed to load.
+			# error if trying to connect to self
+			if pay_source_account_id == pay_target_account_id:
+				self.PARENT.RETURN_CODE = "1262"
+				return False # error Ticket pay fail. Source and Target are the same.  Can't pay self.
 
-	TICKETS SPECIFIC [OTHER] CONTEXT: 
+			pay_target_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part3))
+			lds_pay_target = pay_target_key.get()
 
-	*pay <amount> : pay a ticket
-	*pay <amount> <amount|percent> : pay a ticket plus add gratuity
-	*remove : removes visiting users association from a ticket
+			# error if target doesn't exist
+			if lds_pay_target is None:
+				self.PARENT.RETURN_CODE = "1263"
+				return False # error Ticket pay fail. Owner metric account failed to load.
 
-	# metric account: this is the main account information
-	class ds_mr_metric_account(ndb.Model):
+			# Calculate the payment amount
+			# Gratuity must be greater than zero.
+			# Percent cannot be greater than 100.
+			if not gratuity_amount is None:
+				if not gratuity_amount > 0:
+					self.PARENT.RETURN_CODE = "1264"
+					return False # error Ticket pay fail. Cannot have negative gratuity amount.
+				else:
+					lint_amount = amount + gratuity_amount
+			if not gratuity_percent is None:
+				if float(gratuity_percent) <= 0:
+					self.PARENT.RETURN_CODE = "1265"
+					return False # error Ticket pay fail. Cannot have negative gratuity percent.
+				
+				if float(gratuity_percent) > 100:
+					self.PARENT.RETURN_CODE = "1266"
+					return False # error Ticket pay fail. Cannot have gratuity percent greater than 100.
+					
+				lint_amount = amount + (amount * float(gratuity_percent) / 100)
+					
+			# can't exceed maximum allowed payment
+			if lint_amount > MAX_PAYMENT:
+				self.PARENT.RETURN_CODE = "1267"
+				return False # error Ticket pay fail. Payment amount exceeds maximum allowed.
 
-		account_id = ndb.IntegerProperty(indexed=False)
-		network_id = ndb.IntegerProperty(indexed=False)
-		user_id = ndb.StringProperty(indexed=False)
-		tx_index = ndb.IntegerProperty(indexed=False)
-		account_status = ndb.StringProperty(indexed=False)
-		account_type = ndb.StringProperty(indexed=False)
-		account_parent = ndb.IntegerProperty(default=0,indexed=False)
-		outgoing_connection_requests = ndb.PickleProperty(default=[])
-		incoming_connection_requests = ndb.PickleProperty(default=[])
-		incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-		outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-		suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-		suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-		suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-		suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-		current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-		current_connections = ndb.PickleProperty(default=[])
-		current_reserve_balance = ndb.IntegerProperty(default=0)
-		current_network_balance = ndb.IntegerProperty(default=0)	
-		last_connections = ndb.PickleProperty(default=[])
-		last_reserve_balance = ndb.IntegerProperty(default=0)
-		last_network_balance = ndb.IntegerProperty(default=0)
-		date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-		extra_pickle = ndb.PickleProperty()
+			# STUB make sure all lint_amount inputs are greater than 0
+			# can't pay if you don't have that much
+			if lds_pay_source.current_network_balance < lint_amount:
+				self.PARENT.RETURN_CODE = "1268"
+				return False # error Ticket pay fail. Visitor does not have sufficient balance to pay.
 
-	# metric ticket
-	class ds_mr_metric_ticket_index(ndb.Model):
+			# So everything checks out, payments are probably simplest things to do.
+			# We do count network balances as "graph affecting" even though the algorithms
+			# don't deal with balances (yet).  It's still an important summarized statistic
+			# so we will check the cutoff time as with other graph affecting functions.
 
-		account_id = ndb.IntegerProperty(indexed=False)
-		network_id = ndb.IntegerProperty(indexed=False)
-		user_id = ndb.StringProperty(indexed=False)
-		ticket_data = ndb.PickleProperty(default={})
+			# calculate cutoff time
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			# this requests cutoff time
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+
+			# update the source account
+			if lds_pay_source.current_timestamp > t_cutoff:
+
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_pay_source.current_network_balance -= lint_amount
+
+			else:
+
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_pay_source.last_connections = lds_pay_source.current_connections
+				lds_pay_source.last_reserve_balance = lds_pay_source.current_reserve_balance
+				lds_pay_source.last_network_balance = lds_pay_source.current_network_balance
+				lds_pay_source.current_network_balance -= lint_amount				
+
+			# update the target account
+			if lds_pay_target.current_timestamp > t_cutoff:
+
+				# last transaction was in current time window, no need to swap
+				# a.k.a. overwrite current
+				lds_pay_target.current_network_balance += lint_amount
+
+			else:
+
+				# last transaction was in previous time window, swap
+				# a.k.a. move "old" current into "last" before overwriting
+				lds_pay_target.last_connections = lds_pay_target.current_connections
+				lds_pay_target.last_reserve_balance = lds_pay_target.current_reserve_balance
+				lds_pay_target.last_network_balance = lds_pay_target.current_network_balance
+				lds_pay_target.current_network_balance += lint_amount
+
+			# only update current_timestamp for graph dependent transactions??? STUB
+			lds_pay_source.current_timestamp = datetime.datetime.now()
+			lds_pay_target.current_timestamp = datetime.datetime.now()
+
+			# ADD TWO TRANSACTIONS LIKE CONNECT()
+			lds_pay_source.tx_index += 1
+			# source transaction log
+			pay_source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_pay_source.tx_index).zfill(12)))
+			pay_source_lds_tx_log = ds_mr_tx_log()
+			pay_source_lds_tx_log.key = pay_source_tx_log_key
+			# tx_index should be based on incremented metric_account value
+			pay_source_lds_tx_log.tx_index = lds_pay_source.tx_index
+			pay_source_lds_tx_log.tx_type = "TICKET PAYMENT MADE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			pay_source_lds_tx_log.amount = lint_amount
+			pay_source_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
+			pay_source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+			pay_source_lds_tx_log.description = "Ticket payment made for ticket name: %s" % ticket_name 
+			pay_source_lds_tx_log.user_id_created = lds_pay_source.user_id
+			pay_source_lds_tx_log.network_id = network_id
+			pay_source_lds_tx_log.account_id = pay_source_account_id
+			pay_source_lds_tx_log.source_account = pay_source_account_id 
+			pay_source_lds_tx_log.target_account = pay_target_account_id
+			pay_source_lds_tx_log.put()
+
+			lds_pay_target.tx_index += 1
+			# target transaction log
+			pay_target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_pay_target.tx_index).zfill(12)))
+			pay_target_lds_tx_log = ds_mr_tx_log()
+			pay_target_lds_tx_log.key = pay_target_tx_log_key
+			# tx_index should be based on incremented metric_account value
+			pay_target_lds_tx_log.tx_index = lds_pay_target.tx_index
+			pay_target_lds_tx_log.tx_type = "TICKET PAYMENT RECEIVED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			pay_target_lds_tx_log.amount = lint_amount
+			pay_target_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
+			# typically we'll make target private for bilateral transactions so that
+			# when looking at a system view, we don't see duplicates.
+			pay_target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+			pay_target_lds_tx_log.description = "Ticket payment received for ticket name: %s" % ticket_name 
+			pay_target_lds_tx_log.user_id_created = lds_pay_source.user_id
+			pay_target_lds_tx_log.network_id = network_id
+			pay_target_lds_tx_log.account_id = pay_target_account_id
+			pay_target_lds_tx_log.source_account = pay_source_account_id 
+			pay_target_lds_tx_log.target_account = pay_target_account_id
+			pay_target_lds_tx_log.put()
+
+			if not tagged_index is None:
+				# only change we make automatically to paid tickets is to remove the tag
+				owner_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] = None
+				owner_ticket_index.ticket_data["ticket_tag_account_ids"][ticket_name_index] = None
+				owner_ticket_index.ticket_data["ticket_tag_user_ids"][ticket_name_index] = None
+				visitor_ticket_index.ticket_data["tag_count"] -= 1
+				del visitor_ticket_index.ticket_data["tag_labels"][tagged_index]
+				del visitor_ticket_index.ticket_data["tag_amounts"][tagged_index]
+				del visitor_ticket_index.ticket_data["tag_memos"][tagged_index]
+				del visitor_ticket_index.ticket_data["tag_network_ids"][tagged_index]
+				del visitor_ticket_index.ticket_data["tag_account_ids"][tagged_index]
+				del visitor_ticket_index.ticket_data["tag_user_ids"][tagged_index]
+				owner_ticket_index.put()
+				visitor_ticket_index.put()
+			lds_pay_source.put()
+			lds_pay_target.put()
+			self.PARENT.RETURN_CODE = "7054" # success Ticket payment succeeded.
+			return True	
+				
+				
 
 
 
-	"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
