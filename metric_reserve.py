@@ -4992,7 +4992,7 @@ class metric(object):
 			if owner_ticket_index.ticket_data["ticket_tag_network_ids"][ticket_name_index] is None:
 				# it is not tagged
 				# Fail if visitor trying to remove a tag
-				if ct[0] = "remove":
+				if ct[0] == "remove":
 					self.PARENT.RETURN_CODE = "1257" # error Ticket name not in owner index.
 					return False
 				
