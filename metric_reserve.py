@@ -328,6 +328,11 @@ class ds_mr_network_profile(ndb.Model):
 	last_graph_process = ndb.StringProperty(default="EMPTY",indexed=False)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 
+# system settings
+class ds_mr_system_settings(ndb.Model):
+
+	data = ndb.PickleProperty(default={})
+
 # network cursor: this entity maintains the index of networks
 class ds_mr_system_cursor(ndb.Model):
 
@@ -523,6 +528,27 @@ class master(object):
 
 	# intialization function, called when object is instantiated with or without a function call
 	def __init__(self, fobj_request,fstr_request_type,fstr_security_req):
+	
+		@ndb.transactional()
+		def create_system_settings_object(self):		
+			settings_key = ndb.Key("ds_mr_system_settings", "metric_reserve_settings")
+			lds_settings = settings_key.get()
+			if not lds_settings is None:
+				return lds_settings
+			lds_settings = ds_mr_system_settings()
+			lds_settings.key = settings_key
+			# set default dict keys
+			# lds_settings.data["some_key"] = "" 
+			# blank if secured/set at run time or "some value" if no biggy to keep on github, etc.
+			lds_settings.put()
+			return lds_settings			
+		# load settings
+		settings_key = ndb.Key("ds_mr_system_settings", "metric_reserve_settings")
+		settings_entity = settings_key.get()
+		if settings_entity is None:
+			settings_entity = create_system_settings_object()
+			return None # False meaning "not created"
+		self.SETTINGS = settings_entity
 		
 		# fobj_request - this is the WSGI object passed in from page handlers
 		# fstr_request_type - "get", "post", etc.
@@ -746,6 +772,53 @@ class master(object):
 		# mobile QR link for debug
 		qr_link_base = "https://chart.googleapis.com/chart?cht=qr&chs=" + str(size) + "&chl="
 		return qr_link_base + urllib.quote_plus(furl)
+		
+	@ndb.transactional()
+	def _modify_settings(self,fkey,fvalue):
+	
+		"""
+		@ndb.transactional()
+		def create_system_settings_object(self):		
+			settings_key = ndb.Key("ds_mr_system_settings", "metric_reserve_settings")
+			lds_settings = settings_key.get()
+			if not lds_settings is None:
+				return lds_settings
+			lds_settings = ds_mr_system_settings()
+			lds_settings.key = settings_key
+			# set default dict keys
+			# lds_settings.data["some_key"] = "" 
+			# blank if secured/set at run time or "some value" if no biggy to keep on github, etc.
+			lds_settings.put()
+			return lds_settings			
+		# load settings
+		settings_key = ndb.Key("ds_mr_system_settings", "metric_reserve_settings")
+		settings_entity = settings_key.get()
+		if settings_entity is None:
+			settings_entity = create_system_settings_object()
+			return None # False meaning "not created"
+		self.SETTINGS = settings_entity
+		"""
+	
+	
+		# get settings object transactionally
+		settings_key = ndb.Key("ds_mr_system_settings",self.PARENT.user.entity.user_id())
+		settings_entity = settings_key.get()
+		if not settings_entity:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Couldn't load system setttings
+		
+		if fkey.lower() not in settings_entity.data:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Invalid user modification type.
+		
+		"""
+		if fkey == "my_key":
+			settings_entity.data[my_key] = fvalue
+		"""				
+		
+		settings_entity.put()
+		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Successfully modified system settings.
+		return True
 
 # this is the user class specifically designed for using google user authentication
 class user(object):
