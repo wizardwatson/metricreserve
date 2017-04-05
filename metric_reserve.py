@@ -50,6 +50,10 @@ CLASS: user(object)
 	def _change_username_transactional(self,fstr_username)
 
 	def _message(self,fstr_target_name,fstr_text)
+	def _get_gravatar_url(self,user_obj,size=80)
+		
+	@ndb.transactional()	
+	def _modify_user(self,fkey,fvalue):
 
 CLASS: metric(object)
 
@@ -236,9 +240,10 @@ class ds_mr_user(ndb.Model):
 	name_suffix = ndb.StringProperty(indexed=False)
 	
 	gravatar_url = ndb.StringProperty(indexed=False)
-	gravatar_type = ndb.StringProperty(indexed=False)
-	bio = ndb.StringProperty(indexed=False)
-	location = ndb.StringProperty(indexed=False)
+	gravatar_type = ndb.StringProperty(default="identicon",indexed=False)
+	bio = ndb.TextProperty(indexed=False)
+	location_latitude = ndb.IntegerProperty(indexed=False)
+	location_longitude = ndb.IntegerProperty(indexed=False)
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	
@@ -837,7 +842,8 @@ class user(object):
 		ldata_user = ds_mr_user()
 		ldata_user.user_id = fobj_google_obj.user_id()			
 		ldata_user.user_status = 'VERIFIED'
-		gravatar_email = fobj_google_obj.email()
+		ldata_user.email = fobj_google_obj.email()
+		gravatar_url = fobj_google_obj.email()
 		#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 		ldata_user.key = user_key	
 			
@@ -937,6 +943,99 @@ class user(object):
 		new_message.message_content = fstr_text
 		new_message.put()
 		return True
+
+	def _get_gravatar_url(self,user_obj,size=80):
+		
+		# GRAVATAR DOCS
+		# http://en.gravatar.com/site/implement/images/
+		#
+		# Base Request
+		# default = "identicon"
+		# lstr_email = "myusersemail@mr.com" 
+		# lstr_base = "https://www.gravatar.com/avatar/"
+		# lstr_hash = hashlib.md5(lstr_email.lower()).hexdigest()
+		# lstr_query_string = "?s=80&d=identicon&f=y"urllib.urlencode({'d':default, 's':str(size), 'f':'y'})
+		# lstr_url = lstr_base + lstr_hash + lstr_query_string
+		#
+		# "s" is size in pixels, always square
+		# "d" is default, options are:
+		#		d=identicon : shows identicon for email hash
+		#		d=mm : anonymous mystery man
+		# 		d=monsterid : like identicon only monster face
+		# 		d=wavatar : like identicon only random faces
+		# 		d=retro : like identicon only 8-bit retro graphic
+		#		d=blank : transparent PNG aka. nothing
+		#		d=404 : no image, return 404 response
+		# "f" is forcedefault, set to y if you want to force one of above set defaults
+		
+		lstr_base = "https://www.gravatar.com/avatar/"
+		lstr_hash = hashlib.md5(user_obj.gravatar_url.lower()).hexdigest()
+		if user_obj.gravatar_type == "gravatar":
+			lstr_query_string = urllib.urlencode({'s':str(size)})
+		else:
+			lstr_query_string = urllib.urlencode({'d':user_obj.gravatar_type, 's':str(size), 'f':'y'})
+		return lstr_base + lstr_hash + "?" + lstr_query_string
+		
+	@ndb.transactional()	
+	def _modify_user(self,fkey,fvalue):
+	
+		# get user transactionally
+		# this function loads a user entity from a key
+		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
+		lds_user = user_key.get()
+		if not lds_user:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error couldn't load user
+		
+		if fkey.lower() not in ["gurl","gtype","bio","location"]:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Invalid user modification type.
+		
+		if fkey == "gurl":
+			if fvalue.lower() == "default":
+				lds_user.gravatar_url = lds_user.email
+			else:
+				lds_user.gravatar_url = fvalue
+		
+		if fkey == "gtype":
+			if fvalue.lower() not in ["identicon","mm","monsterid","wavatar","retro","gravatar"]:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Invalid gravatar type value for user modification.
+			else:
+				lds_user.gravatar_type = fvalue
+		
+		if fkey == "bio":
+			lds_user.bio = fvalue
+		
+		if fkey == "location":
+			# lat/long decimal format, positive negative
+			if not len(fvalue.split()) == 2:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error User modification for location requires 2 values (lat/long).			
+			lat = fvalue.split()[0]
+			long = fvalue.split()[1]
+			try:
+				lat = float(lat)
+				long = float(long)
+			except:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Invalid lat/long values for user modification.
+			if lat < -90 or lat > 90:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Latitude out of range.  Must be between 90 and -90.				
+			if long < -180 or long > 180:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Longitude out of range.  Must be between 180 and -180.
+			lds_user.location_latitude = int(lat * 100000000)
+			lds_user.location_longitude = int(long * 100000000)
+			
+			
+		
+		lds_user.put()
+		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Successfully modified user.
+		return True
+			
+			
 			
 # this is metric reserve class, containing the P2P network/accounting related functionality
 class metric(object):
