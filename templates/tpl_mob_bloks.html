@@ -811,11 +811,26 @@
 		{% if blok.error_code == "1268" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket pay fail. Visitor does not have sufficient balance to pay.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1269" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load user.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1270" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid user modification type.</p>
+		{% endif %}
+		{% if blok.error_code == "1271" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid gravatar type value for user modification.</p>
+		{% endif %}
+		{% if blok.error_code == "1272" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> User modification for location requires 2 values (lat/long).</p>
+		{% endif %}
+		{% if blok.error_code == "1273" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid lat/long values for user modification.</p>
+		{% endif %}
+		{% if blok.error_code == "1274" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Latitude out of range.  Must be between 90 and -90.</p>
+		{% endif %}
+		{% if blok.error_code == "1275" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Longitude out of range.  Must be between 180 and -180.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
@@ -1030,6 +1045,9 @@
 		{% endif %}
 		{% if blok.success_code == "7054" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket payment succeeded.</p>
+		{% endif %}
+		{% if blok.success_code == "7055" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully modified user.</p>
 		{% endif %}
 
 	{% else %}
