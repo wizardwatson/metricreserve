@@ -585,8 +585,7 @@ class master(object):
 		###############################################
 		
 		# mobile QR link for debug
-		qr_link = "https://chart.googleapis.com/chart?cht=qr&chs=200&chl="
-		self.QR1_DEBUG = qr_link + urllib.quote_plus("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path_qs)
+		self.QR1_DEBUG = self._get_qr_url(("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path_qs))
 				
 		
 		# GRAVATAR/IDENTICON TESTING
@@ -741,7 +740,13 @@ class master(object):
 			# STUB: haven't built the error page yet.
 			pass	
 		"""
-			
+
+	def _get_qr_url(self,furl,size=200):
+	
+		# mobile QR link for debug
+		qr_link_base = "https://chart.googleapis.com/chart?cht=qr&chs=" + str(size) + "&chl="
+		return qr_link_base + urllib.quote_plus(furl)
+
 # this is the user class specifically designed for using google user authentication
 class user(object):
 
@@ -984,11 +989,11 @@ class user(object):
 		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
 		lds_user = user_key.get()
 		if not lds_user:
-			self.PARENT.RETURN_CODE = "STUB"
-			return False # error couldn't load user
+			self.PARENT.RETURN_CODE = "1269"
+			return False # error Couldn't load user
 		
 		if fkey.lower() not in ["gurl","gtype","bio","location"]:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1270"
 			return False # error Invalid user modification type.
 		
 		if fkey == "gurl":
@@ -999,7 +1004,7 @@ class user(object):
 		
 		if fkey == "gtype":
 			if fvalue.lower() not in ["identicon","mm","monsterid","wavatar","retro","gravatar"]:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1271"
 				return False # error Invalid gravatar type value for user modification.
 			else:
 				lds_user.gravatar_type = fvalue
@@ -1010,7 +1015,7 @@ class user(object):
 		if fkey == "location":
 			# lat/long decimal format, positive negative
 			if not len(fvalue.split()) == 2:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1272"
 				return False # error User modification for location requires 2 values (lat/long).			
 			lat = fvalue.split()[0]
 			long = fvalue.split()[1]
@@ -1018,13 +1023,13 @@ class user(object):
 				lat = float(lat)
 				long = float(long)
 			except:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1273"
 				return False # error Invalid lat/long values for user modification.
 			if lat < -90 or lat > 90:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1274"
 				return False # error Latitude out of range.  Must be between 90 and -90.				
 			if long < -180 or long > 180:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1275"
 				return False # error Longitude out of range.  Must be between 180 and -180.
 			lds_user.location_latitude = int(lat * 100000000)
 			lds_user.location_longitude = int(long * 100000000)
@@ -1032,7 +1037,7 @@ class user(object):
 			
 		
 		lds_user.put()
-		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Successfully modified user.
+		self.PARENT.RETURN_CODE = "7055" # success Successfully modified user.
 		return True
 			
 			
