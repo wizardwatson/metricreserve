@@ -4873,7 +4873,7 @@ class metric(object):
 					if command_switch == "remove":
 						self.PARENT.RETURN_CODE = "1253" # error Ticket is not currently tagged to a user.  Nothing to remove.
 						return False
-				else
+				else:
 					# It is tagged.
 					# Fail if trying to attach another.
 					if command_switch == "attach":
