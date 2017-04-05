@@ -3,6 +3,9 @@ Metric Reserve Stuff
 TO DO:
 
 	valid names should be 50 character or less?
+	always positive amounts
+	check on login if email is same as stored
+	form noncing? sessions?
 
 
 PAGES
@@ -137,7 +140,7 @@ TICKETS SPECIFIC [OWNER] CONTEXT:
 *amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
 
 TICKETS SPECIFIC [OTHER] CONTEXT: 
-
+cd 
 *pay <amount> : pay a ticket
 *pay <amount> <amount|percent> : pay a ticket plus add gratuity
 *remove : removes visiting users association from a ticket
