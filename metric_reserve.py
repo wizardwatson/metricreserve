@@ -4625,7 +4625,7 @@ class metric(object):
 			else:
 				return (command_seq,memo)
 		
-		def get_or_insert_ticket_index(self,fint_network_id,fint_account_id,fstr_user_id)
+		def get_or_insert_ticket_index(self,fint_network_id,fint_account_id,fstr_user_id):
 		
 			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fint_network_id, fint_account_id))
 			ticket_index_entity = ticket_index_key.get()
