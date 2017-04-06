@@ -540,6 +540,7 @@ class master(object):
 			# set default dict keys
 			# lds_settings.data["some_key"] = "" 
 			# blank if secured/set at run time or "some value" if no biggy to keep on github, etc.
+			lds_settings.data["google_maps_api_key"] = "EMPTY"
 			lds_settings.put()
 			return lds_settings			
 		# load settings
