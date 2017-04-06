@@ -2,6 +2,30 @@
 
 
 
+	{% if blok.type == "map" %}
+		<div id="map"></div>
+		<script>
+		  function initMap() {
+			var uluru = {lat: -25.363, lng: 131.044};
+			var map = new google.maps.Map(document.getElementById('map'), {
+			  zoom: 4,
+			  center: uluru
+			});
+			var marker = new google.maps.Marker({
+			  position: uluru,
+			  map: map
+			});
+		  }
+		</script>
+		<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+		</script>
+	{% endif %}
+
+
+
+
+
 	{% if blok.type == "menu" %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li data-role="list-divider">Some Links</li>
@@ -9,10 +33,9 @@
 			<li><a href="{{ link.href }}">{{ link.label }}</a></li>
 		{% endfor %}
 		</ul>
+	{% endif %}
 
-
-
-	{% elif blok.type == "home" %}
+	{% if blok.type == "home" %}
 		{% if master.user.IS_LOGGED_IN %}
 			<div class="text_bubble ui-body ui-body-c">
 			<p>Hello, <b>{{ master.page.username }}</b>.</p>
@@ -26,10 +49,10 @@
 			<p>Both of these options are reachable from the menu link in the upper left corner or by typing "introduction" or "quickstart" in the command input field.</p>
 			</div>
 		{% endif %}
+	{% endif %}
 
 
-
-	{% elif blok.type == "all networks" %}
+	{% if blok.type == "all networks" %}
 		{% if blok.groups %}
 			{% if blok.groups.has_my_live_networks %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -94,10 +117,10 @@
 			<p>Currently no metric reserve networks exist.</p>
 			</div>
 		{% endif %}
+	{% endif %}
 
 
-
-	{% elif blok.type == "one network" %}
+	{% if blok.type == "one network" %}
 			<div class="text_bubble ui-body ui-body-c">
 			<p><b>NETWORK</b>: {{ blok.network.network_name }}<br/>
 			<b>STATUS</b>:  {{ blok.network.network_status }}<br/>
@@ -106,8 +129,8 @@
 			<b>DESCRIPTION</b>:  {{ blok.network.description }}<br/>
 			<b>DATE CREATED</b>:  {{ blok.network.date_created }}</p>
 			</div>
-
-	{% elif blok.type == "all accounts" %}
+	{% endif %}
+	{% if blok.type == "all accounts" %}
 		{% if blok.groups %}
 			{% if blok.groups.has_reserve_account %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -160,10 +183,10 @@
 			<p>You currently have no accounts on this network.</p>
 			</div>
 		{% endif %}
+	{% endif %}
 
 
-
-	{% elif blok.type == "test" %}
+	{% if blok.type == "test" %}
 		{% if blok.test_code == "8001" %}
 			<p class="ui-body ui-body-e"><font color="red"><strong>TEST:</strong></font> Test block 8001 for template testing.</p>
 		{% elif blok.test_code == "8002" %}
@@ -175,6 +198,25 @@
 						<p style="margin:5px;padding:0px;" >sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf
 						sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf </p>
 					</div>
+				</div>
+				<div>
+					<div id="map"></div>
+					<script>
+					  function initMap() {
+						var uluru = {lat: -25.363, lng: 131.044};
+						var map = new google.maps.Map(document.getElementById('map'), {
+						  zoom: 4,
+						  center: uluru
+						});
+						var marker = new google.maps.Marker({
+						  position: uluru,
+						  map: map
+						});
+					  }
+					</script>
+					<script async defer
+					src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+					</script>
 				</div>
 				<div class="text_bubble ui-body ui-body-c">
 				<p>Hello, 127.0.0.1.</p>
@@ -218,10 +260,10 @@
 		{% else %}
 			<p>Unrecognized Test Code</p>
 		{% endif %}
+	{% endif %}
 
 
-
-	{% elif blok.type == "error" %}
+	{% if blok.type == "error" %}
 		{% if blok.error_code == "1001" %}
 			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Command keyword(s) unrecognized.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
@@ -835,10 +877,11 @@
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
+	{% endif %}
 
 
 
-	{% elif blok.type == "confirm" %}
+	{% if blok.type == "confirm" %}
 		{% if blok.confirm_code == "6001" %}
 			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
 			command field to indicate you wish to change your current username: <b>{{ master.request.GET.xold_username }}</b>
@@ -857,10 +900,11 @@
 			<p class="confirm ui-body ui-body-e"><font color="red"><strong>CONFIRM:</strong></font> Please type "confirm" in the
 			command field to indicate you wish to open a reserve accounton network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
 		{% endif %}
+	{% endif %}
 
 
 
-	{% elif blok.type == "success" %}
+	{% if blok.type == "success" %}
 		{% if blok.success_code == "7001" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
 			changed your username to <b>{{ master.request.GET.xnew_username }}</b>.</p>
@@ -1049,8 +1093,5 @@
 		{% if blok.success_code == "7055" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully modified user.</p>
 		{% endif %}
-
-	{% else %}
-
 	{% endif %}
 {% endfor %}
