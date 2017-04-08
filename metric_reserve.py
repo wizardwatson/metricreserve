@@ -155,6 +155,7 @@ gravatar_url += urllib.urlencode({'d':default, 's':str(size)})
 # These are standard python libraries.
 import os
 import urllib
+import hashlib
 import datetime
 import re
 import pickle
@@ -242,8 +243,8 @@ class ds_mr_user(ndb.Model):
 	gravatar_url = ndb.StringProperty(indexed=False)
 	gravatar_type = ndb.StringProperty(default="identicon",indexed=False)
 	bio = ndb.TextProperty(indexed=False)
-	location_latitude = ndb.IntegerProperty(indexed=False)
-	location_longitude = ndb.IntegerProperty(indexed=False)
+	location_latitude = ndb.IntegerProperty(default=3905580000,indexed=False)
+	location_longitude = ndb.IntegerProperty(default=-9568900000,indexed=False)
 	
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	
@@ -530,7 +531,7 @@ class master(object):
 	def __init__(self, fobj_request,fstr_request_type,fstr_security_req):
 	
 		@ndb.transactional()
-		def create_system_settings_object(self):		
+		def create_system_settings_object():		
 			settings_key = ndb.Key("ds_mr_system_settings", "metric_reserve_settings")
 			lds_settings = settings_key.get()
 			if not lds_settings is None:
@@ -548,7 +549,6 @@ class master(object):
 		settings_entity = settings_key.get()
 		if settings_entity is None:
 			settings_entity = create_system_settings_object()
-			return None # False meaning "not created"
 		self.SETTINGS = settings_entity
 		
 		# fobj_request - this is the WSGI object passed in from page handlers
@@ -922,7 +922,7 @@ class user(object):
 		ldata_user.user_id = fobj_google_obj.user_id()			
 		ldata_user.user_status = 'VERIFIED'
 		ldata_user.email = fobj_google_obj.email()
-		gravatar_url = fobj_google_obj.email()
+		ldata_user.gravatar_url = fobj_google_obj.email()
 		#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 		ldata_user.key = user_key	
 			
@@ -6777,18 +6777,22 @@ class ph_command(webapp2.RequestHandler):
 			# view specific network
 			result.append(10)
 			result.append(self.master.request.GET["view_network"])
-		elif self.master.PATH_CONTEXT == "root/network":
+		if self.master.PATH_CONTEXT == "root/network":
 			# view all networks
 			result.append(20)
-			pass
-		elif self.master.PATH_CONTEXT == "root" and "view_menu" in self.master.request.GET:
+		if self.master.PATH_CONTEXT == "root" and "view_menu" in self.master.request.GET:
 			# view root menu
 			result.append(30)
-		elif self.master.PATH_CONTEXT == "root":
+		if self.master.PATH_CONTEXT == "root":
 			# home page
 			result.append(40)
-		else:
-			pass
+		if self.master.PATH_CONTEXT == "root/profile" and "view_account" in self.master.request.GET:
+			# viewing someone else's profile
+			result.append(50)
+			result.append(self.master.request.GET["view_account"])
+		if self.master.PATH_CONTEXT == "root/profile":
+			# viewing users own profile
+			result.append(60)
 					
 		return result
 	
@@ -6902,142 +6906,170 @@ class ph_command(webapp2.RequestHandler):
 				
 		page["context"] = "CONTEXT: (<b>%s</b>) AS: (<b>%s</b>)" % (context,page["username"])
 
-		###################################
-		# TEST BLOCK PROCESS
-		###################################
+		# use while loop as case statement
+		# break out when we select a case
+		while True:
 		
-		# first check our error/success/confirm requests
-		if "test_code" in lobj_master.request.GET:
-			page["title"] = "TEST"
-			blok = {}
-			blok["type"] = "test"
-			blok["test_code"] = lobj_master.request.GET["test_code"]
-			bloks.append(blok)	
+			###################################
+			# TEST BLOCK PROCESS
+			###################################
 
-		###################################
-		# ERROR PROCESS
-		###################################
-		
-		# first check our error/success/confirm requests
-		elif "xerror_code" in lobj_master.request.GET:
-			page["title"] = "ERROR"
-			blok = {}
-			blok["type"] = "error"
-			blok["error_code"] = lobj_master.request.GET["xerror_code"]
-			blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["xlast_view"])
-			blok["last_view_link_text"] = "Link to last View"
-			bloks.append(blok)		
+			# first check our error/success/confirm requests
+			if "test_code" in lobj_master.request.GET:
+				page["title"] = "TEST"
+				blok = {}
+				blok["type"] = "test"
+				blok["test_code"] = lobj_master.request.GET["test_code"]
+				bloks.append(blok)	
+				break
 
-		###################################
-		# CONFIRM PROCESS
-		###################################
+			###################################
+			# ERROR PROCESS
+			###################################
 
-		elif "xconfirm_code" in lobj_master.request.GET:
-			page["title"] = "CONFIRM"
-			blok = {}
-			blok["type"] = "confirm"
-			blok["confirm_code"] = lobj_master.request.GET["xconfirm_code"]
-			blok["form_hidden_command_text"] = urllib.unquote(lobj_master.request.GET["xct"])
-			bloks.append(blok)	
-			
-		###################################
-		# SUCCESS PROCESS
-		###################################
-				
-		elif "xsuccess_code" in lobj_master.request.GET:
-			page["title"] = "SUCCESS"
-			blok = {}
-			blok["type"] = "success"
-			blok["success_code"] = lobj_master.request.GET["xsuccess_code"]
-			bloks.append(blok)	
-				
-		###################################
-		# CONTEXT/VIEW PROCESS
-		###################################
-				
-		# make bloks from context
-		elif pqc[0] == 40:
-			page["title"] = "ROOT"
-			blok = {}
-			blok["type"] = "home"
-			bloks.append(blok)
+			# first check our error/success/confirm requests
+			if "xerror_code" in lobj_master.request.GET:
+				page["title"] = "ERROR"
+				blok = {}
+				blok["type"] = "error"
+				blok["error_code"] = lobj_master.request.GET["xerror_code"]
+				blok["last_view_link"] = urllib.unquote(lobj_master.request.GET["xlast_view"])
+				blok["last_view_link_text"] = "Link to last View"
+				bloks.append(blok)	
+				break		
 
-		elif pqc[0] == 30:
-			page["title"] = "MENU ROOT"
-			blok = {}
-			blok["type"] = "menu"
-			blok["menuitems"] = []
-			
-			menuitem1 = {}
-			menuitem1["href"] = "/"
-			menuitem1["label"] = "Root"
-			blok["menuitems"].append(menuitem1)
-			
-			menuitem2 = {}
-			menuitem2["href"] = "/network"
-			menuitem2["label"] = "All Networks"
-			blok["menuitems"].append(menuitem2)
-			
-			menuitem3 = {}
-			menuitem3["href"] = "/?test_code=8002"
-			menuitem3["label"] = "Test Bloks"
-			blok["menuitems"].append(menuitem3)
-			bloks.append(blok)	
-		
-		elif pqc[0] == 20:
-			# view all networks
-			page["title"] = "NETWORKS"
-			blok = {}
-			blok["type"] = "all networks"
-			"""
-			We want to show all networks to everyone, but if they are members of
-			certain networks we will show those on top.
+			###################################
+			# CONFIRM PROCESS
+			###################################
 
-			FOR LOGGED IN USERS:
+			if "xconfirm_code" in lobj_master.request.GET:
+				page["title"] = "CONFIRM"
+				blok = {}
+				blok["type"] = "confirm"
+				blok["confirm_code"] = lobj_master.request.GET["xconfirm_code"]
+				blok["form_hidden_command_text"] = urllib.unquote(lobj_master.request.GET["xct"])
+				bloks.append(blok)	
+				break	
 
-			My Live Networks (inset)
-			
-			My Test Networks (inset)
+			###################################
+			# SUCCESS PROCESS
+			###################################
 
-			[Other] Live Networks (inset)
-			
-			[Other] Test Networks (inset/collapsible)
-			Inactive Networks (inset/collapsible)
-			Deleted Networks (inset/collapsible)
+			if "xsuccess_code" in lobj_master.request.GET:
+				page["title"] = "SUCCESS"
+				blok = {}
+				blok["type"] = "success"
+				blok["success_code"] = lobj_master.request.GET["xsuccess_code"]
+				bloks.append(blok)	
+				break	
+
+			###################################
+			# CONTEXT/VIEW PROCESS
+			###################################
+
+			# make bloks from context
+			if pqc[0] == 60:
+				page["title"] = " MY PROFILE"
+				blok = {}
+				blok["type"] = "my_profile"
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(lobj_master.user.entity)
+				blok["bio"] = lobj_master.user.entity.bio
+				blok["lat"] = float(lobj_master.user.entity.location_latitude) / 100000000
+				blok["long"] = float(lobj_master.user.entity.location_longitude) / 100000000
+				bloks.append(blok)	
+				break
+
+			if pqc[0] == 40:
+				page["title"] = "ROOT"
+				blok = {}
+				blok["type"] = "home"
+				bloks.append(blok)	
+				break
+
+			if pqc[0] == 30:
+				page["title"] = "MENU ROOT"
+				blok = {}
+				blok["type"] = "menu"
+				blok["menuitems"] = []
+
+				menuitem = {}
+				menuitem["href"] = "/"
+				menuitem["label"] = "Root"
+				blok["menuitems"].append(menuitem)
+
+				menuitem = {}
+				menuitem["href"] = "/network"
+				menuitem["label"] = "All Networks"
+				blok["menuitems"].append(menuitem)
+
+				if lobj_master.user.IS_LOGGED_IN:
+					menuitem = {}
+					menuitem["href"] = "/profile"
+					menuitem["label"] = "My Profile"
+					blok["menuitems"].append(menuitem)
+
+				menuitem = {}
+				menuitem["href"] = "/?test_code=8002"
+				menuitem["label"] = "Test Bloks"
+				blok["menuitems"].append(menuitem)
+				bloks.append(blok)	
+				break	
+
+			if pqc[0] == 20:
+				# view all networks
+				page["title"] = "NETWORKS"
+				blok = {}
+				blok["type"] = "all networks"
+				"""
+				We want to show all networks to everyone, but if they are members of
+				certain networks we will show those on top.
+
+				FOR LOGGED IN USERS:
+
+				My Live Networks (inset)
+
+				My Test Networks (inset)
+
+				[Other] Live Networks (inset)
+
+				[Other] Test Networks (inset/collapsible)
+				Inactive Networks (inset/collapsible)
+				Deleted Networks (inset/collapsible)
 
 
-			FOR ANONYMOUS VIEWERS:
+				FOR ANONYMOUS VIEWERS:
 
-			Live Networks (inset)
+				Live Networks (inset)
 
-			Test Networks (inset/collapsible)
-			Inactive Networks (inset/collapsible)
-			Deleted Networks (inset/collapsible)		
-			"""
-			blok["groups"] = self.master.metric._get_all_networks()
-			bloks.append(blok)
-			
-			
-			pass	
-		elif pqc[0] == 10:
-			# view specific network
-			# view all networks
-			blok = {}
-			blok["type"] = "one network"
-			blok["network"] = self.master.metric._get_network(fstr_network_name=pqc[1])
-			if blok["network"] is None: 
-				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				return None
-			page["title"] = blok["network"].network_name
-			bloks.append(blok)
-			
-			# now lets add the view of the users accounts
-			blok2 = {}
-			blok2["type"] = "all accounts"
-			blok2["groups"] = self.master.metric._get_all_accounts(fstr_network_name=pqc[1])
-			bloks.append(blok2)
-			
-		else:
+				Test Networks (inset/collapsible)
+				Inactive Networks (inset/collapsible)
+				Deleted Networks (inset/collapsible)		
+				"""
+				blok["groups"] = self.master.metric._get_all_networks()
+				bloks.append(blok)	
+				break
+
+
+				pass	
+			if pqc[0] == 10:
+				# view specific network
+				# view all networks
+				blok = {}
+				blok["type"] = "one network"
+				blok["network"] = self.master.metric._get_network(fstr_network_name=pqc[1])
+				if blok["network"] is None: 
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					return None
+				page["title"] = blok["network"].network_name
+				bloks.append(blok)
+
+				# now lets add the view of the users accounts
+				blok2 = {}
+				blok2["type"] = "all accounts"
+				blok2["groups"] = self.master.metric._get_all_accounts(fstr_network_name=pqc[1])
+				bloks.append(blok2)	
+				break
+
 			# context not recognized
 			# show error
 			page["title"] = "ERROR"
@@ -7046,7 +7078,8 @@ class ph_command(webapp2.RequestHandler):
 			blok["error_code"] = "1002"
 			blok["last_view_link"] = "/"
 			blok["last_view_link_text"] = "Link to ROOT"
-			bloks.append(blok)			
+			bloks.append(blok)	
+			break			
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
 		self.response.write(template.render(master=lobj_master))
@@ -7400,7 +7433,8 @@ class ph_command(webapp2.RequestHandler):
 application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
-	('/network/account', ph_command)
+	('/network/account', ph_command),
+	('/profile', ph_command)
 	],debug=True)
 
 ##########################################################################
