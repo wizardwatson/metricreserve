@@ -1,6 +1,39 @@
 {% for blok in master.bloks %}
 
+	{% if blok.type == "my_profile" %}
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li>
+				<img src="{{ blok.gravatar_url }}" />
+				<h3>{{ master.page.username }}</h3>
+			</li>
+		</ul>
+		<div class="text_bubble ui-body ui-body-c">
+		<h3>Bio:</h3>
+		<p>{{ blok.bio }}</p>
+		</div>
 
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>Location: {{ blok.lat }}, {{ blok.long }}</h3>
+			<div id="map"></div>
+			<script>
+			  function initMap() {
+				var mylocation = {lat: {{ blok.lat }}, lng: {{ blok.long }}};
+				var map = new google.maps.Map(document.getElementById('map'), {
+				  zoom: 4,
+				  center: mylocation
+				});
+				var marker = new google.maps.Marker({
+				  position: mylocation,
+				  map: map
+				});
+			  }
+			</script>
+			<script async defer
+			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+			</script>
+		</div>
+
+	{% endif %}
 
 	{% if blok.type == "map" %}
 		<div id="map"></div>
