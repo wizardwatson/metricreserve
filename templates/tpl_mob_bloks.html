@@ -5,19 +5,26 @@
 			{% for message in blok.messages %}
 				<div class="myclass2 ui-body ui-body-c">
 					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
-						<img class="qr_code" src="https://chart.googleapis.com/chart?cht=qr&amp;chs=85&amp;chl=https%3A%2F%2F8080-dot-2189742-dot-devshell.appspot.com%2F%3Fauthuser%3D0"/>
+						<img class="qr_code" src="{{ message.avatar_url }}"/>
 					</div>
 					<div style="margin:0px;padding:0px;float: left; width: 77%;">
-						<p style="margin:5px;padding:0px;" >sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf
-						sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf sdfsdf sdf sdf sdf </p>
+						<p style="margin:5px;padding:0px;" >{{ message.username }}<br/>
+						{{ message.date }}<br/>
+						{{ message.text }}</p>
 					</div>
 				</div>
 			{% endfor %}
 			{% if blok.more %}
-
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li>
+						<a href="/messages?channel={{ blok.channel }}&cursor={{ blok.next_cursor }}">More Messages...</a>
+					</li>
+				</ul>
 			{% endif %}
 		{% else %}
-
+			<div class="text_bubble ui-body ui-body-c">
+				<p>No messages for this user.</p>
+			</div>
 		{% endif %}
 	{% endif %}
 
