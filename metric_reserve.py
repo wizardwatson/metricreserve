@@ -802,23 +802,26 @@ class master(object):
 	
 	
 		# get settings object transactionally
-		settings_key = ndb.Key("ds_mr_system_settings",self.PARENT.user.entity.user_id())
+		settings_key = ndb.Key("ds_mr_system_settings","metric_reserve_settings")
 		settings_entity = settings_key.get()
 		if not settings_entity:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.RETURN_CODE = "1276"
 			return False # error Couldn't load system setttings
 		
 		if fkey.lower() not in settings_entity.data:
-			self.PARENT.RETURN_CODE = "STUB"
-			return False # error Invalid user modification type.
-		
+			self.RETURN_CODE = "1277"
+			return False # error System settings variable name invalid.
+
+		if fkey == "google_maps_api_key":
+			settings_entity.data[fkey] = fvalue
+	
 		"""
 		if fkey == "my_key":
 			settings_entity.data[my_key] = fvalue
 		"""				
 		
 		settings_entity.put()
-		self.PARENT.RETURN_CODE = "STUBSUCCESS" # success Successfully modified system settings.
+		self.RETURN_CODE = "7056" # success Successfully modified system settings.
 		return True
 
 # this is the user class specifically designed for using google user authentication
@@ -1060,7 +1063,7 @@ class user(object):
 	
 		# get user transactionally
 		# this function loads a user entity from a key
-		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id())
+		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
 		lds_user = user_key.get()
 		if not lds_user:
 			self.PARENT.RETURN_CODE = "1269"
@@ -7093,12 +7096,6 @@ class ph_command(webapp2.RequestHandler):
 		self.master = lobj_master
 		if lobj_master.IS_INTERRUPTED:return
 
-		# get the context
-		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
-		
-		# get path/query context and variables
-		pqc = self.get_pqc()
-		
 		# get the command text
 		lstr_command_text = lobj_master.request.POST['form_command_text']
 		if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
@@ -7123,6 +7120,8 @@ class ph_command(webapp2.RequestHandler):
 			r = lobj_master.request_handler
 			# parse the command and make sure all lowercase
 			ct = lstr_command_text.lower().split()
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)  
 			# is this a confirmation of a previously entered command?
 			is_confirmed = False
 			if ct[0] == "confirm" and len(ct) == 1:
@@ -7137,7 +7136,15 @@ class ph_command(webapp2.RequestHandler):
 					# Make what was in the hidden field what we actually process
 					# and continue.
 					ct = lstr_command_text.lower().split()
+					ctraw = lstr_command_text.split()
+					ctraw.append(lstr_command_text)
 					is_confirmed = True			
+			
+			# get the context
+			lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+			
+			# get path/query context and variables
+			pqc = self.get_pqc()
 			
 			"""
 			PROCESS THE COMMANDS
@@ -7170,6 +7177,22 @@ class ph_command(webapp2.RequestHandler):
 			
 			"""
 			
+			###################################
+			# long command
+			# 
+			# from any context
+			###################################
+			if  len(ct) == 3 and ct[0] == "settings":
+				# only admins can modify settings
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user.IS_ADMIN:
+					r.redirect(self.url_path(error_code="1103"))
+				elif not lobj_master._modify_settings(ct[1],ctraw[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return	
 			###################################
 			# long command
 			# 
@@ -7210,6 +7233,36 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xold_username"] = lobj_master.user.entity.username
 					ltemp["xnew_username"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
+				return
+			###################################
+			# modify user settings
+			# 
+			# from any context
+			###################################
+			if len(ct) == 2 and ct[0] in ["gurl","gtype"]:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user._modify_user(ct[0],ct[1]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return				
+			if len(ct) == 3 and ct[0] == "location":
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user._modify_user(ct[0],"%s %s" % (ct[1],ct[2])):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return		
+			if ct[0] == "bio" and len(ct) > 1:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user._modify_user(ct[0],self.get_text_for("bio",ctraw[-1])):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return			
 			###################################
 			# network add <NETWORK NAME> : add a new network [admin only]
 			# network <NETWORK NAME> : view a network
@@ -7217,7 +7270,7 @@ class ph_command(webapp2.RequestHandler):
 			# 
 			# from any context
 			###################################
-			elif len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
+			if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
 				# only admins can create a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7231,12 +7284,15 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xnew_network_name"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
-			elif  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
+				return
+			if  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
 				ltemp = {}
 				temp["view_network"] = ct[1]
 				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
-			elif  len(ct) == 1 and ct[0] == "network":
+				return
+			if  len(ct) == 1 and ct[0] == "network":
 				r.redirect("/network")
+				return
 			###################################
 			# network delete : delete a network [admin only]
 			# network activate : change network status to ACTIVE [admin only]
@@ -7247,7 +7303,7 @@ class ph_command(webapp2.RequestHandler):
 			# 
 			# all only from network:network_id context
 			###################################
-			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
+			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
 				# only admins can delete a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7260,7 +7316,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
-			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
+				return
+			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
 				# only admins can change the status of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7283,7 +7340,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
-			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
+				return
+			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7296,7 +7354,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
-			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
+				return
+			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7309,7 +7368,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
-			elif pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
+				return
+			if pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
 				# only admins can change the description of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7322,7 +7382,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7045"))
-			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
+				return
+			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
 				# only admins can change the type of a network
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7338,7 +7399,8 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xskintillionths"] = ct[2]
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
-			elif pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
+				return
+			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
 				# only admins can change a network name
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7365,6 +7427,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnew_network_name"] = ct[2]
 					ltemp["view_network"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))		
+				return
 			###################################
 			# reserve add : 
 			# joint authorize :
@@ -7374,7 +7437,7 @@ class ph_command(webapp2.RequestHandler):
 			# view context.  All other account functions are done from
 			# the single account view context.
 			###################################
-			elif pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
+			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
 				# create a reserve account on this network for the user
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -7395,7 +7458,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["view_network"] = pqc[1]
 					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
-			
+				return
 			
 			
 			
@@ -7403,10 +7466,9 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 			# command not recognized
 			###################################
-			else:
-				# command not recognized
-				r.redirect(self.url_path(error_code="1001"))
-	
+			r.redirect(self.url_path(error_code="1001"))
+			return
+			
 
 ################################################################
 ###
