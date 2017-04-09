@@ -171,6 +171,7 @@ import pdb
 from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.ext import ndb
+from google.appengine.datastore.datastore_query import Cursor
 
 # These are app.yaml imports.
 import webapp2
@@ -294,6 +295,8 @@ class ds_mr_user(ndb.Model):
 	child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+	
+	extra_pickle = ndb.PickleProperty()
 
 # a Model for user messages
 class ds_mr_user_message(ndb.Model):
@@ -302,6 +305,9 @@ class ds_mr_user_message(ndb.Model):
 	create_user_id = ndb.StringProperty()
 	target_user_id = ndb.StringProperty()
 	message_content = ndb.PickleProperty()
+	gravatar_url = ndb.StringProperty(indexed=False)
+	gravatar_type = ndb.StringProperty(indexed=False)
+	username = ndb.StringProperty(indexed=False)
 
 # this is just an entity solely used to enforce name uniqueness in other
 # objects via transactions google's datastore requires a little extra work
@@ -1000,7 +1006,25 @@ class user(object):
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
+	
+	def _get_user_messages(self,fstr_target_name,fstr_cursor="1"):
+	
+		# get target user_id
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
+		name_entity = name_key.get()
+		if name_entity is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Target name invalid.
+			
+		messages_per_page = 20
+		cursor = Cursor(urlsafe=fstr_cursor)		
 		
+		query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
+		query = query.order(-ds_mr_user_message.date_created)
+		
+		return query.fetch_page(messages_per_page, start_cursor=cursor)
+				
+	
 	def _message(self,fstr_target_name,fstr_text):
 	
 		"""
@@ -1021,6 +1045,9 @@ class user(object):
 			return False # error Target name invalid.
 		new_message = ds_mr_user_message()
 		new_message.create_user_id = self.PARENT.user.entity.user_id
+		new_message.gravatar_url = self.PARENT.user.entity.gravatar_url
+		new_message.gravatar_type = self.PARENT.user.entity.gravatar_type
+		new_message.username = self.PARENT.user.entity.username
 		new_message.target_user_id = name_entity.user_id
 		new_message.message_content = fstr_text
 		new_message.put()
@@ -2745,8 +2772,8 @@ class metric(object):
 			if target_account_id == 0:
 				self.PARENT.RETURN_CODE = "1120"
 				return False # target user has no account on the named network
-				
-	
+
+
 		# Should be good to go if we got this far.  It means the 
 		# source/target username/alias's used, have a metric reserve
 		# account on the network that the network name passed maps
@@ -6796,6 +6823,10 @@ class ph_command(webapp2.RequestHandler):
 		if self.master.PATH_CONTEXT == "root/profile":
 			# viewing users own profile
 			result.append(60)
+		if self.master.PATH_CONTEXT == "root/messages" and "channel" in self.master.request.GET:
+			# messages page
+			result.append(70)
+			result.append(self.master.request.GET["channel"])
 					
 		return result
 	
@@ -6971,8 +7002,32 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 70:
+				page["title"] = "MESSAGES"
+				blok = {}
+				blok["type"] = "messages"
+				if "cursor" in lobj_master.request.GET:
+					current_cursor = lobj_master.request.GET["cursor"]
+				else:
+					current_cursor = 1
+				blok["messages_raw"] = ""
+				blok["messages"] = []
+				blok["more"] = False
+				blok["mext_cursor"] = ""
+				blok["messages_raw"], blok["next_cursor"], blok["more"] = lobj_master.user._get_messages(pqc[1],current_cursor)
+				blok["message_avatar"] = []
+				for message in blok["messages_raw"]:
+					formatted_message = {}
+					formatted_message["avatar_url"] = 
+					formatted_message["date"] = 
+					formatted_message["text"] = 
+					
+				bloks.append(blok)
+				break
+			
+			
 			if pqc[0] == 60:
-				page["title"] = " MY PROFILE"
+				page["title"] = "MY PROFILE"
 				blok = {}
 				blok["type"] = "my_profile"
 				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(lobj_master.user.entity)
@@ -7496,7 +7551,8 @@ application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
 	('/network/account', ph_command),
-	('/profile', ph_command)
+	('/profile', ph_command),
+	('/messages', ph_command)
 	],debug=True)
 
 ##########################################################################
