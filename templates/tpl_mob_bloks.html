@@ -248,7 +248,7 @@
 					  }
 					</script>
 					<script async defer
-					src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+					src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
 					</script>
 				</div>
 				<div class="text_bubble ui-body ui-body-c">
@@ -907,6 +907,15 @@
 		{% if blok.error_code == "1275" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Longitude out of range.  Must be between 180 and -180.</p>
 		{% endif %}
+		{% if blok.error_code == "1276" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load system setttings.</p>
+		{% endif %}
+		{% if blok.error_code == "1277" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> System settings variable name invalid.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
@@ -1125,6 +1134,9 @@
 		{% endif %}
 		{% if blok.success_code == "7055" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully modified user.</p>
+		{% endif %}
+		{% if blok.success_code == "7056" %}
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully modified system settings.</p>
 		{% endif %}
 	{% endif %}
 {% endfor %}
