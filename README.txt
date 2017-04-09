@@ -38,6 +38,12 @@ PAGES
 	name
 
 [profile]
+	Block 1
+		list
+			(avatar - username)
+			(bio)
+			(location)
+			(last 15 messages)
 	messages
 	bio
 	location
