@@ -157,6 +157,7 @@ import os
 import urllib
 import hashlib
 import datetime
+import time
 import re
 import pickle
 import random
@@ -1007,7 +1008,7 @@ class user(object):
 		
 		return True # True meaning "created"
 	
-	def _get_user_messages(self,fstr_target_name,fstr_cursor="1"):
+	def _get_user_messages(self,fstr_target_name,fstr_cursor):
 	
 		# get target user_id
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
@@ -1015,15 +1016,16 @@ class user(object):
 		if name_entity is None:
 			self.PARENT.RETURN_CODE = "STUB"
 			return False # error Target name invalid.
-			
-		messages_per_page = 20
-		cursor = Cursor(urlsafe=fstr_cursor)		
-		
+
 		query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
-		query = query.order(-ds_mr_user_message.date_created)
+		query = query.order(-ds_mr_user_message.date_created)		
+		messages_per_page = 3
 		
-		return query.fetch_page(messages_per_page, start_cursor=cursor)
-				
+		if not fstr_cursor is None:
+			cursor = Cursor(urlsafe=fstr_cursor)
+			return query.fetch_page(messages_per_page, start_cursor=cursor)
+		else:
+			return query.fetch_page(messages_per_page)
 	
 	def _message(self,fstr_target_name,fstr_text):
 	
@@ -1053,7 +1055,7 @@ class user(object):
 		new_message.put()
 		return True
 
-	def _get_gravatar_url(self,user_obj,size=80):
+	def _get_gravatar_url(self,fgurl,fgtype,size=80):
 		
 		# GRAVATAR DOCS
 		# http://en.gravatar.com/site/implement/images/
@@ -1078,11 +1080,11 @@ class user(object):
 		# "f" is forcedefault, set to y if you want to force one of above set defaults
 		
 		lstr_base = "https://www.gravatar.com/avatar/"
-		lstr_hash = hashlib.md5(user_obj.gravatar_url.lower()).hexdigest()
-		if user_obj.gravatar_type == "gravatar":
+		lstr_hash = hashlib.md5(fgurl.lower()).hexdigest()
+		if fgtype == "gravatar":
 			lstr_query_string = urllib.urlencode({'s':str(size)})
 		else:
-			lstr_query_string = urllib.urlencode({'d':user_obj.gravatar_type, 's':str(size), 'f':'y'})
+			lstr_query_string = urllib.urlencode({'d':fgtype, 's':str(size), 'f':'y'})
 		return lstr_base + lstr_hash + "?" + lstr_query_string
 		
 	@ndb.transactional()	
@@ -7004,33 +7006,47 @@ class ph_command(webapp2.RequestHandler):
 			# make bloks from context
 			if pqc[0] == 70:
 				page["title"] = "MESSAGES"
+				"""				
+				# a Model for user messages
+				class ds_mr_user_message(ndb.Model):
+				
+					date_created = ndb.DateTimeProperty(auto_now_add=True)
+					create_user_id = ndb.StringProperty()
+					target_user_id = ndb.StringProperty()
+					message_content = ndb.PickleProperty()
+					gravatar_url = ndb.StringProperty(indexed=False)
+					gravatar_type = ndb.StringProperty(indexed=False)
+					username = ndb.StringProperty(indexed=False)
+				"""
 				blok = {}
 				blok["type"] = "messages"
 				if "cursor" in lobj_master.request.GET:
 					current_cursor = lobj_master.request.GET["cursor"]
 				else:
-					current_cursor = 1
+					current_cursor = None
 				blok["messages_raw"] = ""
 				blok["messages"] = []
+				blok["channel"] = pqc[1]
 				blok["more"] = False
 				blok["mext_cursor"] = ""
-				blok["messages_raw"], blok["next_cursor"], blok["more"] = lobj_master.user._get_messages(pqc[1],current_cursor)
-				blok["message_avatar"] = []
+				blok["messages_raw"], blok["next_cursor"], blok["more"] = lobj_master.user._get_user_messages(pqc[1],current_cursor)
+				if not blok["next_cursor"] is None:
+					blok["next_cursor"] = blok["next_cursor"].urlsafe()
 				for message in blok["messages_raw"]:
 					formatted_message = {}
-					formatted_message["avatar_url"] = 
-					formatted_message["date"] = 
-					formatted_message["text"] = 
-					
+					formatted_message["avatar_url"] = lobj_master.user._get_gravatar_url(message.gravatar_url,message.gravatar_type)
+					formatted_message["date"] = message.date_created
+					formatted_message["text"] = message.message_content
+					formatted_message["username"] = message.username
+					blok["messages"].append(formatted_message)
 				bloks.append(blok)
 				break
-			
 			
 			if pqc[0] == 60:
 				page["title"] = "MY PROFILE"
 				blok = {}
 				blok["type"] = "my_profile"
-				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(lobj_master.user.entity)
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(lobj_master.user.entity.gravatar_url,lobj_master.user.entity.gravatar_type)
 				blok["bio"] = lobj_master.user.entity.bio
 				blok["lat"] = float(lobj_master.user.entity.location_latitude) / 100000000
 				blok["long"] = float(lobj_master.user.entity.location_longitude) / 100000000
@@ -7318,6 +7334,21 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
 				return			
+			###################################
+			# user message
+			# 
+			# from message context
+			###################################
+			if pqc[0] == 70 and len(ct) > 1 and ct[0] == "message":
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.user._message(pqc[1],self.get_text_for("message",ctraw[-1])):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					time.sleep(2)
+					r.redirect(self.url_path())
+				# no success code, just return, smoother
+				return		
 			###################################
 			# network add <NETWORK NAME> : add a new network [admin only]
 			# network <NETWORK NAME> : view a network
