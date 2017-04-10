@@ -15,11 +15,17 @@
 		<form action="{{ master.request.path_qs }}" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
 		  <fieldset>
 			<div data-role="fieldcontain" class="ui-hide-label">
-				<input type="hidden" name="form_hidden_command_text" value="{{ master.request.GET.ct }}"  />
+				{% if master.request.GET.xcs == "long" %}
+				<input type="hidden" name="form_hidden_command_text" value="{{ master.request.GET.xct }}"  />
 				<label for="command">CMD:</label>
-				<input class="myfonts" type="text" name="form_command_text" id="command" value="" placeholder="COMMAND"/>
+				<textarea tabindex=1 class="myfonts" cols="40" rows="8" name="form_command_text" id="command" placeholder="LONG COMMAND"/></textarea>
+				{% else %}
+				<input type="hidden" name="form_hidden_command_text" value="{{ master.request.GET.xct }}"  />
+				<label for="command">CMD:</label>
+				<input tabindex=1 class="myfonts" type="text" name="form_command_text" id="command" value="" placeholder="COMMAND"/>
+				{% endif %}
 			</div>
-			<button type="submit" data-theme="b" name="submit" value="submit_command">ENTER</button>
+			<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_command">ENTER</button>
 		  </fieldset>
 		</form>
 		<div class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font></div>
