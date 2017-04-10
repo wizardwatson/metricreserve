@@ -52,7 +52,7 @@ PAGES
 	
 	
 
-
+36.6678 -96.3372
 
 
 * must be logged in
