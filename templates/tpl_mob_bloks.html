@@ -122,7 +122,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">My Live Networks</li>
 					{% for network in blok.groups.my_live_networks %}
-					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -130,7 +130,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">My Test Networks</li>
 					{% for network in blok.groups.my_test_networks %}
-					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -138,7 +138,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Available Live Networks</li>
 					{% for network in blok.groups.live_networks %}
-					<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -149,7 +149,7 @@
 						<h2>Test Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.test_networks %}
-							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -159,7 +159,7 @@
 						<h2>Inactive Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.inactive_networks %}
-							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -169,7 +169,7 @@
 						<h2>Deleted Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.deleted_networks %}
-							<li><a href="/network?view_network={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -200,14 +200,14 @@
 			{% if blok.groups.has_reserve_account %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Reserve Account</li>
-					<li><a href="/network?view_account={{ blok.groups.reserve_account.extra_pickle }}">{{ blok.groups.reserve_account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ blok.groups.reserve_account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ blok.groups.reserve_account.extra_pickle.account }}</a></li>
 				</ul>
 			{% endif %}
 			{% if blok.groups.has_client_accounts %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Customer Accounts</li>
 					{% for account in blok.groups.client_accounts %}
-					<li><a href="/network?view_account={{ account.extra_pickle }}">{{ account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -215,7 +215,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Joint Accounts</li>
 					{% for account in blok.groups.joint_accounts %}
-					<li><a href="/network?view_account={{ account.extra_pickle }}">{{ account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -223,7 +223,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Clone Accounts</li>
 					{% for account in blok.groups.clone_accounts %}
-					<li><a href="/network?view_account={{ account.extra_pickle }}">{{ account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -231,7 +231,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Sponsored Customer Accounts</li>
 					{% for account in blok.groups.child_client_accounts %}
-					<li><a href="/network?view_account={{ account.extra_pickle }}">{{ account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -239,7 +239,7 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Sponsored Joint Accounts</li>
 					{% for account in blok.groups.child_joint_accounts %}
-					<li><a href="/network?view_account={{ account.extra_pickle }}">{{ account.extra_pickle }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -248,6 +248,14 @@
 			<p>You currently have no accounts on this network.</p>
 			</div>
 		{% endif %}
+	{% endif %}
+
+
+	{% if blok.type == "one account self" %}
+	{% endif %}
+
+
+	{% if blok.type == "one account other" %}
 	{% endif %}
 
 
