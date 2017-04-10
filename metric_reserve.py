@@ -831,6 +831,15 @@ class master(object):
 		self.RETURN_CODE = "7056" # success Successfully modified system settings.
 		return True
 
+	def dump(self,fdump):
+		self.page = {}
+		self.page["title"] = "DUMP"
+		self.DUMP = True
+		self.DUMP_STUFF = fdump
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
+		self.response.write(template.render(master=self))
+
+		
 # this is the user class specifically designed for using google user authentication
 class user(object):
 
@@ -2463,7 +2472,7 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _reserve_open_transactional(self,fint_network_id):
 
-		def check_default(self,fobj_user):
+		def check_default(fobj_user):
 		
 			# Check default is just making sure a default account exists
 			# when a user adds or deletes accounts.  They may delete the
@@ -2552,7 +2561,8 @@ class metric(object):
 			# maximum reserve accounts reached
 			self.PARENT.RETURN_CODE = "1111"
 			return False
-			
+		
+		
 		# load cursor transactionally
 		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(network_id).zfill(8))		
 		lds_cursor = cursor_key.get()
@@ -2598,7 +2608,7 @@ class metric(object):
 		lds_tx_log.put()
 		
 		# save the transaction
-		self.check_default(lds_user)
+		check_default(lds_user)
 		lds_user.put()
 		lds_metric_account.put()
 		lds_cursor.put()
@@ -7346,7 +7356,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					time.sleep(2)
-					r.redirect(self.url_path())
+					r.redirect(self.url_path(new_path=lobj_master.request.path_qs))
 				# no success code, just return, smoother
 				return		
 			###################################
@@ -7537,8 +7547,9 @@ class ph_command(webapp2.RequestHandler):
 					# we won't get back here on confirm.
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
-				elif not lobj_master.metric._reserve_open_transactional(pqc[1]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not lobj_master.metric._reserve_open(pqc[1]):
+					#r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					pass
 				else:
 					ltemp = {}
 					ltemp["view_network"] = pqc[1]
@@ -7552,7 +7563,7 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 			# command not recognized
 			###################################
-			r.redirect(self.url_path(error_code="1001"))
+			r.redirect(self.url_path(error_code="1278"))
 			return
 			
 
