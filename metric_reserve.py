@@ -1062,6 +1062,7 @@ class user(object):
 		new_message.target_user_id = name_entity.user_id
 		new_message.message_content = fstr_text
 		new_message.put()
+		self.PARENT.RETURN_CODE = "7057" # success Successfully added message.
 		return True
 
 	def _get_gravatar_url(self,fgurl,fgtype,size=80):
@@ -1152,6 +1153,7 @@ class user(object):
 			
 		
 		lds_user.put()
+		#pdb.set_trace()
 		self.PARENT.RETURN_CODE = "7055" # success Successfully modified user.
 		return True
 			
@@ -6866,20 +6868,24 @@ class ph_command(webapp2.RequestHandler):
 			return False
 		return True
 	
-	def url_path(self,new_vars={},new_path=None,error_code=None,confirm_code=None,success_code=None):
+	def url_path(self,new_vars=None,new_path=None,error_code=None,confirm_code=None,success_code=None):
 
+		
 		if not error_code is None:
 			path_part = self.master.request.path
+			if new_vars is None: new_vars = {}
 			new_vars["xerror_code"] = error_code
 			new_vars["xlast_view"] = urllib.quote_plus(self.master.request.path_qs)
 		elif not confirm_code is None:
 			path_part = self.master.request.path
+			if new_vars is None: new_vars = {}
 			new_vars["xconfirm_code"] = confirm_code
 		elif not success_code is None:
 			path_part = self.master.request.path
+			if new_vars is None: new_vars = {}
 			new_vars["xsuccess_code"] = success_code
 		else:
-			if new_vars == {}:
+			if new_vars is None:
 				if new_path is None:
 					return self.master.request.path_qs
 				else:
@@ -7257,7 +7263,7 @@ class ph_command(webapp2.RequestHandler):
 			return
 			
 			"""
-			
+			#return lobj_master.dump([pqc[0],pqc[1],ct[0],ct[1]])
 			###################################
 			# long command
 			# 
@@ -7340,9 +7346,9 @@ class ph_command(webapp2.RequestHandler):
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				elif not lobj_master.user._modify_user(ct[0],self.get_text_for("bio",ctraw[-1])):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_path="/profile",error_code=lobj_master.RETURN_CODE))
 				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_path="/profile",success_code=lobj_master.RETURN_CODE))
 				return			
 			###################################
 			# user message
@@ -7356,6 +7362,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					time.sleep(2)
+					#lobj_master.dump([lobj_master.request.path_qs])
 					r.redirect(self.url_path(new_path=lobj_master.request.path_qs))
 				# no success code, just return, smoother
 				return		
@@ -7548,8 +7555,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["view_network"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
 				elif not lobj_master.metric._reserve_open(pqc[1]):
-					#r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-					pass
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
 					ltemp["view_network"] = pqc[1]
