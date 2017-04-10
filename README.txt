@@ -51,6 +51,16 @@ PAGES
 	
 	
 	
+	
+	
+
+
+
+
+	
+	
+	
+	
 
 36.6678 -96.3372
 
@@ -453,34 +463,113 @@ reserve close
 # metric account: this is the main account information
 class ds_mr_metric_account(ndb.Model):
 
-	account_id = ndb.IntegerProperty()
-	network_id = ndb.IntegerProperty()
-	user_id = ndb.StringProperty()
-	tx_index = ndb.IntegerProperty()
-	account_status = ndb.StringProperty()
-	account_type = ndb.StringProperty()
-	account_parent = ndb.IntegerProperty()
-	account_grandparent = ndb.PickleProperty()
-	account_sub_children = ndb.PickleProperty()
-	account_client_children = ndb.PickleProperty()
-	outgoing_connection_requests = ndb.PickleProperty(default="EMPTY")
-	incoming_connection_requests = ndb.PickleProperty(default="EMPTY")
+	account_id = ndb.IntegerProperty(indexed=False)
+	network_id = ndb.IntegerProperty(indexed=False)
+	user_id = ndb.StringProperty(indexed=False)
+	tx_index = ndb.IntegerProperty(indexed=False)
+	account_status = ndb.StringProperty(indexed=False)
+	account_type = ndb.StringProperty(indexed=False)
+	account_parent = ndb.IntegerProperty(default=0,indexed=False)
+	outgoing_connection_requests = ndb.PickleProperty()
+	incoming_connection_requests = ndb.PickleProperty()
 	incoming_reserve_transfer_requests = ndb.PickleProperty()
 	outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
 	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
 	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
-	current_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-	current_connections = ndb.PickleProperty(default="EMPTY")
-	current_reserve_balance = ndb.IntegerProperty()
-	current_network_balance = ndb.IntegerProperty()	
-	last_connections = ndb.PickleProperty(default="EMPTY")
-	last_reserve_balance = ndb.IntegerProperty()
-	last_network_balance = ndb.IntegerProperty()
-	date_created = ndb.DateTimeProperty(auto_now_add=True)
+	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	current_connections = ndb.PickleProperty()
+	current_reserve_balance = ndb.IntegerProperty(default=0)
+	current_network_balance = ndb.IntegerProperty(default=0)	
+	last_connections = ndb.PickleProperty()
+	last_reserve_balance = ndb.IntegerProperty(default=0)
+	last_network_balance = ndb.IntegerProperty(default=0)
+	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	extra_pickle = ndb.PickleProperty()
+
+RESERVE ACCOUNT:
+
+reserve_complete = {}
+reserve_complete["network_name"]
+reserve_complete["network_id"]
+reserve_complete["username_alias"]
+reserve_complete["account_id"]
+reserve_complete["tx_index"]
+reserve_complete["status"]
+reserve_complete["type"]
+reserve_complete["network_balance"]
+reserve_complete["reserve_balance"]
+reserve_complete["date_created"]
+reserve_complete["latitude"]
+reserve_complete["longitude"]
+reserve_complete["connection_count"]
+reserve_complete["connections"] = []
+reserve_complete["connections"][i] = {}
+reserve_complete["connections"][i]["username_alias"]
+reserve_complete["connections"][i]["network_balance"]
+reserve_complete["connections"][i]["reserve_balance"]
+reserve_complete["connections"][i]["connection_count"]
+reserve_complete["connections"][i]["latitude"]
+reserve_complete["connections"][i]["longitude"]
+reserve_complete["connections"][i]["transfer_request"]
+reserve_complete["connections"][i]["suggested_transfer"]
+reserve_complete["connection_requests_count"]
+reserve_complete["connections_requests"] = []
+reserve_complete["connections_requests"][i] = {}
+reserve_complete["connections_requests"][i]["username_alias"]
+reserve_complete["connections_requests"][i]["network_balance"]
+reserve_complete["connections_requests"][i]["reserve_balance"]
+reserve_complete["connections_requests"][i]["connection_count"]
+reserve_complete["connections_requests"][i]["latitude"]
+reserve_complete["connections_requests"][i]["longitude"]
+reserve_complete["child_account_count"]
+reserve_complete["child_accounts"] = []
+reserve_complete["child_accounts"][i] = {}
+reserve_complete["child_accounts"][i]["username_alias"]
+reserve_complete["child_accounts"][i]["type"]
+reserve_complete["child_accounts"][i]["network_balance"]
+reserve_complete["child_accounts"][i]["location"]
+reserve_complete["map_marker_count"]
+reserve_complete["map_data"] = []
+reserve_complete["map_data"][i] = {}
+reserve_complete["map_data"][i]["link"]
+reserve_complete["map_data"][i]["polyline"]
+reserve_complete["map_data"][i]["username_alias"]
+reserve_complete["map_data"][i]["latitude"]
+reserve_complete["map_data"][i]["longitude"]
+
+	Network Name:	
+	Account Username/Alias:
+	Account ID:
+	Transaction Index:
+	Account Status:
+	Account Type:
+	
+	Network Balance:
+	Reserve Balance:
+	
+	Date Created:
+	
+	CONNECTIONS:
+		Username/Alias:
+		Network Balance:
+		Reserve Balance:
+		Connection Count:
+		Transfer Request: <out|in> +|- <amount>
+		Suggested Transfer: <"ACTIVE"|"INACTIVE"|"NA">
+	
+	CONNECTION REQUESTS:
+		Username/Alias:
+		Network Balance:
+		Reserve Balance:
+		Connection Count:	
+
+	CHILD ACCOUNTS:
 
 
+	MAP:
+	
 		
 		
 		
