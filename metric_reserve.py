@@ -254,45 +254,45 @@ class ds_mr_user(ndb.Model):
 	total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
 	total_child_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
 	
-	reserve_network_ids = ndb.PickleProperty(default=[])
-	reserve_account_ids = ndb.PickleProperty(default=[])
-	reserve_labels = ndb.PickleProperty(default=[])
-	reserve_default = ndb.PickleProperty(default=[])
+	reserve_network_ids = ndb.PickleProperty()
+	reserve_account_ids = ndb.PickleProperty()
+	reserve_labels = ndb.PickleProperty()
+	reserve_default = ndb.PickleProperty()
 	
-	client_network_ids = ndb.PickleProperty(default=[])
-	client_account_ids = ndb.PickleProperty(default=[])
-	client_parent_ids = ndb.PickleProperty(default=[])
-	client_labels = ndb.PickleProperty(default=[])
-	client_default = ndb.PickleProperty(default=[])
+	client_network_ids = ndb.PickleProperty()
+	client_account_ids = ndb.PickleProperty()
+	client_parent_ids = ndb.PickleProperty()
+	client_labels = ndb.PickleProperty()
+	client_default = ndb.PickleProperty()
 	parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
-	joint_network_ids = ndb.PickleProperty(default=[])
-	joint_account_ids = ndb.PickleProperty(default=[])
-	joint_parent_ids = ndb.PickleProperty(default=[])
-	joint_labels = ndb.PickleProperty(default=[])
-	joint_default = ndb.PickleProperty(default=[])
+	joint_network_ids = ndb.PickleProperty()
+	joint_account_ids = ndb.PickleProperty()
+	joint_parent_ids = ndb.PickleProperty()
+	joint_labels = ndb.PickleProperty()
+	joint_default = ndb.PickleProperty()
 	parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
-	clone_network_ids = ndb.PickleProperty(default=[])
-	clone_account_ids = ndb.PickleProperty(default=[])
-	clone_parent_ids = ndb.PickleProperty(default=[])
-	clone_labels = ndb.PickleProperty(default=[])
-	clone_default = ndb.PickleProperty(default=[])
+	clone_network_ids = ndb.PickleProperty()
+	clone_account_ids = ndb.PickleProperty()
+	clone_parent_ids = ndb.PickleProperty()
+	clone_labels = ndb.PickleProperty()
+	clone_default = ndb.PickleProperty()
 	
-	child_client_network_ids = ndb.PickleProperty(default=[])
-	child_client_account_ids = ndb.PickleProperty(default=[])
-	child_client_parent_ids = ndb.PickleProperty(default=[])
+	child_client_network_ids = ndb.PickleProperty()
+	child_client_account_ids = ndb.PickleProperty()
+	child_client_parent_ids = ndb.PickleProperty()
 	child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
-	child_joint_network_ids = ndb.PickleProperty(default=[])
-	child_joint_account_ids = ndb.PickleProperty(default=[])
-	child_joint_parent_ids = ndb.PickleProperty(default=[])
+	child_joint_network_ids = ndb.PickleProperty()
+	child_joint_account_ids = ndb.PickleProperty()
+	child_joint_parent_ids = ndb.PickleProperty()
 	child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
@@ -339,7 +339,7 @@ class ds_mr_network_profile(ndb.Model):
 # system settings
 class ds_mr_system_settings(ndb.Model):
 
-	data = ndb.PickleProperty(default={})
+	data = ndb.PickleProperty()
 
 # network cursor: this entity maintains the index of networks
 class ds_mr_system_cursor(ndb.Model):
@@ -362,19 +362,19 @@ class ds_mr_metric_account(ndb.Model):
 	account_status = ndb.StringProperty(indexed=False)
 	account_type = ndb.StringProperty(indexed=False)
 	account_parent = ndb.IntegerProperty(default=0,indexed=False)
-	outgoing_connection_requests = ndb.PickleProperty(default=[])
-	incoming_connection_requests = ndb.PickleProperty(default=[])
-	incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty(default={})
-	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty(default={})
+	outgoing_connection_requests = ndb.PickleProperty()
+	incoming_connection_requests = ndb.PickleProperty()
+	incoming_reserve_transfer_requests = ndb.PickleProperty()
+	outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_inactive_outgoing_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_incoming_reserve_transfer_requests = ndb.PickleProperty()
+	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
-	current_connections = ndb.PickleProperty(default=[])
+	current_connections = ndb.PickleProperty()
 	current_reserve_balance = ndb.IntegerProperty(default=0)
 	current_network_balance = ndb.IntegerProperty(default=0)	
-	last_connections = ndb.PickleProperty(default=[])
+	last_connections = ndb.PickleProperty()
 	last_reserve_balance = ndb.IntegerProperty(default=0)
 	last_network_balance = ndb.IntegerProperty(default=0)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
@@ -386,16 +386,16 @@ class ds_mr_metric_ticket_index(ndb.Model):
 	account_id = ndb.IntegerProperty(indexed=False)
 	network_id = ndb.IntegerProperty(indexed=False)
 	user_id = ndb.StringProperty(indexed=False)
-	ticket_data = ndb.PickleProperty(default={})
+	ticket_data = ndb.PickleProperty()
 	
 class ds_mr_metric_ticket_tape(ndb.Model):
 
 	ticket_name = ndb.StringProperty(indexed=False)
-	ticket_tape = ndb.PickleProperty(default={})
+	ticket_tape = ndb.PickleProperty()
 
 class ds_mr_metric_ticket_plu(ndb.Model):
 
-	plu_data = ndb.PickleProperty(default={})
+	plu_data = ndb.PickleProperty()
 
 # transaction log:  think "bank statements"
 class ds_mr_tx_log(ndb.Model):
@@ -545,6 +545,7 @@ class master(object):
 				return lds_settings
 			lds_settings = ds_mr_system_settings()
 			lds_settings.key = settings_key
+			lds_settings.data = {}
 			# set default dict keys
 			# lds_settings.data["some_key"] = "" 
 			# blank if secured/set at run time or "some value" if no biggy to keep on github, etc.
@@ -944,7 +945,39 @@ class user(object):
 		ldata_user.gravatar_url = fobj_google_obj.email()
 		#ldata_user.gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(gravatar_email.lower()).hexdigest() + "?s=40d=identicon"
 		ldata_user.key = user_key	
-			
+
+		# set default sequences
+		ldata_user.reserve_network_ids = []
+		ldata_user.reserve_account_ids = []
+		ldata_user.reserve_labels = []
+		ldata_user.reserve_default = []
+
+		ldata_user.client_network_ids = []
+		ldata_user.client_account_ids = []
+		ldata_user.client_parent_ids = []
+		ldata_user.client_labels = []
+		ldata_user.client_default = []
+
+		ldata_user.joint_network_ids = []
+		ldata_user.joint_account_ids = []
+		ldata_user.joint_parent_ids = []
+		ldata_user.joint_labels = []
+		ldata_user.joint_default = []
+
+		ldata_user.clone_network_ids = []
+		ldata_user.clone_account_ids = []
+		ldata_user.clone_parent_ids = []
+		ldata_user.clone_labels = []
+		ldata_user.clone_default = []
+
+		ldata_user.child_client_network_ids = []
+		ldata_user.child_client_account_ids = []
+		ldata_user.child_client_parent_ids = []
+
+		ldata_user.child_joint_network_ids = []
+		ldata_user.child_joint_account_ids = []
+		ldata_user.child_joint_parent_ids = []
+	
 		lstr_tx_type = "NEW USER CREATED"
 		lstr_tx_description = "A new user was created in the application."
 		
@@ -1157,7 +1190,9 @@ class user(object):
 		self.PARENT.RETURN_CODE = "7055" # success Successfully modified user.
 		return True
 			
-			
+	def _get_user_list(self,user_list):
+	
+		pass
 			
 # this is metric reserve class, containing the P2P network/accounting related functionality
 class metric(object):
@@ -1167,7 +1202,241 @@ class metric(object):
 	
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
+
+	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
+		# first get the default account on this network for the requesting user.
+		result, network_id, s_account_id, s_username_alias, s_user_object = self._get_default(fstr_network_name,self.PARENT.user.entity.user_id)
+		if not result: return result # pass up errors
+		# account_id could be None if user doesn't have an account on this 
+		# network, but our main concern here, is whether or not the account_name
+		# requested is this user's default account on that network. 
+		if s_username_alias == fstr_account_name:
+			viewing_default_account = True
+			# this is our default account on this network
+			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(s_account_id).zfill(12)))
+			t_account_id = s_account_id
+			t_user_object = s_user_object
+		else:
+			viewing_default_account = False
+			# viewing others or non-default account
+			#
+			# We're going to need to query the fstr_account_name to get the 
+			# user object and account_id.  We already got the network_id
+			# non-transactionally from the above process now let's get the 
+			# account_id.
+			validation_result = self._name_validate_transactional(None,fstr_account_name,None,network_id)
+			if not validation_result:
+				# pass up error
+				return False
+			t_account_id = validation_result[1]
+			t_user_object = validation_result[3]
+			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(t_account_id).zfill(12)))
+		metric_account_entity = metric_account_key.get()
+		if metric_account_entity is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Invalid account id
+			return False
+		# We display an account differently based on the account type
+		if metric_account_entity.account_type == "RESERVE":
+		
+			reserve_complete = {}
+			reserve_complete["is_my_default"] = viewing_default_account
+			reserve_complete["network_name"] = fstr_network_name
+			reserve_complete["network_id"] = network_id
+			reserve_complete["username_alias"] = fstr_account_name
+			reserve_complete["account_id"] = metric_account_entity.account_id
+			reserve_complete["tx_index"] = metric_account_entity.tx_index
+			reserve_complete["status"] = metric_account_entity.account_status
+			reserve_complete["type"] = metric_account_entity.account_type
+			reserve_complete["network_balance"] = metric_account_entity.current_network_balance
+			reserve_complete["reserve_balance"] = metric_account_entity.current_reserve_balance
+			reserve_complete["date_created"] = metric_account_entity.date_created
+			reserve_complete["latitude"] = t_user_object.location_latitude
+			reserve_complete["longitude"] = t_user_object.location_longitude
+			reserve_complete["map_marker_count"] = 1
+			reserve_complete["map_data"] = []
+			# create marker data for target account
+			marker = {}
+			marker["link"] = ""
+			marker["polyline"] = ""
+			marker["username_alias"] = fstr_account_name
+			marker["latitude"] = reserve_complete["latitude"]
+			marker["longitude"] = reserve_complete["longitude"]
+			reserve_complete["map_data"].append(marker)		
+			
+			reserve_complete["has_connections"] = False
+			reserve_complete["connections"] = []
+			reserve_complete["has_incoming_connections_requests"] = False
+			reserve_complete["incoming_connections_requests"] = []
+			reserve_complete["has_outgoing_connections_requests"] = False
+			reserve_complete["outgoing_connections_requests"] = []
+			reserve_complete["has_child_client_accounts"] = False
+			reserve_complete["child_client_accounts"] = []
+			reserve_complete["has_child_joint_accounts"] = False
+			reserve_complete["child_joint_accounts"] = []
+			# let's get the counts for our subsets then grab 
+			# accounts and users all in one go
+			reserve_complete["connection_count"] = len(metric_account_entity.current_connections)
+			reserve_complete["incoming_connection_requests_count"] = len(metric_account_entity.incoming_connection_requests)
+			reserve_complete["outgoing_connection_requests_count"] = len(metric_account_entity.outgoing_connection_requests)
+			reserve_complete["child_client_account_count"] = 0
+			reserve_complete["child_joint_account_count"] = 0
+			
+			all_account_id_list = []
+			
+			for i in range(metric_account.current_connections):
+				all_account_id_list.append(metric_account.current_connections[i])
+			for i in range(metric_account.incoming_connection_requests):
+				all_account_id_list.append(metric_account.incoming_connection_requests[i])
+			for i in range(metric_account.outgoing_connection_requests):
+				all_account_id_list.append(metric_account.outgoing_connection_requests[i])
+			# For child and joint we need to match network and acount id
+			# for this reserve account with what's in the user object.
+			for i in range(t_user_object.child_client_network_ids):
+				if t_user_object.child_client_network_ids[i] == network_id:
+					if t_user_object.child_client_parent_ids[i] == metric_account_entity.account_id:
+						# match
+						reserve_complete["child_client_account_count"] += 1
+						all_account_id_list.append(metric_account.child_client_account_ids[i])
+
+			for i in range(t_user_object.child_joint_network_ids):
+				if t_user_object.child_joint_network_ids[i] == network_id:
+					if t_user_object.child_joint_parent_ids[i] == metric_account_entity.account_id:
+						#match
+						reserve_complete["child_joint_account_count"] += 1
+						all_account_id_list.append(metric_account.child_joint_account_ids[i])
+						
+			# now make a list of keys from our account/network ids
+			all_accounts_key_list = []
+			for i in range(len(all_account_id_list)):
+				a_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(all_account_id_list[i]).zfill(12)))
+				all_accounts_key_list.append(a_key)
+			# get the list of associated accounts
+			list_of_associated_accounts = ndb.get_multi(all_accounts_key_list)
+			# now loop through the account list to get the list of user objects for those accounts
+			all_users_key_list = []
+			for i in range(len(list_of_associated_accounts)):
+				a_key = ndb.Key("ds_mr_user","%s" % list_of_associated_accounts[i].user_id)
+				all_users_key_list.append(a_key)
+			# get the list of associated users
+			list_of_associated_users = ndb.get_multi(all_users_key_list)			
+			if None in list_of_associated_accounts or None in list_of_associated_users:
+				self.PARENT.RETURN_CODE = "STUB" # error Associated account/user entities back.
+				return False
+				
+			# let's process the associated accounts/users now
+			# list of associated accounts and list of associated users
+			# should be the same length and be indexed parallely.
+			group_counter = 0
+			last_connection_idx = reserve_complete["connection_count"]
+			last_incoming_connection_request_idx = last_connection_idx + reserve_complete["incoming_connection_requests_count"]
+			last_outgoing_connection_request_idx = last_incoming_connection_request_idx + reserve_complete["outgoing_connection_requests_count"] 
+			last_child_client_account_idx = last_outgoing_connection_request_idx + reserve_complete["child_client_account_count"]  
+			last_child_joint_account_idx = last_child_client_account_idx + reserve_complete["child_joint_account_count"] 
+			for i in range(len(list_of_associated_accounts)):
+				
+				# process connections
+				if i < last_connection_idx:
+					reserve_complete["has_connections"] = True
+					continue
+
+				# process incoming connection requests
+				if i < last_incoming_connection_request_idx:
+					reserve_complete["has_incoming_connections_requests"] = True
+					continue
+
+				# process outgoing connection requests
+				if i < last_outgoing_connection_request_idx:
+					reserve_complete["has_outgoing_connections_requests"] = True
+					continue
+
+				# process child client accounts
+				if i < last_child_client_account_idx:
+					reserve_complete["has_child_client_accounts"] = True
+					continue
+
+				# process child joint accounts
+				if i < last_child_joint_account_idx:
+					reserve_complete["has_child_joint_accounts"] = True
+					continue
+				
+
+								
+				
+			"""
+			reserve_complete["connections"] = []
+			reserve_complete["connections"][i] = {}
+			reserve_complete["connections"][i]["username_alias"]
+			reserve_complete["connections"][i]["network_balance"]
+			reserve_complete["connections"][i]["reserve_balance"]
+			reserve_complete["connections"][i]["connection_count"]
+			reserve_complete["connections"][i]["latitude"]
+			reserve_complete["connections"][i]["longitude"]
+			reserve_complete["connections"][i]["transfer_request"]
+			reserve_complete["connections"][i]["suggested_transfer"]
+			reserve_complete["incoming_connection_requests_count"]
+			reserve_complete["incoming_connections_requests"] = []
+			reserve_complete["incoming_connections_requests"][i] = {}
+			reserve_complete["incoming_connections_requests"][i]["username_alias"]
+			reserve_complete["incoming_connections_requests"][i]["network_balance"]
+			reserve_complete["incoming_connections_requests"][i]["reserve_balance"]
+			reserve_complete["incoming_connections_requests"][i]["connection_count"]
+			reserve_complete["incoming_connections_requests"][i]["latitude"]
+			reserve_complete["incoming_connections_requests"][i]["longitude"]
+			reserve_complete["outgoing_connection_requests_count"]
+			reserve_complete["outgoing_connections_requests"] = []
+			reserve_complete["outgoing_connections_requests"][i] = {}
+			reserve_complete["outgoing_connections_requests"][i]["username_alias"]
+			reserve_complete["outgoing_connections_requests"][i]["network_balance"]
+			reserve_complete["outgoing_connections_requests"][i]["reserve_balance"]
+			reserve_complete["outgoing_connections_requests"][i]["connection_count"]
+			reserve_complete["outgoing_connections_requests"][i]["latitude"]
+			reserve_complete["outgoing_connections_requests"][i]["longitude"]
+			reserve_complete["child_client_account_count"]
+			reserve_complete["child_client_accounts"] = []
+			reserve_complete["child_client_accounts"][i] = {}
+			reserve_complete["child_client_accounts"][i]["username_alias"]
+			reserve_complete["child_client_accounts"][i]["type"]
+			reserve_complete["child_client_accounts"][i]["network_balance"]
+			reserve_complete["child_client_accounts"][i]["location"]
+			reserve_complete["child_joint_account_count"]
+			reserve_complete["child_joint_accounts"] = []
+			reserve_complete["child_joint_accounts"][i] = {}
+			reserve_complete["child_joint_accounts"][i]["username_alias"]
+			reserve_complete["child_joint_accounts"][i]["type"]
+			reserve_complete["child_joint_accounts"][i]["network_balance"]
+			reserve_complete["child_joint_accounts"][i]["location"]
+			reserve_complete["map_marker_count"]
+			reserve_complete["map_data"] = []
+			reserve_complete["map_data"][i] = {}
+			reserve_complete["map_data"][i]["link"]
+			reserve_complete["map_data"][i]["polyline"]
+			reserve_complete["map_data"][i]["username_alias"]
+			reserve_complete["map_data"][i]["latitude"]
+			reserve_complete["map_data"][i]["longitude"]		
+			"""
+			return True
+			
+		if metric_account_entity.account_type == "CLIENT":
+			
+			#STUB
+			return True
+
+		if metric_account_entity.account_type == "JOINT":
+				
+			#STUB
+			return True
+			
+		if metric_account_entity.account_type == "CLONE":
+				
+			#STUB
+			return True
+			
+		self.PARENT.RETURN_CODE = "STUB" # error Invalid account type
+		return False		
+
+
+		
 	@ndb.transactional(xg=True)
 	def _network_add(self,fname):
 	
@@ -1406,27 +1675,27 @@ class metric(object):
 		for i in range(len(list_of_accounts)):
 			if list_of_group_ids[i] == 1:
 				groups["has_reserve_account"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["reserve_account"] = list_of_accounts[i]
 			if list_of_group_ids[i] == 2:
 				groups["has_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["client_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 3:
 				groups["has_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["joint_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 4:
 				groups["has_clone_accounts"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["clone_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 5:
 				groups["has_child_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["child_client_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 6:
 				groups["has_child_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = list_of_labels[i]
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
 				groups["child_joint_accounts"].append(list_of_accounts[i])
 						
 		return groups
@@ -2015,6 +2284,18 @@ class metric(object):
 				lds_new_metric_account.account_parent = source_user.parent_joint_offer_account_id
 				lds_new_metric_account.key = new_metric_account_key
 				
+				# mutable defaults
+				lds_new_metric_account.outgoing_connection_requests = []
+				lds_new_metric_account.incoming_connection_requests = []
+				lds_new_metric_account.incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.current_connections = []
+				lds_new_metric_account.last_connections = []
+				
 				# update the source user object
 				source_user.total_other_accounts += 1
 				source_user.joint_network_ids.append(network_id)
@@ -2298,6 +2579,19 @@ class metric(object):
 				lds_new_metric_account.account_status = "ACTIVE"		
 				lds_new_metric_account.account_type = "CLIENT"
 				lds_new_metric_account.account_parent = source_user.parent_client_offer_account_id
+				
+				# mutable defaults
+				lds_new_metric_account.outgoing_connection_requests = []
+				lds_new_metric_account.incoming_connection_requests = []
+				lds_new_metric_account.incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+				lds_new_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
+				lds_new_metric_account.current_connections = []
+				lds_new_metric_account.last_connections = []
+				
 				lds_new_metric_account.key = new_metric_account_key
 				
 				# update the source user object
@@ -2426,6 +2720,19 @@ class metric(object):
 			lds_new_metric_account.account_status = "ACTIVE"		
 			lds_new_metric_account.account_type = "CLONE"
 			lds_new_metric_account.account_parent = lds_source_metric.account_id
+			
+			# mutable defaults
+			lds_new_metric_account.outgoing_connection_requests = []
+			lds_new_metric_account.incoming_connection_requests = []
+			lds_new_metric_account.incoming_reserve_transfer_requests = {}
+			lds_new_metric_account.outgoing_reserve_transfer_requests = {}
+			lds_new_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+			lds_new_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+			lds_new_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+			lds_new_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
+			lds_new_metric_account.current_connections = []
+			lds_new_metric_account.last_connections = []
+			
 			lds_new_metric_account.key = new_metric_account_key
 
 			# update the source user object
@@ -2585,6 +2892,18 @@ class metric(object):
 		lds_metric_account.tx_index = 1
 		lds_metric_account.account_status = "ACTIVE"		
 		lds_metric_account.account_type = "RESERVE"
+		
+		# mutable defaults
+		lds_metric_account.outgoing_connection_requests = []
+		lds_metric_account.incoming_connection_requests = []
+		lds_metric_account.incoming_reserve_transfer_requests = {}
+		lds_metric_account.outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_inactive_outgoing_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_incoming_reserve_transfer_requests = {}
+		lds_metric_account.suggested_active_outgoing_reserve_transfer_requests = {}
+		lds_metric_account.current_connections = []
+		lds_metric_account.last_connections = []
 		
 		lds_metric_account.key = metric_account_key
 		
@@ -4551,29 +4870,31 @@ class metric(object):
 		self.PARENT.RETURN_CODE = "7042" # success Joint account retrieval successful.
 		return True
 
-	def _get_default(self,fstr_network_name,fstr_source_name):
+	def _get_default(self,fstr_network_name,fstr_user_id):
 
 		network = self._get_network(fstr_network_name)
-		if network is None: return False # pass up error code
-		validation_result = self._name_validate_transactional(None,fstr_source_name,None,network.network_id)
-		if not validation_result:
-			# pass up error
-			return False
-		network_id = validation_result[0]
-		source_account_id = validation_result[1]
-		source_user = validation_result[3]
+		if network is None: return False, None, None, None # pass up error code
+		network_id = network.network_id
+		# this function loads a user entity from a key
+		source_user_key = ndb.Key("ds_mr_user",fstr_user_id)
+		source_user = source_user_key.get()
 		for i in range(len(source_user.reserve_network_ids)):
-			if source_user.reserve_default[i] == True:
-				return source_user.reserve_account_ids[i]
+			if source_user.reserve_network_ids[i] == network_id:
+				if source_user.reserve_default[i] == True:
+					return True, network_id, source_user.reserve_account_ids[i], source_user.reserve_labels[i], source_user
 		for i in range(len(source_user.client_network_ids)):
-			if source_user.client_default[i] == True:
-				return source_user.client_account_ids[i]
+			if source_user.client_network_ids[i] == network_id: 
+				if source_user.client_default[i] == True:
+					return True, network_id, source_user.client_account_ids[i], source_user.client_labels[i], source_user
 		for i in range(len(source_user.joint_network_ids)):
-			if source_user.joint_default[i] == True:
-				return source_user.joint_account_ids[i]
+			if source_user.joint_network_ids[i] == network_id: 
+				if source_user.joint_default[i] == True:
+					return True, network_id, source_user.joint_account_ids[i], source_user.joint_labels[i], source_user
 		for i in range(len(source_user.clone_network_ids)):
-			if source_user.clone_default[i] == True:
-				return source_user.clone_account_ids[i]
+			if source_user.clone_network_ids[i] == network_id: 
+				if source_user.clone_default[i] == True:
+					return True, network_id, source_user.clone_account_ids[i], source_user.clone_labels[i], source_user
+		return True, network_id, None, None, None
 				
 	def _set_default(self,fstr_network_name,fstr_source_name):
 
@@ -4753,6 +5074,7 @@ class metric(object):
 				ticket_index_entity.account_id = fint_account_id
 				ticket_index_entity.user_id = fstr_user_id
 				ticket_index_entity.network_id = fint_network_id
+				ticket_index_entity.ticket_data = {}
 			if not "ticket_count" in source_ticket_index.ticket_data:
 				# initialize ticket_data
 				ticket_index_entity.ticket_data["ticket_count"] = 0
@@ -6816,11 +7138,16 @@ class ph_command(webapp2.RequestHandler):
 		# pqc[1-n] = relevant query values for that id
 		
 		result = []		
-		
-		if self.master.PATH_CONTEXT == "root/network" and "view_network" in self.master.request.GET:
+
+		if self.master.PATH_CONTEXT == "root/network" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
+			# view specific account
+			result.append(80)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
+		if self.master.PATH_CONTEXT == "root/network" and "vn" in self.master.request.GET:
 			# view specific network
 			result.append(10)
-			result.append(self.master.request.GET["view_network"])
+			result.append(self.master.request.GET["vn"])
 		if self.master.PATH_CONTEXT == "root/network":
 			# view all networks
 			result.append(20)
@@ -6830,10 +7157,10 @@ class ph_command(webapp2.RequestHandler):
 		if self.master.PATH_CONTEXT == "root":
 			# home page
 			result.append(40)
-		if self.master.PATH_CONTEXT == "root/profile" and "view_account" in self.master.request.GET:
+		if self.master.PATH_CONTEXT == "root/profile" and "va" in self.master.request.GET:
 			# viewing someone else's profile
 			result.append(50)
-			result.append(self.master.request.GET["view_account"])
+			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/profile":
 			# viewing users own profile
 			result.append(60)
@@ -7390,7 +7717,7 @@ class ph_command(webapp2.RequestHandler):
 				return
 			if  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
 				ltemp = {}
-				temp["view_network"] = ct[1]
+				temp["vn"] = ct[1]
 				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
 				return
 			if  len(ct) == 1 and ct[0] == "network":
@@ -7417,7 +7744,7 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
 				return
 			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
@@ -7434,14 +7761,14 @@ class ph_command(webapp2.RequestHandler):
 					# Need to declare query vars necessary for 
 					# pqc[]/context on the confirm page or else
 					# we won't get back here on confirm.
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6002"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
 				return
 			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
@@ -7455,7 +7782,7 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
 				return
 			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
@@ -7469,7 +7796,7 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
 				return
 			if pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
@@ -7483,7 +7810,7 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7045"))
 				return
 			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
@@ -7500,7 +7827,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xnetwork_name"] = pqc[1]
 					ltemp["xskintillionths"] = ct[2]
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
 				return
 			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
@@ -7520,7 +7847,7 @@ class ph_command(webapp2.RequestHandler):
 					# Need to declare query vars necessary for 
 					# pqc[]/context on the confirm page or else
 					# we won't get back here on confirm.
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6003"))
 				elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
@@ -7528,7 +7855,7 @@ class ph_command(webapp2.RequestHandler):
 					ltemp = {}
 					ltemp["xold_network_name"] = pqc[1]
 					ltemp["xnew_network_name"] = ct[2]
-					ltemp["view_network"] = ct[2]
+					ltemp["vn"] = ct[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))		
 				return
 			###################################
@@ -7552,13 +7879,13 @@ class ph_command(webapp2.RequestHandler):
 					# Need to declare query vars necessary for 
 					# pqc[]/context on the confirm page or else
 					# we won't get back here on confirm.
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
 				elif not lobj_master.metric._reserve_open(pqc[1]):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
-					ltemp["view_network"] = pqc[1]
+					ltemp["vn"] = pqc[1]
 					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
 				return
