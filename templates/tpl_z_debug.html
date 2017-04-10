@@ -3,7 +3,13 @@
 	<br/>
 	<br/>
 	<br/>
-	<h3 id="lnk_debug_menu">DEBUG MENU</h3>
+	<h3><a id="lnk_debug_menu">DEBUG MENU</a></h3>
+	<h3>DUMP RESULT</h3>
+	<ul>
+		{% for item in master.DUMP_STUFF %}
+		<li><p>-{{ item }}</p></li>
+		{% endfor %}
+	</ul>
 
 	<div>
 		<a href="#lnk_debug_trace">DEBUG TRACE</a> |
