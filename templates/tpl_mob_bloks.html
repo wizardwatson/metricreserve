@@ -187,6 +187,7 @@
 	{% if blok.type == "one network" %}
 			<div class="text_bubble ui-body ui-body-c">
 			<p><b>NETWORK</b>: {{ blok.network.network_name }}<br/>
+			<b>NETWORK ID</b>:  {{ blok.network.network_id }}<br/>
 			<b>STATUS</b>:  {{ blok.network.network_status }}<br/>
 			<b>TYPE</b>:  {{ blok.network.network_type }}<br/>
 			<b>SKINTILLIONTHS</b>:  {{ blok.network.skintillionths }}<br/>
@@ -944,8 +945,8 @@
 		{% if blok.error_code == "1277" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> System settings variable name invalid.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1278" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Command keyword(s) unrecognized.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
