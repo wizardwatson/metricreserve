@@ -163,6 +163,7 @@ import pickle
 import random
 import bisect
 from operator import itemgetter
+from decimal import *
 # for debugging on dev_appserver.py only
 import pdb
 # how to invoke: Just put this on any line: "pdb.set_trace()"
@@ -359,6 +360,7 @@ class ds_mr_metric_account(ndb.Model):
 	network_id = ndb.IntegerProperty(indexed=False)
 	user_id = ndb.StringProperty(indexed=False)
 	tx_index = ndb.IntegerProperty(indexed=False)
+	decimal_places = ndb.IntegerProperty(default=2,indexed=False)
 	account_status = ndb.StringProperty(indexed=False)
 	account_type = ndb.StringProperty(indexed=False)
 	account_parent = ndb.IntegerProperty(default=0,indexed=False)
@@ -372,11 +374,11 @@ class ds_mr_metric_account(ndb.Model):
 	suggested_active_outgoing_reserve_transfer_requests = ndb.PickleProperty()
 	current_timestamp = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	current_connections = ndb.PickleProperty()
-	current_reserve_balance = ndb.IntegerProperty(default=0)
-	current_network_balance = ndb.IntegerProperty(default=0)	
+	current_reserve_balance = ndb.IntegerProperty(default=0,indexed=False)
+	current_network_balance = ndb.IntegerProperty(default=0,indexed=False)	
 	last_connections = ndb.PickleProperty()
-	last_reserve_balance = ndb.IntegerProperty(default=0)
-	last_network_balance = ndb.IntegerProperty(default=0)
+	last_reserve_balance = ndb.IntegerProperty(default=0,indexed=False)
+	last_network_balance = ndb.IntegerProperty(default=0,indexed=False)
 	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
 	extra_pickle = ndb.PickleProperty()
 
@@ -1205,12 +1207,40 @@ class metric(object):
 
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
+		def get_formatted_amount(network,account,raw_amount)
+			
+			getcontext().prec = 28
+			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
+		
+		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
+			if fstr_type == "RESERVE":
+				for i in range(len(user_obj.reserve_network_ids)):
+					if user_obj.reserve_network_ids[i] == network_id:
+						if user_obj.reserve_account_ids[i] == account_id:
+							return user_obj.reserve_labels[i]
+			if fstr_type == "CLIENT":
+				for i in range(len(user_obj.client_network_ids)):
+					if user_obj.client_network_ids[i] == network_id:
+						if user_obj.client_account_ids[i] == account_id:
+							return user_obj.client_labels[i]
+			if fstr_type == "JOINT":
+				for i in range(len(user_obj.joint_network_ids)):
+					if user_obj.joint_network_ids[i] == network_id:
+						if user_obj.joint_account_ids[i] == account_id:
+							return user_obj.joint_labels[i]
+			if fstr_type == "CLONE":
+				for i in range(len(user_obj.clone_network_ids)):
+					if user_obj.clone_network_ids[i] == network_id:
+						if user_obj.clone_account_ids[i] == account_id:
+							return user_obj.clone_labels[i]
+							
 		# first get the default account on this network for the requesting user.
-		result, network_id, s_account_id, s_username_alias, s_user_object = self._get_default(fstr_network_name,self.PARENT.user.entity.user_id)
+		result, network, s_account_id, s_username_alias, s_user_object = self._get_default(fstr_network_name,self.PARENT.user.entity.user_id)
 		if not result: return result # pass up errors
 		# account_id could be None if user doesn't have an account on this 
 		# network, but our main concern here, is whether or not the account_name
-		# requested is this user's default account on that network. 
+		# requested is this user's default account on that network.
+		network_id = network.network_id
 		if s_username_alias == fstr_account_name:
 			viewing_default_account = True
 			# this is our default account on this network
@@ -1248,8 +1278,10 @@ class metric(object):
 			reserve_complete["tx_index"] = metric_account_entity.tx_index
 			reserve_complete["status"] = metric_account_entity.account_status
 			reserve_complete["type"] = metric_account_entity.account_type
-			reserve_complete["network_balance"] = metric_account_entity.current_network_balance
-			reserve_complete["reserve_balance"] = metric_account_entity.current_reserve_balance
+			a = network
+			b = metric_account_entity
+			reserve_complete["network_balance"] = get_formatted_amount(a,b,metric_account_entity.current_network_balance)
+			reserve_complete["reserve_balance"] = get_formatted_amount(a,b,metric_account_entity.current_reserve_balance)
 			reserve_complete["date_created"] = metric_account_entity.date_created
 			reserve_complete["latitude"] = t_user_object.location_latitude
 			reserve_complete["longitude"] = t_user_object.location_longitude
@@ -1284,22 +1316,22 @@ class metric(object):
 			
 			all_account_id_list = []
 			
-			for i in range(metric_account.current_connections):
+			for i in range(len(metric_account.current_connections)):
 				all_account_id_list.append(metric_account.current_connections[i])
-			for i in range(metric_account.incoming_connection_requests):
+			for i in range(len(metric_account.incoming_connection_requests)):
 				all_account_id_list.append(metric_account.incoming_connection_requests[i])
-			for i in range(metric_account.outgoing_connection_requests):
+			for i in range(len(metric_account.outgoing_connection_requests)):
 				all_account_id_list.append(metric_account.outgoing_connection_requests[i])
 			# For child and joint we need to match network and acount id
 			# for this reserve account with what's in the user object.
-			for i in range(t_user_object.child_client_network_ids):
+			for i in range(len(t_user_object.child_client_network_ids)):
 				if t_user_object.child_client_network_ids[i] == network_id:
 					if t_user_object.child_client_parent_ids[i] == metric_account_entity.account_id:
 						# match
 						reserve_complete["child_client_account_count"] += 1
 						all_account_id_list.append(metric_account.child_client_account_ids[i])
 
-			for i in range(t_user_object.child_joint_network_ids):
+			for i in range(len(t_user_object.child_joint_network_ids)):
 				if t_user_object.child_joint_network_ids[i] == network_id:
 					if t_user_object.child_joint_parent_ids[i] == metric_account_entity.account_id:
 						#match
@@ -1335,9 +1367,39 @@ class metric(object):
 			last_child_joint_account_idx = last_child_client_account_idx + reserve_complete["child_joint_account_count"] 
 			for i in range(len(list_of_associated_accounts)):
 				
+				next_entity = {}
+				next_marker = {}
+				
 				# process connections
 				if i < last_connection_idx:
 					reserve_complete["has_connections"] = True
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["reserve_balance"] = get_formatted_amount(a,b,d)
+					next_entity["connection_count"] = len(list_of_associated_accounts[i].current_connections)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					# transfers outgoing are shown prefixed "out -"
+					# transfers incoming are shown prefixed "in +"
+					next_entity["transfer_request"]
+					next_entity["suggested_transfer_active"]
+					next_entity["suggested_transfer_inactive"]
+					reserve_complete["connections"].append(next_entity)					
+					
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process incoming connection requests
@@ -1373,7 +1435,7 @@ class metric(object):
 			reserve_complete["connections"][i]["latitude"]
 			reserve_complete["connections"][i]["longitude"]
 			reserve_complete["connections"][i]["transfer_request"]
-			reserve_complete["connections"][i]["suggested_transfer"]
+			reserve_complete["connections"][i]["suggested_active"]
 			reserve_complete["incoming_connection_requests_count"]
 			reserve_complete["incoming_connections_requests"] = []
 			reserve_complete["incoming_connections_requests"][i] = {}
@@ -4881,20 +4943,20 @@ class metric(object):
 		for i in range(len(source_user.reserve_network_ids)):
 			if source_user.reserve_network_ids[i] == network_id:
 				if source_user.reserve_default[i] == True:
-					return True, network_id, source_user.reserve_account_ids[i], source_user.reserve_labels[i], source_user
+					return True, network, source_user.reserve_account_ids[i], source_user.reserve_labels[i], source_user
 		for i in range(len(source_user.client_network_ids)):
 			if source_user.client_network_ids[i] == network_id: 
 				if source_user.client_default[i] == True:
-					return True, network_id, source_user.client_account_ids[i], source_user.client_labels[i], source_user
+					return True, network, source_user.client_account_ids[i], source_user.client_labels[i], source_user
 		for i in range(len(source_user.joint_network_ids)):
 			if source_user.joint_network_ids[i] == network_id: 
 				if source_user.joint_default[i] == True:
-					return True, network_id, source_user.joint_account_ids[i], source_user.joint_labels[i], source_user
+					return True, network, source_user.joint_account_ids[i], source_user.joint_labels[i], source_user
 		for i in range(len(source_user.clone_network_ids)):
 			if source_user.clone_network_ids[i] == network_id: 
 				if source_user.clone_default[i] == True:
-					return True, network_id, source_user.clone_account_ids[i], source_user.clone_labels[i], source_user
-		return True, network_id, None, None, None
+					return True, network, source_user.clone_account_ids[i], source_user.clone_labels[i], source_user
+		return True, network, None, None, None
 				
 	def _set_default(self,fstr_network_name,fstr_source_name):
 
