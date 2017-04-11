@@ -1038,10 +1038,10 @@ class user(object):
 		for i in range(len(ldata_user.clone_labels)):
 			if ldata_user.clone_labels[i] == ldata_user.username:
 				ldata_user.clone_labels[i] = fstr_username
-		
+
 		ldata_user.username = fstr_username
 		ldata_user.put()
-		
+
 		# transaction log:  think "bank statements"
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.tx_type = "USERNAME CHANGED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
@@ -1052,7 +1052,7 @@ class user(object):
 		
 		return True # True meaning "created"
 	
-	def _get_user_messages(self,fstr_target_name,fstr_cursor):
+	def _get_user_messages(self,fstr_target_name,fstr_fcursor=None,fstr_rcursor=None):
 	
 		# get target user_id
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
@@ -1063,13 +1063,41 @@ class user(object):
 
 		query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
 		query = query.order(-ds_mr_user_message.date_created)		
+		reverse_query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
+		reverse_query = query.order(ds_mr_user_message.date_created)
+		
 		messages_per_page = 3
 		
-		if not fstr_cursor is None:
-			cursor = Cursor(urlsafe=fstr_cursor)
-			return query.fetch_page(messages_per_page, start_cursor=cursor)
-		else:
-			return query.fetch_page(messages_per_page)
+		# if both are None then must be beginning.
+		# if forward exists user for previous link
+		
+		if not fstr_rcursor is None:
+			# reverse cursor used
+			cursor = Cursor(urlsafe=fstr_rcursor)
+			messages, prev_cursor, prev_more = reverse_query.fetch_page(messages_per_page, start_cursor=cursor)
+			# STUB Do we need to reverse order here for messages???
+			# the old cursor is now the next cursor
+			next_cursor = cursor
+			next_more = True
+		
+		if not fstr_fcursor is None:
+			# forward cursor used
+			cursor = Cursor(urlsafe=fstr_fcursor)
+			messages, next_cursor, next_more = query.fetch_page(messages_per_page, start_cursor=cursor)
+			# the old cursor is now the previous cursor
+			prev_cursor = cursor
+			prev_more = True
+			
+		if fstr_fcursor is None and fstr_rcursor is None:
+			# if neither cursor passed, we're at beginning
+			messages, next_cursor, next_more = query.fetch_page(messages_per_page)
+			prev_cursor = None
+			prev_more = False
+			
+		return messages, next_cursor, next_more, prev_cursor, prev_more
+	
+	
+	messages, next_cursor, next_more = query.fetch_page(messages_per_page, start_cursor=cursor)
 	
 	def _message(self,fstr_target_name,fstr_text):
 	
@@ -2473,12 +2501,15 @@ class metric(object):
 				target_user.child_joint_offer_user_id = "EMPTY"
 				
 				# transaction log
-				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
+				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
 				lds_source_tx_log = ds_mr_tx_log()
 				lds_source_tx_log.key = tx_source_log_key
 				lds_source_tx_log.tx_index = 1
 				lds_source_tx_log.tx_type = "JOINT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-				lds_source_tx_log.description = "A joint account was created for you." 
+				lds_source_tx_log.description = "A joint account was created for you."
+				lds_source_tx_log.memo = "Account Opened"
+				lds_source_tx_log.category = "MRTX2"
+				lds_source_tx_log.amount = 0
 				lds_source_tx_log.user_id_created = source_user.user_id
 				lds_source_tx_log.network_id = network_id
 				lds_source_tx_log.account_id = lds_cursor.current_index
@@ -2486,25 +2517,15 @@ class metric(object):
 				lds_source_tx_log.target_account = source_user.parent_joint_offer_account_id
 				lds_source_tx_log.put()
 
-				# transactionally get the target metric account for transaction increment
-				key_part1 = str(network_id).zfill(8)
-				key_part2 = str(source_user.parent_joint_offer_account_id).zfill(12)
-				target_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-				lds_target_metric = target_metric_key.get()
-				lds_target_metric.tx_index += 1
-
 				# transaction log
-				tx_target_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_target_metric.tx_index).zfill(12)))
 				lds_target_tx_log = ds_mr_tx_log()
-				lds_target_tx_log.key = tx_target_log_key
-				lds_target_tx_log.tx_index = lds_target_metric.tx_index
 				lds_target_tx_log.tx_type = "CHILD JOINT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 				lds_target_tx_log.description = "A child user created a joint account on network." 
 				lds_target_tx_log.user_id_created = source_user.user_id
 				lds_target_tx_log.network_id = network_id
 				lds_target_tx_log.account_id = lds_cursor.current_index
 				lds_target_tx_log.source_account = lds_cursor.current_index 
-				lds_target_tx_log.target_account = lds_target_metric.account_id
+				lds_target_tx_log.target_account = source_user.parent_joint_offer_account_id
 				lds_target_tx_log.put()
 
 				# save the transaction
@@ -2512,7 +2533,6 @@ class metric(object):
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
-				lds_target_metric.put()
 				lds_cursor.put()
 
 				self.PARENT.RETURN_CODE = "7032" # success: Joint account account successfully created.
@@ -2771,12 +2791,15 @@ class metric(object):
 				target_user.child_client_offer_user_id = "EMPTY"
 				
 				# transaction log
-				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
+				tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
 				lds_source_tx_log = ds_mr_tx_log()
 				lds_source_tx_log.key = tx_source_log_key
 				lds_source_tx_log.tx_index = 1
 				lds_source_tx_log.tx_type = "CLIENT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 				lds_source_tx_log.description = "A client account was created for you." 
+				lds_source_tx_log.memo = "Account Opened"
+				lds_source_tx_log.category = "MRTX2"
+				lds_source_tx_log.amount = 0
 				lds_source_tx_log.user_id_created = source_user.user_id
 				lds_source_tx_log.network_id = network_id
 				lds_source_tx_log.account_id = lds_cursor.current_index
@@ -2784,25 +2807,15 @@ class metric(object):
 				lds_source_tx_log.target_account = source_user.parent_client_offer_account_id
 				lds_source_tx_log.put()
 
-				# transactionally get the target metric account for transaction increment
-				key_part1 = str(network_id).zfill(8)
-				key_part2 = str(source_user.parent_client_offer_account_id).zfill(12)
-				target_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
-				lds_target_metric = target_metric_key.get()
-				lds_target_metric.tx_index += 1
-
 				# transaction log
-				tx_target_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_target_metric.tx_index).zfill(12)))
 				lds_target_tx_log = ds_mr_tx_log()
-				lds_target_tx_log.key = tx_target_log_key
-				lds_target_tx_log.tx_index = lds_target_metric.tx_index
 				lds_target_tx_log.tx_type = "CHILD CLIENT ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 				lds_target_tx_log.description = "A child user created a client account on network." 
 				lds_target_tx_log.user_id_created = source_user.user_id
 				lds_target_tx_log.network_id = network_id
 				lds_target_tx_log.account_id = lds_cursor.current_index
 				lds_target_tx_log.source_account = lds_cursor.current_index 
-				lds_target_tx_log.target_account = lds_target_metric.account_id
+				lds_target_tx_log.target_account = source_user.parent_client_offer_account_id
 				lds_target_tx_log.put()
 
 				# save the transaction
@@ -2810,7 +2823,6 @@ class metric(object):
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
-				lds_target_metric.put()
 				lds_cursor.put()
 
 				self.PARENT.RETURN_CODE = "7036" # success: Client account successfully created.
@@ -2902,12 +2914,15 @@ class metric(object):
 			source_user.clone_default.append(False)
 
 			# transaction log
-			tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
+			tx_source_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
 			lds_source_tx_log = ds_mr_tx_log()
 			lds_source_tx_log.key = tx_source_log_key
 			lds_source_tx_log.tx_index = 1
 			lds_source_tx_log.tx_type = "CLONE ACCOUNT CREATED ON NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 			lds_source_tx_log.description = "A clone account was created for you." 
+			lds_source_tx_log.memo = "Account Opened"
+			lds_source_tx_log.category = "MRTX2"
+			lds_source_tx_log.amount = 0
 			lds_source_tx_log.user_id_created = source_user.user_id
 			lds_source_tx_log.network_id = network_id
 			lds_source_tx_log.account_id = lds_cursor.current_index
@@ -3074,12 +3089,15 @@ class metric(object):
 		lds_user.reserve_default.append(False)
 		
 		# transaction log
-		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.tx_index = 1
 		lds_tx_log.tx_type = "JOINED NETWORK" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		lds_tx_log.description = "A user joined a network." 
+		lds_tx_log.memo = "Account Opened"
+		lds_tx_log.category = "MRTX2"
+		lds_tx_log.amount = 0
 		lds_tx_log.user_id_created = lds_user.user_id
 		lds_tx_log.network_id = network_id
 		lds_tx_log.account_id = lds_cursor.current_index
@@ -3449,14 +3467,10 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "7010" # success_connection_request_completed
 		
 		
-		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
-		source_lds_tx_log.key = source_tx_log_key
 		source_lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 		# tx_index should be based on incremented metric_account value
-		source_lds_tx_log.tx_index = lds_source.tx_index
 		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = lstr_source_tx_description 
@@ -3467,13 +3481,9 @@ class metric(object):
 		source_lds_tx_log.target_account = target_account_id
 		source_lds_tx_log.put()
 
-		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
-		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
-		target_lds_tx_log.tx_index = lds_target.tx_index
 		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		target_lds_tx_log.description = lstr_target_tx_description 
@@ -3632,13 +3642,9 @@ class metric(object):
 			return False # error_nothing_to_disconnect
 
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
-		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
-		source_lds_tx_log.key = source_tx_log_key
 		# tx_index should be based on incremented metric_account value
-		source_lds_tx_log.tx_index = lds_source.tx_index
 		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = lstr_source_tx_description 
@@ -3649,13 +3655,9 @@ class metric(object):
 		source_lds_tx_log.target_account = target_account_id
 		source_lds_tx_log.put()
 
-		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
-		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
-		target_lds_tx_log.tx_index = lds_target.tx_index
 		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		# typically we'll make target private for bilateral transactions so that
 		# when looking at a system view, we don't see duplicates.
@@ -3875,7 +3877,7 @@ class metric(object):
 
 		lds_source.tx_index += 1
 		# source transaction log
-		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		# tx_index should be based on incremented metric_account value
@@ -3884,6 +3886,8 @@ class metric(object):
 		lds_tx_log.amount = lint_amount
 		lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = lstr_source_tx_description 
+		lds_tx_log.memo = "Account Opened"
+		lds_tx_log.category = "MRTX2"
 		lds_tx_log.user_id_created = lds_source.user_id
 		lds_tx_log.network_id = network_id
 		lds_tx_log.account_id = source_account_id
@@ -4013,12 +4017,14 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		source_lds_tx_log.tx_index = lds_source.tx_index
 		source_lds_tx_log.tx_type = "PAYMENT MADE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.memo = "Pay to %s" % fstr_target_name		
+		source_lds_tx_log.category = "MRTX2"
 		source_lds_tx_log.amount = lint_amount
 		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = "PAYMENT MADE" 
@@ -4031,12 +4037,14 @@ class metric(object):
 
 		lds_target.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		target_lds_tx_log.tx_index = lds_target.tx_index
 		target_lds_tx_log.tx_type = "PAYMENT RECEIVED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.memo = "Paid by %s" % fstr_source_name		
+		target_lds_tx_log.category = "MRTX2"
 		target_lds_tx_log.amount = lint_amount
 		# typically we'll make target private for bilateral transactions so that
 		# when looking at a system view, we don't see duplicates.
@@ -4463,46 +4471,88 @@ class metric(object):
 
 		else:
 			self.PARENT.RETURN_CODE = "1174"
-			return False # error_transaction_type_invalid		
-		
-		# ADD TWO TRANSACTIONS LIKE CONNECT()
-		lds_source.tx_index += 1
-		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
-		source_lds_tx_log = ds_mr_tx_log()
-		source_lds_tx_log.key = source_tx_log_key
-		# tx_index should be based on incremented metric_account value
-		source_lds_tx_log.tx_index = lds_source.tx_index
-		source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		source_lds_tx_log.amount = lint_amount
-		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
-		source_lds_tx_log.description = lstr_source_tx_description 
-		source_lds_tx_log.user_id_created = lds_source.user_id
-		source_lds_tx_log.network_id = network_id
-		source_lds_tx_log.account_id = source_account_id
-		source_lds_tx_log.source_account = source_account_id 
-		source_lds_tx_log.target_account = target_account_id
-		source_lds_tx_log.put()
+			return False # error_transaction_type_invalid
+			
+		if fstr_type == "authorizing_suggested" or fstr_type == "authorizing_user":
+			
+			# a payment related transaction
+			
+			lds_source.tx_index += 1
+			# source transaction log
+			source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(lds_source.tx_index).zfill(12)))
+			source_lds_tx_log = ds_mr_tx_log()
+			source_lds_tx_log.key = source_tx_log_key
+			# tx_index should be based on incremented metric_account value
+			source_lds_tx_log.tx_index = lds_source.tx_index
+			source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			source_lds_tx_log.memo = "Reserve TR from %s" % fstr_target_name
+			source_lds_tx_log.category = "MRTX2"
+			source_lds_tx_log.amount = lint_amount
+			source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			source_lds_tx_log.description = lstr_source_tx_description 
+			source_lds_tx_log.user_id_created = lds_source.user_id
+			source_lds_tx_log.network_id = network_id
+			source_lds_tx_log.account_id = source_account_id
+			source_lds_tx_log.source_account = source_account_id 
+			source_lds_tx_log.target_account = target_account_id
+			source_lds_tx_log.put()
 
-		lds_target.tx_index += 1
-		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
-		target_lds_tx_log = ds_mr_tx_log()
-		target_lds_tx_log.key = target_tx_log_key
-		# tx_index should be based on incremented metric_account value
-		target_lds_tx_log.tx_index = lds_target.tx_index
-		target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
-		target_lds_tx_log.amount = lint_amount
-		# typically we'll make target private for bilateral transactions so that
-		# when looking at a system view, we don't see duplicates.
-		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
-		target_lds_tx_log.description = lstr_target_tx_description 
-		target_lds_tx_log.user_id_created = lds_source.user_id
-		target_lds_tx_log.network_id = network_id
-		target_lds_tx_log.account_id = target_account_id
-		target_lds_tx_log.source_account = source_account_id 
-		target_lds_tx_log.target_account = target_account_id
-		target_lds_tx_log.put()
+			lds_target.tx_index += 1
+			# target transaction log
+			target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part3,str(lds_target.tx_index).zfill(12)))
+			target_lds_tx_log = ds_mr_tx_log()
+			target_lds_tx_log.key = target_tx_log_key
+			# tx_index should be based on incremented metric_account value
+			target_lds_tx_log.tx_index = lds_target.tx_index
+			target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			target_lds_tx_log.memo = "Reserve TR to %s" % fstr_source_name
+			target_lds_tx_log.category = "MRTX2"
+			target_lds_tx_log.amount = lint_amount
+			# typically we'll make target private for bilateral transactions so that
+			# when looking at a system view, we don't see duplicates.
+			target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+			target_lds_tx_log.description = lstr_target_tx_description 
+			target_lds_tx_log.user_id_created = lds_source.user_id
+			target_lds_tx_log.network_id = network_id
+			target_lds_tx_log.account_id = target_account_id
+			target_lds_tx_log.source_account = source_account_id 
+			target_lds_tx_log.target_account = target_account_id
+			target_lds_tx_log.put()
+			
+		else:
+		
+			# not a payment related transaction
+			
+			# ADD TWO TRANSACTIONS LIKE CONNECT()
+			# source transaction log
+			source_lds_tx_log = ds_mr_tx_log()
+			# tx_index should be based on incremented metric_account value
+			source_lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			source_lds_tx_log.amount = lint_amount
+			source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
+			source_lds_tx_log.description = lstr_source_tx_description 
+			source_lds_tx_log.user_id_created = lds_source.user_id
+			source_lds_tx_log.network_id = network_id
+			source_lds_tx_log.account_id = source_account_id
+			source_lds_tx_log.source_account = source_account_id 
+			source_lds_tx_log.target_account = target_account_id
+			source_lds_tx_log.put()
+
+			# target transaction log
+			target_lds_tx_log = ds_mr_tx_log()
+			# tx_index should be based on incremented metric_account value
+			target_lds_tx_log.tx_type = lstr_target_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			target_lds_tx_log.amount = lint_amount
+			# typically we'll make target private for bilateral transactions so that
+			# when looking at a system view, we don't see duplicates.
+			target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
+			target_lds_tx_log.description = lstr_target_tx_description 
+			target_lds_tx_log.user_id_created = lds_source.user_id
+			target_lds_tx_log.network_id = network_id
+			target_lds_tx_log.account_id = target_account_id
+			target_lds_tx_log.source_account = source_account_id 
+			target_lds_tx_log.target_account = target_account_id
+			target_lds_tx_log.put()
 		
 		lds_source.put()
 		lds_target.put()
@@ -4641,20 +4691,12 @@ class metric(object):
 									del parent_user.child_joint_account_ids[i]
 									del parent_user.child_joint_parent_ids[i]						
 						# update source metric account
-						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
 						lds_source_metric.current_timestamp = datetime.datetime.now()
 						# create transaction						
 						# transaction log
-						key_part4 = str(lds_source_metric.tx_index).zfill(12)
-						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
 						lds_tx_log = ds_mr_tx_log()
-						lds_tx_log.key = tx_log_key
-						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
-						# tx_index should be based on incremented metric_account value
-						lds_tx_log.tx_index = lds_source_metric.tx_index
 						lds_tx_log.tx_type = "JOINT CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-						lds_tx_log.amount = 0
 						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 						lds_tx_log.description = "A user closed a joint account." 
 						lds_tx_log.user_id_created = source_user.user_id
@@ -4707,20 +4749,13 @@ class metric(object):
 									del parent_user.child_client_account_ids[i]
 									del parent_user.child_client_parent_ids[i]						
 						# update source metric account
-						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
 						lds_source_metric.current_timestamp = datetime.datetime.now()
 						# create transaction						
 						# transaction log
-						key_part4 = str(lds_source_metric.tx_index).zfill(12)
-						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
 						lds_tx_log = ds_mr_tx_log()
-						lds_tx_log.key = tx_log_key
-						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 						# tx_index should be based on incremented metric_account value
-						lds_tx_log.tx_index = lds_source_metric.tx_index
 						lds_tx_log.tx_type = "CLIENT CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-						lds_tx_log.amount = 0
 						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 						lds_tx_log.description = "A user closed a client account." 
 						lds_tx_log.user_id_created = source_user.user_id
@@ -4754,20 +4789,13 @@ class metric(object):
 						del source_user.clone_labels[i]
 						del source_user.clone_default[i]
 						# update source metric account
-						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
 						lds_source_metric.current_timestamp = datetime.datetime.now()
 						# create transaction						
 						# transaction log
-						key_part4 = str(lds_source_metric.tx_index).zfill(12)
-						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
 						lds_tx_log = ds_mr_tx_log()
-						lds_tx_log.key = tx_log_key
-						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 						# tx_index should be based on incremented metric_account value
-						lds_tx_log.tx_index = lds_source_metric.tx_index
 						lds_tx_log.tx_type = "CLONE CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-						lds_tx_log.amount = 0
 						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 						lds_tx_log.description = "A user closed a clone account." 
 						lds_tx_log.user_id_created = source_user.user_id
@@ -4811,20 +4839,13 @@ class metric(object):
 						del source_user.reserve_labels[i]
 						del source_user.reserve_default[i]
 						# update source metric account
-						lds_source_metric.tx_index += 1
 						lds_source_metric.account_status = "DELETED"
 						lds_source_metric.current_timestamp = datetime.datetime.now()
 						# create transaction						
 						# transaction log
-						key_part4 = str(lds_source_metric.tx_index).zfill(12)
-						tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1,key_part2,key_part4))
 						lds_tx_log = ds_mr_tx_log()
-						lds_tx_log.key = tx_log_key
-						lds_tx_log.category = "MRTX" # GENERAL TRANSACTION GROUPING
 						# tx_index should be based on incremented metric_account value
-						lds_tx_log.tx_index = lds_source_metric.tx_index
 						lds_tx_log.tx_type = "RESERVE CLOSE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
-						lds_tx_log.amount = 0
 						lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 						lds_tx_log.description = "A user closed a reserve account." 
 						lds_tx_log.user_id_created = source_user.user_id
@@ -4987,12 +5008,14 @@ class metric(object):
 		# ADD TWO TRANSACTIONS LIKE CONNECT()
 		lds_source_metric.tx_index += 1
 		# source transaction log
-		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_source_metric.tx_index).zfill(12)))
+		source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(lds_source_metric.tx_index).zfill(12)))
 		source_lds_tx_log = ds_mr_tx_log()
 		source_lds_tx_log.key = source_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		source_lds_tx_log.tx_index = lds_source_metric.tx_index
 		source_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.memo = "Joint TR from %s" % fstr_target_name
+		source_lds_tx_log.category = "MRTX2"
 		source_lds_tx_log.amount = lint_amount
 		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = "JOINT ACCOUNT FUNDS RETRIEVED" 
@@ -5005,12 +5028,14 @@ class metric(object):
 
 		lds_target_metric.tx_index += 1
 		# target transaction log
-		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_target_metric.tx_index).zfill(12)))
+		target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part3,str(lds_target_metric.tx_index).zfill(12)))
 		target_lds_tx_log = ds_mr_tx_log()
 		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		target_lds_tx_log.tx_index = lds_target_metric.tx_index
 		target_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.memo = "Joint TR to %s" % fstr_source_name
+		target_lds_tx_log.category = "MRTX2"
 		target_lds_tx_log.amount = lint_amount
 		# typically we'll make target private for bilateral transactions so that
 		# when looking at a system view, we don't see duplicates.
@@ -5770,12 +5795,14 @@ class metric(object):
 			# ADD TWO TRANSACTIONS LIKE CONNECT()
 			lds_pay_source.tx_index += 1
 			# source transaction log
-			pay_source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part2,str(lds_pay_source.tx_index).zfill(12)))
+			pay_source_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(lds_pay_source.tx_index).zfill(12)))
 			pay_source_lds_tx_log = ds_mr_tx_log()
 			pay_source_lds_tx_log.key = pay_source_tx_log_key
 			# tx_index should be based on incremented metric_account value
 			pay_source_lds_tx_log.tx_index = lds_pay_source.tx_index
 			pay_source_lds_tx_log.tx_type = "TICKET PAYMENT MADE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			pay_source_lds_tx_log.memo = "Ticket paid to %s" % fstr_owner_name
+			pay_source_lds_tx_log.category = "MRTX2"
 			pay_source_lds_tx_log.amount = lint_amount
 			pay_source_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
 			pay_source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
@@ -5789,18 +5816,19 @@ class metric(object):
 
 			lds_pay_target.tx_index += 1
 			# target transaction log
-			pay_target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX%s%s%s" % (key_part1, key_part3,str(lds_pay_target.tx_index).zfill(12)))
+			pay_target_tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part3,str(lds_pay_target.tx_index).zfill(12)))
 			pay_target_lds_tx_log = ds_mr_tx_log()
 			pay_target_lds_tx_log.key = pay_target_tx_log_key
 			# tx_index should be based on incremented metric_account value
 			pay_target_lds_tx_log.tx_index = lds_pay_target.tx_index
 			pay_target_lds_tx_log.tx_type = "TICKET PAYMENT RECEIVED" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+			pay_target_lds_tx_log.memo = "Ticket paid from %s" % fstr_visitor_name
+			pay_target_lds_tx_log.category = "MRTX2"
 			pay_target_lds_tx_log.amount = lint_amount
-			pay_target_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
 			# typically we'll make target private for bilateral transactions so that
 			# when looking at a system view, we don't see duplicates.
 			pay_target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
-			pay_target_lds_tx_log.description = "Ticket payment received for ticket name: %s" % ticket_name 
+			pay_target_lds_tx_log.description = "Ticket payment received for ticket name: %s Memo: %s" % (ticket_name,source_ticket_index.ticket_data["ticket_memos"][ticket_name_index])
 			pay_target_lds_tx_log.user_id_created = lds_pay_source.user_id
 			pay_target_lds_tx_log.network_id = network_id
 			pay_target_lds_tx_log.account_id = pay_target_account_id
@@ -7535,18 +7563,31 @@ class ph_command(webapp2.RequestHandler):
 				"""
 				blok = {}
 				blok["type"] = "messages"
-				if "cursor" in lobj_master.request.GET:
-					current_cursor = lobj_master.request.GET["cursor"]
+				if "fcursor" in lobj_master.request.GET:
+					current_fcursor = lobj_master.request.GET["fcursor"]
 				else:
-					current_cursor = None
+					current_fcursor = None
+				if "rcursor" in lobj_master.request.GET:
+					current_rcursor = lobj_master.request.GET["rcursor"]
+				else:
+					current_rcursor = None
 				blok["messages_raw"] = ""
 				blok["messages"] = []
 				blok["channel"] = pqc[1]
-				blok["more"] = False
-				blok["mext_cursor"] = ""
-				blok["messages_raw"], blok["next_cursor"], blok["more"] = lobj_master.user._get_user_messages(pqc[1],current_cursor)
+				blok["next_more"] = False
+				blok["next_cursor"] = ""
+				blok["prev_more"] = False
+				blok["prev_cursor"] = ""
+				a, b, c, d, e = lobj_master.user._get_user_messages(pqc[1],current_fcursor,current_rcursor)
+				blok["messages_raw"] = a
+				blok["next_cursor"] = b
+				blok["next_more"] = c
+				blok["prev_cursor"] = d
+				blok["prev_more"] = e
 				if not blok["next_cursor"] is None:
 					blok["next_cursor"] = blok["next_cursor"].urlsafe()
+				if not blok["prev_cursor"] is None:
+					blok["prev_cursor"] = blok["prev_cursor"].urlsafe()
 				for message in blok["messages_raw"]:
 					formatted_message = {}
 					formatted_message["avatar_url"] = lobj_master.user._get_gravatar_url(message.gravatar_url,message.gravatar_type)
