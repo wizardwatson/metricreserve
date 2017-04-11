@@ -1058,7 +1058,7 @@ class user(object):
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
 		name_entity = name_key.get()
 		if name_entity is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1279"
 			return False # error Target name invalid.
 
 		query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
@@ -1207,7 +1207,7 @@ class metric(object):
 
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
-		def get_formatted_amount(network,account,raw_amount)
+		def get_formatted_amount(network,account,raw_amount):
 			
 			getcontext().prec = 28
 			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
@@ -1264,7 +1264,7 @@ class metric(object):
 			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(t_account_id).zfill(12)))
 		metric_account_entity = metric_account_key.get()
 		if metric_account_entity is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Invalid account id
+			self.PARENT.RETURN_CODE = "1280" # error Invalid account id
 			return False
 		# We display an account differently based on the account type
 		if metric_account_entity.account_type == "RESERVE":
@@ -1298,10 +1298,10 @@ class metric(object):
 			
 			reserve_complete["has_connections"] = False
 			reserve_complete["connections"] = []
-			reserve_complete["has_incoming_connections_requests"] = False
-			reserve_complete["incoming_connections_requests"] = []
-			reserve_complete["has_outgoing_connections_requests"] = False
-			reserve_complete["outgoing_connections_requests"] = []
+			reserve_complete["has_incoming_connection_requests"] = False
+			reserve_complete["incoming_connection_requests"] = []
+			reserve_complete["has_outgoing_connection_requests"] = False
+			reserve_complete["outgoing_connection_requests"] = []
 			reserve_complete["has_child_client_accounts"] = False
 			reserve_complete["child_client_accounts"] = []
 			reserve_complete["has_child_joint_accounts"] = False
@@ -1316,12 +1316,12 @@ class metric(object):
 			
 			all_account_id_list = []
 			
-			for i in range(len(metric_account.current_connections)):
-				all_account_id_list.append(metric_account.current_connections[i])
-			for i in range(len(metric_account.incoming_connection_requests)):
-				all_account_id_list.append(metric_account.incoming_connection_requests[i])
-			for i in range(len(metric_account.outgoing_connection_requests)):
-				all_account_id_list.append(metric_account.outgoing_connection_requests[i])
+			for i in range(len(metric_account_entity.current_connections)):
+				all_account_id_list.append(metric_account_entity.current_connections[i])
+			for i in range(len(metric_account_entity.incoming_connection_requests)):
+				all_account_id_list.append(metric_account_entity.incoming_connection_requests[i])
+			for i in range(len(metric_account_entity.outgoing_connection_requests)):
+				all_account_id_list.append(metric_account_entity.outgoing_connection_requests[i])
 			# For child and joint we need to match network and acount id
 			# for this reserve account with what's in the user object.
 			for i in range(len(t_user_object.child_client_network_ids)):
@@ -1329,14 +1329,14 @@ class metric(object):
 					if t_user_object.child_client_parent_ids[i] == metric_account_entity.account_id:
 						# match
 						reserve_complete["child_client_account_count"] += 1
-						all_account_id_list.append(metric_account.child_client_account_ids[i])
+						all_account_id_list.append(metric_account_entity.child_client_account_ids[i])
 
 			for i in range(len(t_user_object.child_joint_network_ids)):
 				if t_user_object.child_joint_network_ids[i] == network_id:
 					if t_user_object.child_joint_parent_ids[i] == metric_account_entity.account_id:
 						#match
 						reserve_complete["child_joint_account_count"] += 1
-						all_account_id_list.append(metric_account.child_joint_account_ids[i])
+						all_account_id_list.append(metric_account_entity.child_joint_account_ids[i])
 						
 			# now make a list of keys from our account/network ids
 			all_accounts_key_list = []
@@ -1353,7 +1353,7 @@ class metric(object):
 			# get the list of associated users
 			list_of_associated_users = ndb.get_multi(all_users_key_list)			
 			if None in list_of_associated_accounts or None in list_of_associated_users:
-				self.PARENT.RETURN_CODE = "STUB" # error Associated account/user entities back.
+				self.PARENT.RETURN_CODE = "1281" # error Associated account/user entities back.
 				return False
 				
 			# let's process the associated accounts/users now
@@ -1389,11 +1389,30 @@ class metric(object):
 					next_entity["longitude"] = list_of_associated_users[i].location_longitude
 					# transfers outgoing are shown prefixed "out -"
 					# transfers incoming are shown prefixed "in +"
-					next_entity["transfer_request"]
-					next_entity["suggested_transfer_active"]
-					next_entity["suggested_transfer_inactive"]
-					reserve_complete["connections"].append(next_entity)					
-					
+					# if this associated account is present in primary account...
+					this_id = list_of_associated_accounts[i].account_id
+					next_entity["transfer_request"] = "None" # default
+					next_entity["suggested_transfer_inactive"] = "None" # default
+					next_entity["suggested_transfer_active"] = "None" # default
+					if this_id in metric_account_entity.incoming_reserve_transfer_requests:
+						c = metric_account_entity.incoming_reserve_transfer_requests[this_id]
+						next_entity["transfer_request"] = "in + $s" % get_formatted_amount(a,b,c)
+					if this_id in metric_account_entity.outgoing_reserve_transfer_requests:
+						c = metric_account_entity.outgoing_reserve_transfer_requests[this_id]
+						next_entity["transfer_request"] = "out - $s" % get_formatted_amount(a,b,c)
+					if this_id in metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests:
+						c = metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests[this_id]
+						next_entity["suggested_transfer_inactive"] = "in + $s" % get_formatted_amount(a,b,c)
+					if this_id in metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests:
+						c = metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests[this_id]
+						next_entity["suggested_transfer_inactive"] = "out - $s" % get_formatted_amount(a,b,c)
+					if this_id in metric_account_entity.suggested_active_incoming_reserve_transfer_requests:
+						c = metric_account_entity.suggested_active_incoming_reserve_transfer_requests[this_id]
+						next_entity["suggested_transfer_active"] = "in + $s" % get_formatted_amount(a,b,c)
+					if this_id in metric_account_entity.suggested_active_outgoing_reserve_transfer_requests:
+						c = metric_account_entity.suggested_active_outgoing_reserve_transfer_requests[this_id]
+						next_entity["suggested_transfer_active"] = "out - $s" % get_formatted_amount(a,b,c)
+					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["polyline"] = ""
 					next_marker["username_alias"] = next_entity["username_alias"]
@@ -1404,80 +1423,159 @@ class metric(object):
 
 				# process incoming connection requests
 				if i < last_incoming_connection_request_idx:
-					reserve_complete["has_incoming_connections_requests"] = True
+					reserve_complete["has_incoming_connection_requests"] = True
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["reserve_balance"] = get_formatted_amount(a,b,d)
+					next_entity["connection_count"] = len(list_of_associated_accounts[i].current_connections)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					reserve_complete["incoming_connection_requests"].append(next_entity)
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process outgoing connection requests
 				if i < last_outgoing_connection_request_idx:
-					reserve_complete["has_outgoing_connections_requests"] = True
+					reserve_complete["has_outgoing_connection_requests"] = True
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["reserve_balance"] = get_formatted_amount(a,b,d)
+					next_entity["connection_count"] = len(list_of_associated_accounts[i].current_connections)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					reserve_complete["outgoing_connection_requests"].append(next_entity)
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process child client accounts
 				if i < last_child_client_account_idx:
 					reserve_complete["has_child_client_accounts"] = True
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					reserve_complete["child_client_accounts"].append(next_entity)
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process child joint accounts
 				if i < last_child_joint_account_idx:
 					reserve_complete["has_child_joint_accounts"] = True
-					continue
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					reserve_complete["child_client_accounts"].append(next_entity)
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					reserve_complete["map_data"].append(next_marker)
+					continue						
 				
-
-								
-				
-			"""
-			reserve_complete["connections"] = []
-			reserve_complete["connections"][i] = {}
-			reserve_complete["connections"][i]["username_alias"]
-			reserve_complete["connections"][i]["network_balance"]
-			reserve_complete["connections"][i]["reserve_balance"]
-			reserve_complete["connections"][i]["connection_count"]
-			reserve_complete["connections"][i]["latitude"]
-			reserve_complete["connections"][i]["longitude"]
-			reserve_complete["connections"][i]["transfer_request"]
-			reserve_complete["connections"][i]["suggested_active"]
-			reserve_complete["incoming_connection_requests_count"]
-			reserve_complete["incoming_connections_requests"] = []
-			reserve_complete["incoming_connections_requests"][i] = {}
-			reserve_complete["incoming_connections_requests"][i]["username_alias"]
-			reserve_complete["incoming_connections_requests"][i]["network_balance"]
-			reserve_complete["incoming_connections_requests"][i]["reserve_balance"]
-			reserve_complete["incoming_connections_requests"][i]["connection_count"]
-			reserve_complete["incoming_connections_requests"][i]["latitude"]
-			reserve_complete["incoming_connections_requests"][i]["longitude"]
-			reserve_complete["outgoing_connection_requests_count"]
-			reserve_complete["outgoing_connections_requests"] = []
-			reserve_complete["outgoing_connections_requests"][i] = {}
-			reserve_complete["outgoing_connections_requests"][i]["username_alias"]
-			reserve_complete["outgoing_connections_requests"][i]["network_balance"]
-			reserve_complete["outgoing_connections_requests"][i]["reserve_balance"]
-			reserve_complete["outgoing_connections_requests"][i]["connection_count"]
-			reserve_complete["outgoing_connections_requests"][i]["latitude"]
-			reserve_complete["outgoing_connections_requests"][i]["longitude"]
-			reserve_complete["child_client_account_count"]
-			reserve_complete["child_client_accounts"] = []
-			reserve_complete["child_client_accounts"][i] = {}
-			reserve_complete["child_client_accounts"][i]["username_alias"]
-			reserve_complete["child_client_accounts"][i]["type"]
-			reserve_complete["child_client_accounts"][i]["network_balance"]
-			reserve_complete["child_client_accounts"][i]["location"]
-			reserve_complete["child_joint_account_count"]
-			reserve_complete["child_joint_accounts"] = []
-			reserve_complete["child_joint_accounts"][i] = {}
-			reserve_complete["child_joint_accounts"][i]["username_alias"]
-			reserve_complete["child_joint_accounts"][i]["type"]
-			reserve_complete["child_joint_accounts"][i]["network_balance"]
-			reserve_complete["child_joint_accounts"][i]["location"]
-			reserve_complete["map_marker_count"]
-			reserve_complete["map_data"] = []
-			reserve_complete["map_data"][i] = {}
-			reserve_complete["map_data"][i]["link"]
-			reserve_complete["map_data"][i]["polyline"]
-			reserve_complete["map_data"][i]["username_alias"]
-			reserve_complete["map_data"][i]["latitude"]
-			reserve_complete["map_data"][i]["longitude"]		
-			"""
-			return True
+				"""
+				reserve_complete["connections_count"]
+				reserve_complete["connections"] = []
+				reserve_complete["connections"][i] = {}
+				reserve_complete["connections"][i]["username_alias"]
+				reserve_complete["connections"][i]["network_balance"]
+				reserve_complete["connections"][i]["reserve_balance"]
+				reserve_complete["connections"][i]["connection_count"]
+				reserve_complete["connections"][i]["latitude"]
+				reserve_complete["connections"][i]["longitude"]
+				reserve_complete["connections"][i]["transfer_request"]
+				reserve_complete["connections"][i]["suggested_transfer_inactive"]
+				reserve_complete["connections"][i]["suggested_transfer_active"]
+				reserve_complete["incoming_connection_requests_count"]
+				reserve_complete["incoming_connections_requests"] = []
+				reserve_complete["incoming_connections_requests"][i] = {}
+				reserve_complete["incoming_connections_requests"][i]["username_alias"]
+				reserve_complete["incoming_connections_requests"][i]["network_balance"]
+				reserve_complete["incoming_connections_requests"][i]["reserve_balance"]
+				reserve_complete["incoming_connections_requests"][i]["connection_count"]
+				reserve_complete["incoming_connections_requests"][i]["latitude"]
+				reserve_complete["incoming_connections_requests"][i]["longitude"]
+				reserve_complete["outgoing_connection_requests_count"]
+				reserve_complete["outgoing_connections_requests"] = []
+				reserve_complete["outgoing_connections_requests"][i] = {}
+				reserve_complete["outgoing_connections_requests"][i]["username_alias"]
+				reserve_complete["outgoing_connections_requests"][i]["network_balance"]
+				reserve_complete["outgoing_connections_requests"][i]["reserve_balance"]
+				reserve_complete["outgoing_connections_requests"][i]["connection_count"]
+				reserve_complete["outgoing_connections_requests"][i]["latitude"]
+				reserve_complete["outgoing_connections_requests"][i]["longitude"]
+				reserve_complete["child_client_account_count"]
+				reserve_complete["child_client_accounts"] = []
+				reserve_complete["child_client_accounts"][i] = {}
+				reserve_complete["child_client_accounts"][i]["username_alias"]
+				reserve_complete["child_client_accounts"][i]["network_balance"]
+				reserve_complete["child_client_accounts"][i]["latitude"]
+				reserve_complete["child_client_accounts"][i]["longitude"]
+				reserve_complete["child_joint_account_count"]
+				reserve_complete["child_joint_accounts"] = []
+				reserve_complete["child_joint_accounts"][i] = {}
+				reserve_complete["child_joint_accounts"][i]["username_alias"]
+				reserve_complete["child_joint_accounts"][i]["network_balance"]
+				reserve_complete["child_joint_accounts"][i]["latitude"]
+				reserve_complete["child_joint_accounts"][i]["longitude"]
+				reserve_complete["map_marker_count"]
+				reserve_complete["map_data"] = []
+				reserve_complete["map_data"][i] = {}
+				reserve_complete["map_data"][i]["link"]
+				reserve_complete["map_data"][i]["polyline"]
+				reserve_complete["map_data"][i]["username_alias"]
+				reserve_complete["map_data"][i]["latitude"]
+				reserve_complete["map_data"][i]["longitude"]		
+				"""
+			return reserve_complete
 			
 		if metric_account_entity.account_type == "CLIENT":
 			
@@ -1494,10 +1592,8 @@ class metric(object):
 			#STUB
 			return True
 			
-		self.PARENT.RETURN_CODE = "STUB" # error Invalid account type
-		return False		
-
-
+		self.PARENT.RETURN_CODE = "1282" # error Invalid account type
+		return False
 		
 	@ndb.transactional(xg=True)
 	def _network_add(self,fname):
@@ -1737,27 +1833,27 @@ class metric(object):
 		for i in range(len(list_of_accounts)):
 			if list_of_group_ids[i] == 1:
 				groups["has_reserve_account"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["reserve_account"] = list_of_accounts[i]
 			if list_of_group_ids[i] == 2:
 				groups["has_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["client_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 3:
 				groups["has_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["joint_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 4:
 				groups["has_clone_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["clone_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 5:
 				groups["has_child_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["child_client_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 6:
 				groups["has_child_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network',fstr_network_name}
+				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["child_joint_accounts"].append(list_of_accounts[i])
 						
 		return groups
@@ -7409,7 +7505,21 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 80:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "VIEW ACCOUNT"
+				blok = {}
+				blok["type"] = "one account"
+				blok["account"] = lobj_master.metric._view_network_account(pqc[1],pqc[2])
+				if not blok["account"]:
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				bloks.append(blok)
+				break
+				
 			if pqc[0] == 70:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
 				page["title"] = "MESSAGES"
 				"""				
 				# a Model for user messages
@@ -7448,6 +7558,8 @@ class ph_command(webapp2.RequestHandler):
 				break
 			
 			if pqc[0] == 60:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
 				page["title"] = "MY PROFILE"
 				blok = {}
 				blok["type"] = "my_profile"
