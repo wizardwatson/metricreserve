@@ -1096,9 +1096,6 @@ class user(object):
 			
 		return messages, next_cursor, next_more, prev_cursor, prev_more
 	
-	
-	messages, next_cursor, next_more = query.fetch_page(messages_per_page, start_cursor=cursor)
-	
 	def _message(self,fstr_target_name,fstr_text):
 	
 		"""
