@@ -415,6 +415,8 @@ class ds_mr_tx_log(ndb.Model):
 	account_id = ndb.IntegerProperty(default=0,indexed=False)
 	source_account = ndb.IntegerProperty(default=0,indexed=False)
 	target_account = ndb.IntegerProperty(default=0,indexed=False)
+	current_network_balance = ndb.IntegerProperty(default=0,indexed=False)
+	current_reserve_balance = ndb.IntegerProperty(default=0,indexed=False)
 	
 # counter shards to track global balances and reserves
 # on the fly creation is done where they are used/incremented
@@ -1230,6 +1232,148 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 
+	def _view_ledger(self,fstr_network_name,fstr_account_name,fpage=1):
+	
+		def get_formatted_amount(network,account,raw_amount):
+
+			getcontext().prec = 28
+			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
+
+		def has_this_account(user_obj,network_id,account_name,account_id):
+
+			# verify the user object has the network/account and that the label matches
+			for i in range(len(user_obj.reserve_network_ids)):
+				if user_obj.reserve_network_ids[i] == network_id:
+					if user_obj.reserve_account_ids[i] == account_id:
+						if user_obj.reserve_labels[i] == account_name:
+							return True
+			for i in range(len(user_obj.client_network_ids)):
+				if user_obj.client_network_ids[i] == network_id:
+					if user_obj.client_account_ids[i] == account_id:
+						if user_obj.client_labels[i] == account_name:
+							return True
+			for i in range(len(user_obj.joint_network_ids)):
+				if user_obj.joint_network_ids[i] == network_id:
+					if user_obj.joint_account_ids[i] == account_id:
+						if user_obj.joint_labels[i] == account_name:
+							return True
+			for i in range(len(user_obj.clone_network_ids)):
+				if user_obj.clone_network_ids[i] == network_id:
+					if user_obj.clone_account_ids[i] == account_id:
+						if user_obj.clone_labels[i] == account_name:
+							return True
+			return False		
+		
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
+		name_entity = name_key.get()
+		if name_entity is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			return False
+		if not name_entity.user_id == self.PARENT.user.entity.user_id:
+			self.PARENT.RETURN_CODE = "STUB" # error Account user doesn't match logged in user.
+			return False		
+		
+		network = self._get_network(fstr_network_name=fstr_network_name)
+	
+		if not name_entity.network_id == network.network_id:
+			self.PARENT.RETURN_CODE = "STUB" # error Account name does not belong to network referenced.
+			return False
+
+		source_user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
+		source_user = source_user_key.get()
+		
+		if not has_this_account(source_user,network.network_id,fstr_account_name,name_entity.account_id):
+			self.PARENT.RETURN_CODE = "STUB" # error Account name does not belong to user.
+			return False
+
+		# transactionally get the source and target metric accounts
+		key_part1 = str(network.network_id).zfill(8)
+		key_part2 = str(name_entity.account_id).zfill(12)
+		metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
+		metric_entity = metric_key.get()
+		if metric_entity is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Could not load metric account
+
+		transactions_per_page = 3
+		
+		# we want transactions: from (((page - 1) * transactions_per_page) + 1) to (((page - 1) * transactions_per_page) + transactions_per_page)
+		start_index = ((int(fpage) - 1) * transactions_per_page * -1) + metric_entity.tx_index
+		if start_index < 1:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Ledger page out of range
+		finish_index = start_index + 1 - transactions_per_page
+		if finish_index < 1: finish_index = 1
+		# construct list of transaction ledger keys
+		current_index = start_index
+		list_of_keys = []
+		while True:			
+			tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (key_part1, key_part2,str(current_index).zfill(12)))
+			list_of_keys.append(tx_log_key)
+			if current_index == finish_index:
+				break
+			else:
+				current_index -= 1
+		
+		list_of_raw_transactions = ndb.get_multi(list_of_keys)
+		
+		if finish_index == 1:
+			next_page = 0
+		else:
+			next_page = fpage + 1
+			
+		if start_index == 1:
+			prev_page = 0
+		else:
+			prev_page = fpage - 1
+	
+		if metric_entity.account_type == "RESERVE":
+		
+			# formatted transactions for RESERVE accounts
+			ft = {}
+			ft["network_name"] = fstr_network_name
+			ft["network_id"] = netowrk.network_id
+			ft["username_alias"] = fstr_account_name
+			ft["account_id"] = metric_entity.account_id
+			ft["total_transactions"] = metric_entity.tx_index
+			ft["status"] = metric_entity.account_status
+			ft["type"] = metric_entity.account_type
+			a = network
+			b = metric_entity
+			ft["network_balance"] = get_formatted_amount(a,b,metric_entity.current_network_balance)
+			ft["reserve_balance"] = get_formatted_amount(a,b,metric_entity.current_reserve_balance)
+			ft["date_created"] = metric_entity.date_created
+			ft["prev_page"] = str(prev_page)
+			ft["next_page"] = str(next_page)
+			ft["start_index"] = start_index
+			ft["finish_index"] = finish_index
+			ft["transactions"] = []
+			
+			for tx in list_of_raw_transactions:			
+				ftx = {}
+				ftx["tx_index"] = tx.tx_index
+				ftx["tx_type"] = tx.tx_type
+				ftx["amount"] = get_formatted_amount(a,b,tx.amount)
+				ftx["description"] = tx.description
+				ftx["memo"] = tx.memo
+				ftx["date_created"] = tx.date_created
+				ftx["current_network_balance"] = get_formatted_amount(a,b,tx.current_network_balance)
+				ftx["current_reserve_balance"] = get_formatted_amount(a,b,tx.current_reserve_balance)
+				# format display amounts and balances for this transaction
+				ftx["d_id"] = ""
+				ftx["d_date"] = ""
+				ftx["d_memo"] = ""
+				ftx["d_res"] = ""
+				ftx["d_r_bal"] = ""
+				ftx["d_net"] = ""
+				ftx["d_n_bal"] = ""
+				ft["transactions"].append(ftx)
+
+			return ft		
+		
+		self.PARENT.RETURN_CODE = "STUB"
+		return False # error Account type not recognized
+					
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
 		def get_formatted_amount(network,account,raw_amount):
@@ -4023,6 +4167,8 @@ class metric(object):
 		source_lds_tx_log.memo = "Pay to %s" % fstr_target_name		
 		source_lds_tx_log.category = "MRTX2"
 		source_lds_tx_log.amount = lint_amount
+		source_lds_tx_log.current_network_balance = lds_source.current_network_balance
+		source_lds_tx_log.current_reserve_balance = lds_source.current_reserve_balance
 		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = "PAYMENT MADE" 
 		source_lds_tx_log.user_id_created = lds_source.user_id
@@ -4043,6 +4189,8 @@ class metric(object):
 		target_lds_tx_log.memo = "Paid by %s" % fstr_source_name		
 		target_lds_tx_log.category = "MRTX2"
 		target_lds_tx_log.amount = lint_amount
+		target_lds_tx_log.current_network_balance = lds_target.current_network_balance
+		target_lds_tx_log.current_reserve_balance = lds_target.current_reserve_balance
 		# typically we'll make target private for bilateral transactions so that
 		# when looking at a system view, we don't see duplicates.
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
@@ -4485,6 +4633,8 @@ class metric(object):
 			source_lds_tx_log.memo = "Reserve TR from %s" % fstr_target_name
 			source_lds_tx_log.category = "MRTX2"
 			source_lds_tx_log.amount = lint_amount
+			source_lds_tx_log.current_network_balance = lds_source.current_network_balance
+			source_lds_tx_log.current_reserve_balance = lds_source.current_reserve_balance
 			source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 			source_lds_tx_log.description = lstr_source_tx_description 
 			source_lds_tx_log.user_id_created = lds_source.user_id
@@ -4505,6 +4655,8 @@ class metric(object):
 			target_lds_tx_log.memo = "Reserve TR to %s" % fstr_source_name
 			target_lds_tx_log.category = "MRTX2"
 			target_lds_tx_log.amount = lint_amount
+			target_lds_tx_log.current_network_balance = lds_target.current_network_balance
+			target_lds_tx_log.current_reserve_balance = lds_target.current_reserve_balance
 			# typically we'll make target private for bilateral transactions so that
 			# when looking at a system view, we don't see duplicates.
 			target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
@@ -5014,6 +5166,8 @@ class metric(object):
 		source_lds_tx_log.memo = "Joint TR from %s" % fstr_target_name
 		source_lds_tx_log.category = "MRTX2"
 		source_lds_tx_log.amount = lint_amount
+		source_lds_tx_log.current_network_balance = lds_source_metric.current_network_balance
+		source_lds_tx_log.current_reserve_balance = lds_source_metric.current_reserve_balance
 		source_lds_tx_log.access = "PUBLIC" # "PUBLIC" OR "PRIVATE"
 		source_lds_tx_log.description = "JOINT ACCOUNT FUNDS RETRIEVED" 
 		source_lds_tx_log.user_id_created = lds_source_metric.user_id
@@ -5034,6 +5188,8 @@ class metric(object):
 		target_lds_tx_log.memo = "Joint TR to %s" % fstr_source_name
 		target_lds_tx_log.category = "MRTX2"
 		target_lds_tx_log.amount = lint_amount
+		target_lds_tx_log.current_network_balance = lds_target_metric.current_network_balance
+		target_lds_tx_log.current_reserve_balance = lds_target_metric.current_reserve_balance
 		# typically we'll make target private for bilateral transactions so that
 		# when looking at a system view, we don't see duplicates.
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
@@ -5801,6 +5957,8 @@ class metric(object):
 			pay_source_lds_tx_log.memo = "Ticket paid to %s" % fstr_owner_name
 			pay_source_lds_tx_log.category = "MRTX2"
 			pay_source_lds_tx_log.amount = lint_amount
+			pay_source_lds_tx_log.current_network_balance = lds_pay_source.current_network_balance
+			pay_source_lds_tx_log.current_reserve_balance = lds_pay_source.current_reserve_balance
 			pay_source_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
 			pay_source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 			pay_source_lds_tx_log.description = "Ticket payment made for ticket name: %s" % ticket_name 
@@ -5822,6 +5980,8 @@ class metric(object):
 			pay_target_lds_tx_log.memo = "Ticket paid from %s" % fstr_visitor_name
 			pay_target_lds_tx_log.category = "MRTX2"
 			pay_target_lds_tx_log.amount = lint_amount
+			pay_target_lds_tx_log.current_network_balance = lds_pay_target.current_network_balance
+			pay_target_lds_tx_log.current_reserve_balance = lds_pay_target.current_reserve_balance
 			# typically we'll make target private for bilateral transactions so that
 			# when looking at a system view, we don't see duplicates.
 			pay_target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
@@ -7322,6 +7482,11 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/ledger" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
+			# view specific account ledger
+			result.append(90)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/network" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view specific account
 			result.append(80)
@@ -7530,6 +7695,17 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 90:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "VIEW LEDGER"
+				blok = {}
+				blok["type"] = "ledger"
+				blok["ledger"] = lobj_master.metric._view_ledger(pqc[1],pqc[2])
+				if not blok["ledger"]:
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				bloks.append(blok)
+				break
 			if pqc[0] == 80:
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -8139,7 +8315,8 @@ application = webapp2.WSGIApplication([
 	('/network', ph_command),
 	('/network/account', ph_command),
 	('/profile', ph_command),
-	('/messages', ph_command)
+	('/messages', ph_command),
+	('/ledger', ph_command)
 	],debug=True)
 
 ##########################################################################
