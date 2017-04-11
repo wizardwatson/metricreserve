@@ -1077,7 +1077,7 @@ class user(object):
 			messages, prev_cursor, prev_more = reverse_query.fetch_page(messages_per_page, start_cursor=cursor)
 			# STUB Do we need to reverse order here for messages???
 			# the old cursor is now the next cursor
-			next_cursor = cursor
+			next_cursor = Cursor(urlsafe=fstr_rcursor)
 			next_more = True
 		
 		if not fstr_fcursor is None:
@@ -1085,7 +1085,7 @@ class user(object):
 			cursor = Cursor(urlsafe=fstr_fcursor)
 			messages, next_cursor, next_more = query.fetch_page(messages_per_page, start_cursor=cursor)
 			# the old cursor is now the previous cursor
-			prev_cursor = cursor
+			prev_cursor = Cursor(urlsafe=fstr_fcursor)
 			prev_more = True
 			
 		if fstr_fcursor is None and fstr_rcursor is None:
