@@ -14,12 +14,31 @@
 					</div>
 				</div>
 			{% endfor %}
-			{% if blok.more %}
-				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-					<li>
-						<a href="/messages?channel={{ blok.channel }}&cursor={{ blok.next_cursor }}">More Messages...</a>
-					</li>
-				</ul>
+			{% if blok.next_more %}
+				{% if blok.prev_more %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&rcursor={{ blok.prev_cursor }}">Previous Messages...</a>
+						</li>
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&fcursor={{ blok.next_cursor }}">Next Messages...</a>
+						</li>
+					</ul>
+				{% else %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&fcursor={{ blok.next_cursor }}">Next Messages...</a>
+						</li>
+					</ul>
+				{% endif %}
+			{% else %}
+				{% if blok.prev_more %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&rcursor={{ blok.prev_cursor }}">Previous Messages...</a>
+						</li>
+					</ul>
+				{% endif %}
 			{% endif %}
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
