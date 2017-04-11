@@ -1074,8 +1074,8 @@ class user(object):
 		if not fstr_rcursor is None:
 			# reverse cursor used
 			cursor = Cursor(urlsafe=fstr_rcursor)
-			messages, prev_cursor, prev_more = reverse_query.fetch_page(messages_per_page, start_cursor=cursor)
-			# STUB Do we need to reverse order here for messages???
+			reversed_messages, prev_cursor, prev_more = reverse_query.fetch_page(messages_per_page, start_cursor=cursor)
+			messages = list(reversed(reversed_messages))
 			# the old cursor is now the next cursor
 			next_cursor = Cursor(urlsafe=fstr_rcursor)
 			next_more = True
