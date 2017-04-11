@@ -2,10 +2,77 @@ Metric Reserve Stuff
 
 TO DO:
 
+MISCELLANEOUS
 	valid names should be 50 character or less?
 	always positive amounts
 	check on login if email is same as stored
 	form noncing? sessions?
+
+
+
+IMPLEMENT RESERVE BASED FUNCTIONS
+	Commands
+		modify up|down|destroy|create <amount>
+		connect
+		disconnect
+		pay <amount>
+		suggested request <amount>
+		suggested authorize <amount>
+		suggested cancel <amount>
+		suggested deny <amount>
+		transfer request <amount>
+		transfer authorize <amount>
+		transfer cancel <amount>
+		transfer deny <amount>
+	Views Needed
+		Ledger (dialog for detailed tx descriptions)
+
+IMPLEMENT OTHER ACCOUNT BASED FUNCTIONS
+	Commands
+		default
+		alias change <alias>
+		alias delete
+		joint offer
+		joint retrieve
+		joint close
+		client offer
+		client close
+		clone open
+		clone close
+		joint authorize
+		client authorize
+	Views Needed
+		profile list of offers to link to account
+		account list of offers to authorize/view
+		account should show current default
+		account should show whether name is alias or username
+
+IMPLEMENT TICKET BASED FUNCTIONS
+	Commands
+		*see below
+	Views Needed
+		All tickets own
+		All tickets others
+		Specific ticket own
+		Specific ticket others
+		
+FINALIZE GRAPH PROCESS
+	Scheduling
+	How accounts will update?
+	What restrictions for off-tree accounts?
+	Testing Scaffolding for making fake accounts
+	
+FINAL TESTING AND DEBUGGING
+
+DOCUMENT
+
+DEPLOY
+	Domain name
+	Budgeting
+
+
+
+
 
 
 PAGES
