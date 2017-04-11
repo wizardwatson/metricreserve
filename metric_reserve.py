@@ -1064,7 +1064,7 @@ class user(object):
 		query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
 		query = query.order(-ds_mr_user_message.date_created)		
 		reverse_query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
-		reverse_query = query.order(ds_mr_user_message.date_created)
+		reverse_query = reverse_query.order(ds_mr_user_message.date_created)
 		
 		messages_per_page = 3
 		
@@ -7560,6 +7560,13 @@ class ph_command(webapp2.RequestHandler):
 				"""
 				blok = {}
 				blok["type"] = "messages"
+				blok["messages_raw"] = ""
+				blok["messages"] = []
+				blok["channel"] = pqc[1]
+				blok["next_more"] = False
+				blok["next_cursor"] = ""
+				blok["prev_more"] = False
+				blok["prev_cursor"] = ""
 				if "fcursor" in lobj_master.request.GET:
 					current_fcursor = lobj_master.request.GET["fcursor"]
 				else:
@@ -7568,13 +7575,6 @@ class ph_command(webapp2.RequestHandler):
 					current_rcursor = lobj_master.request.GET["rcursor"]
 				else:
 					current_rcursor = None
-				blok["messages_raw"] = ""
-				blok["messages"] = []
-				blok["channel"] = pqc[1]
-				blok["next_more"] = False
-				blok["next_cursor"] = ""
-				blok["prev_more"] = False
-				blok["prev_cursor"] = ""
 				a, b, c, d, e = lobj_master.user._get_user_messages(pqc[1],current_fcursor,current_rcursor)
 				blok["messages_raw"] = a
 				blok["next_cursor"] = b
