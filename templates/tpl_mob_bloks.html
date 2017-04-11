@@ -200,7 +200,7 @@
 			{% if blok.groups.has_reserve_account %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Reserve Account</li>
-					<li><a href="/network?va={{ blok.groups.reserve_account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ blok.groups.reserve_account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ blok.groups.reserve_account.extra_pickle.account }}&vn={{ blok.groups.reserve_account.extra_pickle.network }}">{{ blok.groups.reserve_account.extra_pickle.account }}</a></li>
 				</ul>
 			{% endif %}
 			{% if blok.groups.has_client_accounts %}
@@ -251,11 +251,87 @@
 	{% endif %}
 
 
-	{% if blok.type == "one account self" %}
-	{% endif %}
-
-
-	{% if blok.type == "one account other" %}
+	{% if blok.type == "one account" %}
+			<div class="text_bubble ui-body ui-body-c">
+			<p><b>Network Name</b>:  {{ blok.account.network_name }}<br/>
+			<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
+			<b>Account ID</b>:  {{ blok.account.account_id }}<br/>
+			<b>TX1 Index</b>:  {{ blok.account.tx_index }}<br/>
+			<b>Account Status</b>:  {{ blok.account.status }}<br/>
+			<b>Account Type</b>:  {{ blok.account.type }}<br/>
+			<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
+			<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
+			<b>Date Created</b>:  {{ blok.account.date_created }}<br/></p>
+			</div>
+			{% if blok.account.has_connections %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Connections</li>
+				{% for account in blok.account.connections %}
+				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
+				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
+				<p><b>Transfer Request</b>: {{ account.transfer_request }}</p>
+				<p><b>Sug. Transfer Active</b>: {{ account.suggested_transfer_active }}</p>
+				<p><b>Sug. Transfer Inactive</b>: {{ account.suggested_transfer_inactive }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% if blok.account.has_incoming_connection_requests %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Incoming Connection Requests</li>
+				{% for account in blok.account.incoming_connection_requests %}
+				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
+				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% if blok.account.has_outgoing_connection_requests %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Outgoing Connection Requests</li>
+				{% for account in blok.account.outgoing_connection_requests %}
+				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
+				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% if blok.account.has_child_client_accounts %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Child Client Accounts</li>
+				{% for account in blok.account.child_client_accounts %}
+				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% if blok.account.has_child_joint_accounts %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Child Joint Accounts</li>
+				{% for account in blok.account.child_joint_accounts %}
+				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
+			{% endif %}
 	{% endif %}
 
 
@@ -955,6 +1031,21 @@
 		{% endif %}
 		{% if blok.error_code == "1278" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Command keyword(s) unrecognized.</p>
+		{% endif %}
+		{% if blok.error_code == "1279" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Target name invalid.</p>
+		{% endif %}
+		{% if blok.error_code == "1280" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid account id.</p>
+		{% endif %}
+		{% if blok.error_code == "1281" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Associated account/user entities back.</p>
+		{% endif %}
+		{% if blok.error_code == "1282" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid account type.</p>
+		{% endif %}
+		{% if blok.error_code == "1283" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
