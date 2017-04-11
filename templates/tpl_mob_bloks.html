@@ -269,6 +269,43 @@
 		{% endif %}
 	{% endif %}
 
+	{% if blok.type == "ledger" %}
+			<div class="text_bubble ui-body ui-body-c">
+			<p><b>Network Name</b>:  {{ blok.ledger.network_name }}<br/>
+			<b>Username/Alias</b>:  {{ blok.ledger.username_alias }}<br/>
+			<b>Total Transactions</b>:  {{ blok.ledger.total_transactions }}<br/>
+			<b>Account Status</b>:  {{ blok.ledger.status }}<br/>
+			<b>Account Type</b>:  {{ blok.ledger.type }}<br/>
+			<b>Network Balance</b>:  {{ blok.ledger.network_balance }}<br/>
+			<b>Reserve Balance</b>:  {{ blok.ledger.reserve_balance }}<br/>
+			<b>Date Created</b>:  {{ blok.ledger.date_created }}<br/><br/>
+			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.account_name }}">Back to account</a></p>
+			</div>
+			<table border=1>
+				<thead>
+				<tr>
+					<th><b>ID</b></th>
+					<th><b>Date</b></th>
+					<th><b>Memo</b></th>
+					<th><b>Res</b></th>
+					<th><b>R.Bal</b></th>
+					<th><b>Net</b></th>
+					<th><b>N.Bal</b></th>
+				</tr>
+				</thead>
+				{% for ftx in blok.ledger.transactions %}
+				<tr>
+					<td>{{ ftx.d_id }}</td>
+					<td>{{ ftx.d_date }}</td>
+					<td>{{ ftx.d_memo }}</td>
+					<td>{{ ftx.d_res }}</td>
+					<td>{{ ftx.d_r_bal }}</td>
+					<td>{{ ftx.d_net }}</td>
+					<td>{{ ftx.d_n_bal }}</td>
+				</tr>
+				{% endfor %}
+			</table>
+	{% endif %}
 
 	{% if blok.type == "one account" %}
 			<div class="text_bubble ui-body ui-body-c">
