@@ -3485,7 +3485,8 @@ class metric(object):
 			# account sequence (like joint/client/clone).  We don't care about
 			# the type as that will be known when calling function queries the
 			# metric account itself.
-			
+			# DEBUG
+			pdb.set_trace()			
 			for i in range(len(lds_target_user.reserve_network_ids)):
 				if lds_target_user.reserve_network_ids[i] == network_id:
 					if lds_target_user.reserve_labels[i] == fstr_source_name:
