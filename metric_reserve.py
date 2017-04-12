@@ -1671,22 +1671,22 @@ class metric(object):
 					next_entity["suggested_transfer_active"] = "None" # default
 					if this_id in metric_account_entity.incoming_reserve_transfer_requests:
 						c = metric_account_entity.incoming_reserve_transfer_requests[this_id]
-						next_entity["transfer_request"] = "in + $s" % get_formatted_amount(a,b,c)
+						next_entity["transfer_request"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.outgoing_reserve_transfer_requests:
 						c = metric_account_entity.outgoing_reserve_transfer_requests[this_id]
-						next_entity["transfer_request"] = "out - $s" % get_formatted_amount(a,b,c)
+						next_entity["transfer_request"] = "out - %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_inactive"] = "in + $s" % get_formatted_amount(a,b,c)
+						next_entity["suggested_transfer_inactive"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_inactive"] = "out - $s" % get_formatted_amount(a,b,c)
+						next_entity["suggested_transfer_inactive"] = "out - %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_active_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_incoming_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_active"] = "in + $s" % get_formatted_amount(a,b,c)
+						next_entity["suggested_transfer_active"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_active_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_outgoing_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_active"] = "out - $s" % get_formatted_amount(a,b,c)
+						next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
 					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["polyline"] = ""
@@ -4170,7 +4170,7 @@ class metric(object):
 		
 		network_id = validation_result[0]
 		source_account_id = validation_result[1]		
-		target_account_id = validation_result[1]		
+		target_account_id = validation_result[2]		
 		
 		# make a payment
 		# transfer network balance from one user to another
@@ -4523,7 +4523,7 @@ class metric(object):
 			if target_account_id in lds_source.incoming_reserve_transfer_requests:
 				self.PARENT.RETURN_CODE = "1162"
 				return False # error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one
-			if fstr_target_account_id in lds_source.outgoing_reserve_transfer_requests:
+			if target_account_id in lds_source.outgoing_reserve_transfer_requests:
 				self.PARENT.RETURN_CODE = "1163"
 				return False # error_existing_transfer_requests_must_be_completed_or_cancelled_before_creating_new_one
 			# create new request
