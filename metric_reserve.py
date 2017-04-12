@@ -8211,7 +8211,7 @@ class ph_command(webapp2.RequestHandler):
 				return
 			if  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
 				ltemp = {}
-				temp["vn"] = ct[1]
+				ltemp["vn"] = ct[1]
 				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
 				return
 			if  len(ct) == 1 and ct[0] == "network":
