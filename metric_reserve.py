@@ -1312,12 +1312,12 @@ class metric(object):
 		if finish_index == 1:
 			next_page = 0
 		else:
-			next_page = fpage + 1
+			next_page = int(fpage) + 1
 			
 		if start_index == metric_entity.tx_index:
 			prev_page = 0
 		else:
-			prev_page = fpage - 1
+			prev_page = int(fpage) - 1
 	
 		if metric_entity.account_type == "RESERVE":
 		
