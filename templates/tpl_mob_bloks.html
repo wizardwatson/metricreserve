@@ -305,6 +305,35 @@
 				</tr>
 				{% endfor %}
 			</table>
+			{% if blok.next_page == "0" %}
+				{% if blok.prev_page == "0" %}
+
+				{% else %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/ledger?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}&lp={{ blok.ledger.prev_page }}">Previous Page</a>
+						</li>
+					</ul>
+				{% endif %}
+			{% else %}
+				{% if blok.prev_page == "0" %}
+
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&fcursor={{ blok.next_cursor }}&lp={{ blok.ledger.next_page }}">Next Page</a>
+						</li>
+					</ul>
+				{% else %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&rcursor={{ blok.prev_cursor }}&lp={{ blok.ledger.prev_page }}">Previous Page</a>
+						</li>
+						<li>
+							<a href="/messages?channel={{ blok.channel }}&fcursor={{ blok.next_cursor }}&lp={{ blok.ledger.next_page }}">Next Page</a>
+						</li>
+					</ul>
+				{% endif %}
+			{% endif %}
 	{% endif %}
 
 	{% if blok.type == "one account" %}
