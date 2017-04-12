@@ -1529,12 +1529,13 @@ class metric(object):
 			# user object and account_id.  We already got the network_id
 			# non-transactionally from the above process now let's get the 
 			# account_id.
-			validation_result = self._name_validate_transactional(None,fstr_account_name,None,network_id)
+			# pass to validation as target so don't get "source is user" security fail
+			validation_result = self._name_validate_transactional(None,None,fstr_account_name,network_id)
 			if not validation_result:
 				# pass up error
 				return False
-			t_account_id = validation_result[1]
-			t_user_object = validation_result[3]
+			t_account_id = validation_result[2]
+			t_user_object = validation_result[4]
 			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(t_account_id).zfill(12)))
 		metric_account_entity = metric_account_key.get()
 		if metric_account_entity is None:
