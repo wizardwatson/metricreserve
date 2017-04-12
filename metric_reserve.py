@@ -4336,7 +4336,7 @@ class metric(object):
 		
 		network_id = validation_result[0]
 		source_account_id = validation_result[1]		
-		target_account_id = validation_result[1]	
+		target_account_id = validation_result[2]	
 
 		# A "reserve transfer" is just what I'm calling a bilateral agreement to move
 		# some amount of reserve balance from an account with a positive amount equal
