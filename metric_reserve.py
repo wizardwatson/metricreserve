@@ -2257,7 +2257,7 @@ class metric(object):
 			network_profile = network_key.get()
 		elif not fint_network_id is None:
 			# get network by id
-			network_key = ndb.Key("ds_mr_network_profile","%s" % str(i).zfill(8))
+			network_key = ndb.Key("ds_mr_network_profile","%s" % str(fint_network_id).zfill(8))
 			network_profile = network_key.get()
 			if network_profile is None:
 				self.PARENT.RETURN_CODE = "1110"
