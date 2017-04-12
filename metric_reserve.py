@@ -1239,68 +1239,60 @@ class metric(object):
 			getcontext().prec = 28
 			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
 
-		def has_this_account(user_obj,network_id,account_name,account_id):
+		def has_this_account(user_obj,network_id,account_name):
 
 			# verify the user object has the network/account and that the label matches
 			for i in range(len(user_obj.reserve_network_ids)):
 				if user_obj.reserve_network_ids[i] == network_id:
-					if user_obj.reserve_account_ids[i] == account_id:
-						if user_obj.reserve_labels[i] == account_name:
-							return True
+					if user_obj.reserve_labels[i] == account_name:
+						return user_obj.reserve_account_ids[i]
 			for i in range(len(user_obj.client_network_ids)):
 				if user_obj.client_network_ids[i] == network_id:
-					if user_obj.client_account_ids[i] == account_id:
-						if user_obj.client_labels[i] == account_name:
-							return True
+					if user_obj.client_labels[i] == account_name:
+						return user_obj.client_account_ids[i]
 			for i in range(len(user_obj.joint_network_ids)):
 				if user_obj.joint_network_ids[i] == network_id:
-					if user_obj.joint_account_ids[i] == account_id:
-						if user_obj.joint_labels[i] == account_name:
-							return True
+					if user_obj.joint_labels[i] == account_name:
+						return user_obj.joint_account_ids[i]
 			for i in range(len(user_obj.clone_network_ids)):
 				if user_obj.clone_network_ids[i] == network_id:
-					if user_obj.clone_account_ids[i] == account_id:
-						if user_obj.clone_labels[i] == account_name:
-							return True
+					if user_obj.clone_labels[i] == account_name:
+						return user_obj.clone_account_ids[i]
 			return False		
 		
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
 		name_entity = name_key.get()
 		if name_entity is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			self.PARENT.RETURN_CODE = "1285" # error Invalid account name
 			return False
 		if not name_entity.user_id == self.PARENT.user.entity.user_id:
-			self.PARENT.RETURN_CODE = "STUB" # error Account user doesn't match logged in user.
-			return False		
+			self.PARENT.RETURN_CODE = "1286" # error Account user doesn't match logged in user.
+			return False
 		
 		network = self._get_network(fstr_network_name=fstr_network_name)
-	
-		if not name_entity.network_id == network.network_id:
-			self.PARENT.RETURN_CODE = "STUB" # error Account name does not belong to network referenced.
-			return False
 
 		source_user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
 		source_user = source_user_key.get()
 		
-		if not has_this_account(source_user,network.network_id,fstr_account_name,name_entity.account_id):
-			self.PARENT.RETURN_CODE = "STUB" # error Account name does not belong to user.
+		account_id = has_this_account(source_user,network.network_id,fstr_account_name)
+		if not account_id:
+			self.PARENT.RETURN_CODE = "1288" # error Account name does not belong to user.
 			return False
 
 		# transactionally get the source and target metric accounts
 		key_part1 = str(network.network_id).zfill(8)
-		key_part2 = str(name_entity.account_id).zfill(12)
+		key_part2 = str(account_id).zfill(12)
 		metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (key_part1, key_part2))
 		metric_entity = metric_key.get()
 		if metric_entity is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1289"
 			return False # error Could not load metric account
 
 		transactions_per_page = 3
 		
-		# we want transactions: from (((page - 1) * transactions_per_page) + 1) to (((page - 1) * transactions_per_page) + transactions_per_page)
 		start_index = ((int(fpage) - 1) * transactions_per_page * -1) + metric_entity.tx_index
 		if start_index < 1:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1290"
 			return False # error Ledger page out of range
 		finish_index = start_index + 1 - transactions_per_page
 		if finish_index < 1: finish_index = 1
@@ -1332,7 +1324,7 @@ class metric(object):
 			# formatted transactions for RESERVE accounts
 			ft = {}
 			ft["network_name"] = fstr_network_name
-			ft["network_id"] = netowrk.network_id
+			ft["network_id"] = network.network_id
 			ft["username_alias"] = fstr_account_name
 			ft["account_id"] = metric_entity.account_id
 			ft["total_transactions"] = metric_entity.tx_index
@@ -1361,17 +1353,130 @@ class metric(object):
 				ftx["current_reserve_balance"] = get_formatted_amount(a,b,tx.current_reserve_balance)
 				# format display amounts and balances for this transaction
 				ftx["d_id"] = ""
-				ftx["d_date"] = ""
-				ftx["d_memo"] = ""
-				ftx["d_res"] = ""
-				ftx["d_r_bal"] = ""
-				ftx["d_net"] = ""
-				ftx["d_n_bal"] = ""
-				ft["transactions"].append(ftx)
+				m = str(ftx["date_created"].month)
+				d = str(ftx["date_created"].day)
+				y = str(ftx["date_created"].year)
+				ftx["d_date"] = "%s/%s/%s" % (m,d,y)
+				ftx["d_memo"] = ftx["memo"]
+				ftx["d_r_bal"] = ftx["current_reserve_balance"]
+				ftx["d_n_bal"] = ftx["current_network_balance"]
+				"""
+				
+				# Transaction types and their effect on ledger.
+				
+				(NA) "JOINT ACCOUNT CREATED ON NETWORK"
+				(NA) "CLIENT ACCOUNT CREATED ON NETWORK"
+				(NA) "CLONE ACCOUNT CREATED ON NETWORK"
+				(NA) "JOINED NETWORK"
 
+				-res "RESERVE OVERRIDE SUBTRACT"
+				+res "RESERVE OVERRIDE ADD"
+				-r&n "RESERVE SUBTRACT"
+				+r&n "RESERVE ADD"
+
+				-net "PAYMENT MADE"
+				+net "PAYMENT RECEIVED"
+
+				+res "USER INCOMING RESERVE TRANSFER AUTHORIZED"
+				-res "USER OUTGOING RESERVE TRANSFER AUTHORIZED"
+				+res "SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED"
+				-res "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"
+
+				-net "JOINT RETRIEVE OUT"
+				+net "JOINT RETRIEVE IN"
+
+				-net "TICKET PAYMENT MADE"
+				+net "TICKET PAYMENT RECEIVED"
+				
+				# so we'll group like formatting together
+				"""
+				checker = []
+				checker.append("JOINT ACCOUNT CREATED ON NETWORK")
+				checker.append("CLIENT ACCOUNT CREATED ON NETWORK")
+				checker.append("CLONE ACCOUNT CREATED ON NETWORK")
+				checker.append("JOINED NETWORK")
+				checker.append("RESERVE OVERRIDE SUBTRACT")
+				checker.append("RESERVE OVERRIDE ADD")
+				checker.append("RESERVE SUBTRACT")
+				checker.append("RESERVE ADD")
+				checker.append("PAYMENT MADE")
+				checker.append("PAYMENT RECEIVED")
+				checker.append("USER INCOMING RESERVE TRANSFER AUTHORIZED")
+				checker.append("USER OUTGOING RESERVE TRANSFER AUTHORIZED")
+				checker.append("SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED")
+				checker.append("SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED")
+				checker.append("JOINT RETRIEVE OUT")
+				checker.append("JOINT RETRIEVE IN")
+				checker.append("TICKET PAYMENT MADE")
+				checker.append("TICKET PAYMENT RECEIVED")
+				
+				if not ftx["tx_type"] in checker:
+					self.PARENT.RETURN_CODE = "1284"
+					return False # error Bad transaction type.					
+				
+				# (NA)
+				if (ftx["tx_type"] == "JOINT ACCOUNT CREATED ON NETWORK" or 
+					ftx["tx_type"] == "CLIENT ACCOUNT CREATED ON NETWORK" or 
+					ftx["tx_type"] == "CLONE ACCOUNT CREATED ON NETWORK" or
+					ftx["tx_type"] == "JOINED NETWORK"):
+					# just zero amounts and balances, creation transaction				
+					ftx["d_res"] = "0"
+					ftx["d_net"] = "0"
+					ft["transactions"].append(ftx)
+				
+				# -res
+				if (ftx["tx_type"] == "RESERVE OVERRIDE SUBTRACT" or 
+					ftx["tx_type"] == "USER OUTGOING RESERVE TRANSFER AUTHORIZED" or 
+					ftx["tx_type"] == "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"):
+					# 				
+					ftx["d_res"] = "-%s" % ftx["amount"]
+					ftx["d_net"] = " "
+					ft["transactions"].append(ftx)
+
+				# +res
+				if (ftx["tx_type"] == "RESERVE OVERRIDE ADD" or 
+					ftx["tx_type"] == "USER INCOMING RESERVE TRANSFER AUTHORIZED" or 
+					ftx["tx_type"] == "SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED"):
+					# 				
+					ftx["d_res"] = "+%s" % ftx["amount"]
+					ftx["d_net"] = " "
+					ft["transactions"].append(ftx)
+
+				# -net
+				if (ftx["tx_type"] == "PAYMENT MADE" or 
+					ftx["tx_type"] == "JOINT RETRIEVE OUT" or 
+					ftx["tx_type"] == "TICKET PAYMENT MADE"):
+					# 				
+					ftx["d_res"] = " "
+					ftx["d_net"] = "-%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# +net
+				if (ftx["tx_type"] == "PAYMENT RECEIVED" or 
+					ftx["tx_type"] == "JOINT RETRIEVE IN" or 
+					ftx["tx_type"] == "TICKET PAYMENT RECEIVED"):
+					# 				
+					ftx["d_res"] = " "
+					ftx["d_net"] = "+%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# -r&n
+				if (ftx["tx_type"] == "RESERVE SUBTRACT"):
+					# 				
+					ftx["d_res"] = "-%s" % ftx["amount"]
+					ftx["d_net"] = "-%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# +r&n
+				if (ftx["tx_type"] == "RESERVE ADD"):
+					# 				
+					ftx["d_res"] = "+%s" % ftx["amount"]
+					ftx["d_net"] = "+%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+					
 			return ft		
 		
-		self.PARENT.RETURN_CODE = "STUB"
+		self.PARENT.RETURN_CODE = "1283"
 		return False # error Account type not recognized
 					
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
@@ -3230,7 +3335,7 @@ class metric(object):
 		lds_user.reserve_default.append(False)
 		
 		# transaction log
-		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),lds_user.user_id,str(1).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(1).zfill(12),str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.tx_index = 1
@@ -3903,8 +4008,8 @@ class metric(object):
 			lds_counter2.count += lint_amount
 			lds_counter2.put()
 			
-			lstr_source_tx_type = "RESERVE MODIFIED NORMAL ADD"
-			lstr_source_tx_description = "RESERVE MODIFIED NORMAL ADD"
+			lstr_source_tx_type = "RESERVE ADD"
+			lstr_source_tx_description = "Res Add"
 			self.PARENT.RETURN_CODE = "7015" # success_reserve_normal_add
 
 		elif fstr_type == "normal_subtract":
@@ -3936,8 +4041,8 @@ class metric(object):
 			lds_counter4.count += lint_amount
 			lds_counter4.put()
 			
-			lstr_source_tx_type = "RESERVE MODIFIED NORMAL SUBTRACT"
-			lstr_source_tx_description = "RESERVE MODIFIED NORMAL SUBTRACT"
+			lstr_source_tx_type = "RESERVE SUBTRACT"
+			lstr_source_tx_description = "Res Sub"
 			self.PARENT.RETURN_CODE = "7016" # success_reserve_normal_subtract
 			
 		elif fstr_type == "override_add":
@@ -3954,8 +4059,8 @@ class metric(object):
 			lds_counter5.count += lint_amount
 			lds_counter5.put()
 			
-			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE ADD"
-			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE ADD"
+			lstr_source_tx_type = "RESERVE OVERRIDE ADD"
+			lstr_source_tx_description = "Res OVR Add"
 			self.PARENT.RETURN_CODE = "7017" # success_reserve_override_add
 			
 		elif fstr_type == "override_subtract":
@@ -3972,8 +4077,8 @@ class metric(object):
 			lds_counter6.count += lint_amount
 			lds_counter6.put()
 			
-			lstr_source_tx_type = "RESERVE MODIFIED OVERRIDE SUBTRACT"
-			lstr_source_tx_description = "RESERVE MODIFIED OVERRIDE SUBTRACT"
+			lstr_source_tx_type = "RESERVE OVERRIDE SUBTRACT"
+			lstr_source_tx_description = "Res OVR Sub"
 			self.PARENT.RETURN_CODE = "7018" # success_reserve_override_subtract
 			
 		else:
@@ -4027,7 +4132,7 @@ class metric(object):
 		lds_tx_log.amount = lint_amount
 		lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = lstr_source_tx_description 
-		lds_tx_log.memo = "Account Opened"
+		lds_tx_log.memo = lstr_source_tx_description 
 		lds_tx_log.category = "MRTX2"
 		lds_tx_log.user_id_created = lds_source.user_id
 		lds_tx_log.network_id = network_id
@@ -5162,7 +5267,7 @@ class metric(object):
 		source_lds_tx_log.key = source_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		source_lds_tx_log.tx_index = lds_source_metric.tx_index
-		source_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		source_lds_tx_log.tx_type = "JOINT RETRIEVE IN" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		source_lds_tx_log.memo = "Joint TR from %s" % fstr_target_name
 		source_lds_tx_log.category = "MRTX2"
 		source_lds_tx_log.amount = lint_amount
@@ -5184,7 +5289,7 @@ class metric(object):
 		target_lds_tx_log.key = target_tx_log_key
 		# tx_index should be based on incremented metric_account value
 		target_lds_tx_log.tx_index = lds_target_metric.tx_index
-		target_lds_tx_log.tx_type = "JOINT RETRIEVE" # SHORT WORD(S) FOR WHAT TRANSACTION DID
+		target_lds_tx_log.tx_type = "JOINT RETRIEVE OUT" # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		target_lds_tx_log.memo = "Joint TR to %s" % fstr_source_name
 		target_lds_tx_log.category = "MRTX2"
 		target_lds_tx_log.amount = lint_amount
@@ -7603,6 +7708,7 @@ class ph_command(webapp2.RequestHandler):
 		# further.
 		lobj_master = master(self,"get","unsecured")
 		self.master = lobj_master
+		r = lobj_master.request_handler
 		if lobj_master.IS_INTERRUPTED:return
 		
 		# get the context
