@@ -3486,45 +3486,45 @@ class metric(object):
 			# the type as that will be known when calling function queries the
 			# metric account itself.
 			# DEBUG
-			pdb.set_trace()			
+			# pdb.set_trace()			
 			for i in range(len(lds_target_user.reserve_network_ids)):
 				if lds_target_user.reserve_network_ids[i] == network_id:
-					if lds_target_user.reserve_labels[i] == fstr_source_name:
+					if lds_target_user.reserve_labels[i] == fstr_target_name:
 						target_account_id = lds_target_user.reserve_account_ids[i]
 						break
 			# keep looking if we haven't found
 			if target_account_id == 0:
 				for i in range(len(lds_target_user.client_network_ids)):
 					if lds_target_user.client_network_ids[i] == network_id:
-						if lds_target_user.client_labels[i] == fstr_source_name:
+						if lds_target_user.client_labels[i] == fstr_target_name:
 							target_account_id = lds_target_user.client_account_ids[i]
 							break			
 			# keep looking if we haven't found
 			if target_account_id == 0:
 				for i in range(len(lds_target_user.joint_network_ids)):
 					if lds_target_user.joint_network_ids[i] == network_id:
-						if lds_target_user.joint_labels[i] == fstr_source_name:
+						if lds_target_user.joint_labels[i] == fstr_target_name:
 							target_account_id = lds_target_user.joint_account_ids[i]
 							break
 			# keep looking if we haven't found
 			if target_account_id == 0:
 				for i in range(len(lds_target_user.clone_network_ids)):
 					if lds_target_user.clone_network_ids[i] == network_id:
-						if lds_target_user.clone_labels[i] == fstr_source_name:
+						if lds_target_user.clone_labels[i] == fstr_target_name:
 							target_account_id = lds_target_user.clone_account_ids[i]
 							break
 			# keep looking if we haven't found
 			if target_account_id == 0:
 				for i in range(len(lds_target_user.child_client_network_ids)):
 					if lds_target_user.child_client_network_ids[i] == network_id:
-						if lds_target_user.child_client_labels[i] == fstr_source_name:
+						if lds_target_user.child_client_labels[i] == fstr_target_name:
 							target_account_id = lds_target_user.child_client_account_ids[i]
 							break
 			# keep looking if we haven't found
 			if target_account_id == 0:
 				for i in range(len(lds_target_user.child_joint_network_ids)):
 					if lds_target_user.child_joint_network_ids[i] == network_id:
-						if lds_target_user.child_joint_labels[i] == fstr_source_name:
+						if lds_target_user.child_joint_labels[i] == fstr_target_name:
 							target_account_id = lds_target_user.child_joint_account_ids[i]
 							break		
 			
