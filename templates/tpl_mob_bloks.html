@@ -1125,9 +1125,19 @@
 		{% if blok.error_code == "1290" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ledger page out of range.</p>
 		{% endif %}
+		{% if blok.error_code == "1291" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Subcommand for modify command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.</p>
+		{% endif %}
+		{% if blok.error_code == "1292" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No account found for user on this network.</p>
+		{% endif %}
+		{% if blok.error_code == "1293" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Must be viewing your own reserve account to make reserve modifications.</p>
+		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
+
 
 
 	{% endif %}
