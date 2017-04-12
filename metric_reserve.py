@@ -8397,7 +8397,7 @@ class ph_command(webapp2.RequestHandler):
 			#transfer cancel <amount>
 			#transfer deny <amount>
 			###################################
-			if pqc[0] == 80 and len(ct) == 3 and ct[0] = "modify":
+			if pqc[0] == 80 and len(ct) == 3 and ct[0] == "modify":
 				# modify reserve command
 				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
 				if not lobj_master.user.IS_LOGGED_IN:
