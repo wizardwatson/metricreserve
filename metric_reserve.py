@@ -7882,7 +7882,34 @@ class ph_command(webapp2.RequestHandler):
 					blok["messages"].append(formatted_message)
 				bloks.append(blok)
 				break
-			
+
+			if pqc[0] == 50:
+				page["title"] = "OTHER PROFILE"
+				blok = {}
+				blok["type"] = "other_profile"
+				# need to get our user based on va GET var
+
+				name_entity_key = ndb.Key("ds_mr_unique_dummy_entity", pqc[1])
+				name_entity = name_entity_key.get()
+				if name_entity is None:
+					# error User name is invalid
+					r.redirect(self.url_path(error_code="1295"))
+					return None
+				other_user_key = ndb.Key("ds_mr_user", name_entity.user_id) 
+				other_user = other_user_key.get()
+				if other_user is None:
+					# error Can't load user entity
+					r.redirect(self.url_path(error_code="1296"))
+					return None
+
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(other_user.gravatar_url,other_user.gravatar_type)
+				blok["bio"] = other_user.bio
+				blok["username"] = other_user.username
+				blok["lat"] = float(other_user.location_latitude) / 100000000
+				blok["long"] = float(other_user.location_longitude) / 100000000
+				bloks.append(blok)	
+				break
+				
 			if pqc[0] == 60:
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -8123,6 +8150,71 @@ class ph_command(webapp2.RequestHandler):
 			if  len(ct) == 1 and ct[0] == "menu":
 				r.redirect(self.url_path(new_vars="view_menu=1",new_path="/"))
 				return
+			###################################
+			# user and account search
+			# 
+			# from any context
+			###################################
+			if  len(ct) == 2 and ct[0] == "user":
+				if not self.is_valid_name(ct[1]):
+					r.redirect(self.url_path(error_code="1101"))
+				else:
+					r.redirect(self.url_path(new_vars=("va=%s" % ct[1]),new_path="/profile"))
+				return
+			if  len(ct) == 2 and ct[0] == "account":
+				if not self.is_valid_name(ct[1]):
+					r.redirect(self.url_path(error_code="1101"))
+				else:
+					# get the network name before we redirect
+					name_entity_key = ndb.Key("ds_mr_unique_dummy_entity", ct[1])
+					name_entity = name_entity_key.get()
+					if name_entity is None:
+						# error Account name is invalid
+						r.redirect(self.url_path(error_code="1297"))
+						return None
+					other_user_key = ndb.Key("ds_mr_user", name_entity.user_id) 
+					other_user = other_user_key.get()
+					if other_user is None:
+						# error Can't load user entity
+						r.redirect(self.url_path(error_code="1298"))
+						return None
+					# We've got a valid user, now search the user to
+					# see if the name passed is a valid account.  If
+					# it's not, don't fail, just kick them to the profile.
+					# If successful, send them to the account.
+					
+					network_id = None
+					for i in range(len(other_user.reserve_network_ids)):
+						if other_user.reserve_labels[i] == ct[1]:
+							network_id = other_user.reserve_network_ids[i]
+							break
+					if network_id is None:
+						for i in range(len(other_user.client_network_ids)):
+							if other_user.client_labels[i] == ct[1]:
+								network_id = other_user.client_network_ids[i]
+								break	
+						
+					if network_id is None:
+						for i in range(len(other_user.joint_network_ids)):
+							if other_user.joint_labels[i] == ct[1]:
+								network_id = other_user.joint_network_ids[i]
+								break	
+						
+					if network_id is None:
+						for i in range(len(other_user.clone_network_ids)):
+							if other_user.clone_labels[i] == ct[1]:
+								network_id = other_user.clone_network_ids[i]
+								break
+								
+					if network_id is None:
+						# can't find an account with that name, so send to user profile
+						r.redirect(self.url_path(new_vars=("va=%s" % other_user.username),new_path="/profile"))
+					else:
+						# found an account with that name, send to account view page after
+						# getting network label
+						network = lobj_master.metric._get_network(fint_network_id=network_id)
+						r.redirect(self.url_path(new_vars=("vn=%s&va=%s" % (network.network_name,ct[1])),new_path="/network"))
+				return				
 			###################################
 			# username change <USERNAME>
 			# 
