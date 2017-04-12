@@ -3392,6 +3392,7 @@ class metric(object):
 			source_account_id = 0
 			lds_source_user = None
 		else:		
+			source_account_id = 0
 			source_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_source_name)
 			source_name_entity = source_name_key.get()
 			if source_name_entity is None:
@@ -3421,35 +3422,35 @@ class metric(object):
 						source_account_id = lds_source_user.reserve_account_ids[i]
 						break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if source_account_id == 0:
 				for i in range(len(lds_source_user.client_network_ids)):
 					if lds_source_user.client_network_ids[i] == network_id:
 						if lds_source_user.client_labels[i] == fstr_source_name:
 							source_account_id = lds_source_user.client_account_ids[i]
 							break			
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if source_account_id == 0:
 				for i in range(len(lds_source_user.joint_network_ids)):
 					if lds_source_user.joint_network_ids[i] == network_id:
 						if lds_source_user.joint_labels[i] == fstr_source_name:
 							source_account_id = lds_source_user.joint_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if source_account_id == 0:
 				for i in range(len(lds_source_user.clone_network_ids)):
 					if lds_source_user.clone_network_ids[i] == network_id:
 						if lds_source_user.clone_labels[i] == fstr_source_name:
 							source_account_id = lds_source_user.clone_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if source_account_id == 0:
 				for i in range(len(lds_source_user.child_client_network_ids)):
 					if lds_source_user.child_client_network_ids[i] == network_id:
 						if lds_source_user.child_client_labels[i] == fstr_source_name:
 							source_account_id = lds_source_user.child_client_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if source_account_id == 0:
 				for i in range(len(lds_source_user.child_joint_network_ids)):
 					if lds_source_user.child_joint_network_ids[i] == network_id:
 						if lds_source_user.child_joint_labels[i] == fstr_source_name:
@@ -3467,7 +3468,8 @@ class metric(object):
 		if fstr_target_name is None:
 			target_account_id = 0
 			lds_target_user = None
-		else:			
+		else:
+			target_account_id = 0
 			target_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
 			target_name_entity = target_name_key.get()
 			if target_name_entity is None:
@@ -3490,35 +3492,35 @@ class metric(object):
 						target_account_id = lds_target_user.reserve_account_ids[i]
 						break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if target_account_id == 0:
 				for i in range(len(lds_target_user.client_network_ids)):
 					if lds_target_user.client_network_ids[i] == network_id:
 						if lds_target_user.client_labels[i] == fstr_source_name:
 							target_account_id = lds_target_user.client_account_ids[i]
 							break			
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if target_account_id == 0:
 				for i in range(len(lds_target_user.joint_network_ids)):
 					if lds_target_user.joint_network_ids[i] == network_id:
 						if lds_target_user.joint_labels[i] == fstr_source_name:
 							target_account_id = lds_target_user.joint_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if target_account_id == 0:
 				for i in range(len(lds_target_user.clone_network_ids)):
 					if lds_target_user.clone_network_ids[i] == network_id:
 						if lds_target_user.clone_labels[i] == fstr_source_name:
 							target_account_id = lds_target_user.clone_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if target_account_id == 0:
 				for i in range(len(lds_target_user.child_client_network_ids)):
 					if lds_target_user.child_client_network_ids[i] == network_id:
 						if lds_target_user.child_client_labels[i] == fstr_source_name:
 							target_account_id = lds_target_user.child_client_account_ids[i]
 							break
 			# keep looking if we haven't found
-			if not source_account_id == 0:
+			if target_account_id == 0:
 				for i in range(len(lds_target_user.child_joint_network_ids)):
 					if lds_target_user.child_joint_network_ids[i] == network_id:
 						if lds_target_user.child_joint_labels[i] == fstr_source_name:
