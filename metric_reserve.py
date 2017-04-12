@@ -3819,7 +3819,7 @@ class metric(object):
 			
 			self.PARENT.RETURN_CODE = "7012" # success denied target connection request
 		
-		elif fstr_target_account_id in lds_source.outgoing_connection_requests:
+		elif target_account_id in lds_source.outgoing_connection_requests:
 		
 			# benign change with respect to graph
 			lds_target.incoming_connection_requests.remove(source_account_id)
