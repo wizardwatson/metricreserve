@@ -3335,7 +3335,7 @@ class metric(object):
 		lds_user.reserve_default.append(False)
 		
 		# transaction log
-		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(1).zfill(12),str(1).zfill(12)))
+		tx_log_key = ndb.Key("ds_mr_tx_log", "MRTX2%s%s%s" % (str(network_id).zfill(8),str(lds_cursor.current_index).zfill(12),str(1).zfill(12)))
 		lds_tx_log = ds_mr_tx_log()
 		lds_tx_log.key = tx_log_key
 		lds_tx_log.tx_index = 1
