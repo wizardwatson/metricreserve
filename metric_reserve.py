@@ -4130,6 +4130,8 @@ class metric(object):
 		lds_tx_log.tx_index = lds_source.tx_index
 		lds_tx_log.tx_type = lstr_source_tx_type # SHORT WORD(S) FOR WHAT TRANSACTION DID
 		lds_tx_log.amount = lint_amount
+		lds_tx_log.current_network_balance = lds_source.current_network_balance
+		lds_tx_log.current_reserve_balance = lds_source.current_reserve_balance
 		lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		lds_tx_log.description = lstr_source_tx_description 
 		lds_tx_log.memo = lstr_source_tx_description 
@@ -7807,7 +7809,11 @@ class ph_command(webapp2.RequestHandler):
 				page["title"] = "VIEW LEDGER"
 				blok = {}
 				blok["type"] = "ledger"
-				blok["ledger"] = lobj_master.metric._view_ledger(pqc[1],pqc[2])
+				if "lp" in lobj_master.request.GET:
+					ledger_page = lobj_master.request.GET["lp"]
+				else:
+					ledger_page = 1
+				blok["ledger"] = lobj_master.metric._view_ledger(pqc[1],pqc[2],ledger_page)
 				if not blok["ledger"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
