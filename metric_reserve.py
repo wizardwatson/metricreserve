@@ -3983,7 +3983,7 @@ class metric(object):
 		lint_new_reserve = lds_source.current_reserve_balance		
 		
 		# 4 types of reserve modifications are possible
-		if fstr_type == "normal_add":		
+		if fstr_type == "add":		
 		
 			# 1.  Normal Add
 			# User is essentially depositing money.  This will add to their reserve
@@ -4012,7 +4012,7 @@ class metric(object):
 			lstr_source_tx_description = "Res Add"
 			self.PARENT.RETURN_CODE = "7015" # success_reserve_normal_add
 
-		elif fstr_type == "normal_subtract":
+		elif fstr_type == "subtract":
 		
 			# 2.  Normal Subtract
 			# User is withdrawing money via reserves.  Opposite of Normal Add with respect
@@ -4045,7 +4045,7 @@ class metric(object):
 			lstr_source_tx_description = "Res Sub"
 			self.PARENT.RETURN_CODE = "7016" # success_reserve_normal_subtract
 			
-		elif fstr_type == "override_add":
+		elif fstr_type == "create":
 
 			# 3.  Override Add
 			# Found money, donation, etc.  Adds to reserves for this user without adding to
@@ -4063,7 +4063,7 @@ class metric(object):
 			lstr_source_tx_description = "Res OVR Add"
 			self.PARENT.RETURN_CODE = "7017" # success_reserve_override_add
 			
-		elif fstr_type == "override_subtract":
+		elif fstr_type == "destroy":
 		
 			# 4.  Override Subtract
 			# Lost money, etc.  User cannot subtract more reserves than they had.  Does not
@@ -8383,10 +8383,53 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["xnetwork_name"] = pqc[1]
 					r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
 				return
-			
-			
-			
-			
+			###################################
+			#modify up|down|destroy|create <amount>
+			#connect
+			#disconnect
+			#pay <amount>
+			#suggested request <amount>
+			#suggested authorize <amount>
+			#suggested cancel <amount>
+			#suggested deny <amount>
+			#transfer request <amount>
+			#transfer authorize <amount>
+			#transfer cancel <amount>
+			#transfer deny <amount>
+			###################################
+			if pqc[0] == 80 and len(ct) == 3 and ct[0] = "modify":
+				# modify reserve command
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not ct[1] in ["add","subtract","create","destroy"]:
+					# error Subcommand for modify command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
+					r.redirect(self.url_path(error_code="1291"))
+				elif not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+				# they must be viewing their own reserve account to make
+				# reserve modifications.
+				elif not account_name == pqc[2] or not network.network_name == pqc[1]:
+					# error Must be viewing your own reserve account to make reserve modifications.
+					r.redirect(self.url_path(error_code="1292"))
+				elif not lobj_master.metric._modify_reserve(pqc[1],account_name,ct[1],ct[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+				
+				
+				
+				
+				
+				
 			###################################
 			# command not recognized
 			###################################
