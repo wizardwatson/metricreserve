@@ -393,7 +393,7 @@
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Connections</li>
 				{% for account in blok.account.connections %}
-				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
 				<h3>{{ account.username_alias }}</h3>
 				<p><strong></strong></p>
 				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
@@ -410,7 +410,7 @@
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Incoming Connection Requests</li>
 				{% for account in blok.account.incoming_connection_requests %}
-				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
 				<h3>{{ account.username_alias }}</h3>
 				<p><strong></strong></p>
 				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
@@ -424,7 +424,7 @@
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Outgoing Connection Requests</li>
 				{% for account in blok.account.outgoing_connection_requests %}
-				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
 				<h3>{{ account.username_alias }}</h3>
 				<p><strong></strong></p>
 				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
@@ -438,7 +438,7 @@
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Child Client Accounts</li>
 				{% for account in blok.account.child_client_accounts %}
-				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
 				<h3>{{ account.username_alias }}</h3>
 				<p><strong></strong></p>
 				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
@@ -450,7 +450,7 @@
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Child Joint Accounts</li>
 				{% for account in blok.account.child_joint_accounts %}
-				<li><a href="/network?va={{ blok.account.network_name }}&vn={{ account.username_alias }}">
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
 				<h3>{{ account.username_alias }}</h3>
 				<p><strong></strong></p>
 				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
