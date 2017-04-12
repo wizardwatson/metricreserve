@@ -4416,7 +4416,7 @@ class metric(object):
 			lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER STORED"
 			self.PARENT.RETURN_CODE = "7020" # success_suggested_reserve_transfer_stored
 
-		elif fstr_type == "activating_suggested":
+		elif fstr_type == "suggested request":
 			
 			# We're "activating" a suggested one.  So we move it to active queue.  This let's
 			# the other party know that they can authorize it.  But it's the web, so need to
@@ -4454,7 +4454,7 @@ class metric(object):
 			lstr_target_tx_description = "SUGGESTED INCOMING RESERVE TRANSFER ACTIVATED"
 			self.PARENT.RETURN_CODE = "7021" # success_suggested_reserve_transfer_activated
 			
-		elif fstr_type == "deactivating_suggested":
+		elif fstr_type == "suggested cancel" or fstr_type == "suggested deny":
 		
 			# This is similar to a "disconnect()".  Once a suggested transfer is active, either
 			# party to it, can deny/withdraw it.  The special case here, is that if the inactive
@@ -4512,7 +4512,7 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1161"
 				return False # error_no_suggested_active_request_between_source_and_target	
 		
-		elif fstr_type == "requesting_user":
+		elif fstr_type == "transfer request":
 		
 			# new outgoing transfer request from source
 			# must complete or cancel old ones before making a new one
@@ -4532,7 +4532,7 @@ class metric(object):
 			lstr_target_tx_description = "USER INCOMING RESERVE TRANSFER REQUESTED"
 			self.PARENT.RETURN_CODE = "7024" # success_user_reserve_transfer_requested
 			
-		elif fstr_type == "cancelling_user":
+		elif fstr_type == "transfer cancel":
 			
 			# creator of a transfer request is cancelling
 			# verify source actually has an outgoing for correct amount and if so delete it
@@ -4553,7 +4553,7 @@ class metric(object):
 			lstr_target_tx_description = "USER INCOMING RESERVE TRANSFER WITHDRAWN"
 			self.PARENT.RETURN_CODE = "7025" # success_user_reserve_transfer_cancelled
 
-		elif fstr_type == "denying_user":
+		elif fstr_type == "transfer deny":
 			
 			# source is denying targets requested transfer
 			# verify source actually has an incoming request for correct amount and if so delete it
@@ -4574,7 +4574,7 @@ class metric(object):
 			lstr_target_tx_description = "USER OUTGOING RESERVE TRANSFER DENIED"
 			self.PARENT.RETURN_CODE = "7026" # success_user_reserve_transfer_denied
 		
-		elif fstr_type == "authorizing_suggested":
+		elif fstr_type == "suggested authorize":
 
 			# This transaction type is one which affects the graph.
 			# "authorizing_suggested" pretty much works exactly like "authorizing_user" except that we will
@@ -4651,7 +4651,7 @@ class metric(object):
 			lstr_target_tx_description = "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"
 			self.PARENT.RETURN_CODE = "7027" # success_suggested_reserve_transfer_authorized
 			
-		elif fstr_type == "authorizing_user":
+		elif fstr_type == "transfer authorize":
 		
 			# This transaction type is one which affects the graph.
 			
@@ -4725,7 +4725,7 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1174"
 			return False # error_transaction_type_invalid
 			
-		if fstr_type == "authorizing_suggested" or fstr_type == "authorizing_user":
+		if fstr_type == "suggested authorize" or fstr_type == "transfer authorize":
 			
 			# a payment related transaction
 			
@@ -8403,7 +8403,7 @@ class ph_command(webapp2.RequestHandler):
 			#transfer cancel <amount>
 			#transfer deny <amount>
 			###################################
-			if pqc[0] == 80 and len(ct) == 3 and ct[0] == "modify":
+			if (pqc[0] == 80 or pqc[0] == 90) and len(ct) == 3 and ct[0] == "modify":
 				# modify reserve command
 				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
 				if not lobj_master.user.IS_LOGGED_IN:
@@ -8431,11 +8431,92 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
 				
-				
-				
-				
-				
-				
+			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "connect":
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+				# now we have a user account label on the network
+				elif not lobj_master.metric._connect(pqc[1],account_name,pqc[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+
+			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "disconnect":
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+				# now we have a user account label on the network
+				elif not lobj_master.metric._disconnect(pqc[1],account_name,pqc[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+
+			if pqc[0] == 80 and len(ct) == 3 and ct[0] in ["transfer","suggested"]:
+				# modify reserve command
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not ct[1] in ["authorize","request","cancel","deny"]:
+					# error Subcommand for suggested/transfer command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
+					r.redirect(self.url_path(error_code="1294"))
+				elif not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+				# we have a user account referenced now
+				elif not lobj_master.metric._process_reserve_transfer(pqc[1],account_name,pqc[2],ct[2],"%s %s" % (ct[0],ct[1])):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+
+			if pqc[0] == 80 and len(ct) == 2 and ct[0] == "pay":
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+				# now we have a user account label on the network
+				elif not lobj_master.metric._make_payment(pqc[1],account_name,pqc[2],ct[1]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+
+
+
 			###################################
 			# command not recognized
 			###################################
