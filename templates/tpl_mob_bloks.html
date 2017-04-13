@@ -54,7 +54,7 @@
 				<h3>{{ master.page.username }}</h3>
 			</li>
 			<li>
-				<a href="/messages?channel={{ master.page.username }}">(Public Messages)</a>
+				<a href="/messages?channel={{ master.page.username }}"><h3>Public Messages</h3></a>
 			</li>
 		</ul>
 		<div class="text_bubble ui-body ui-body-c">
@@ -311,37 +311,40 @@
 
 	{% if blok.type == "ledger" %}
 			<div class="text_bubble ui-body ui-body-c">
-			<p><b>Network Name</b>:  {{ blok.ledger.network_name }}<br/>
+			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.ledger.network_name }}">{{ blok.ledger.network_name }}</a><br/>
 			<b>Username/Alias</b>:  {{ blok.ledger.username_alias }}<br/>
 			<b>Total Transactions</b>:  {{ blok.ledger.total_transactions }}<br/>
 			<b>Account Status</b>:  {{ blok.ledger.status }}<br/>
 			<b>Account Type</b>:  {{ blok.ledger.type }}<br/>
 			<b>Network Balance</b>:  {{ blok.ledger.network_balance }}<br/>
+			{% if blok.ledger.type == "RESERVE" %}
 			<b>Reserve Balance</b>:  {{ blok.ledger.reserve_balance }}<br/>
-			<b>Date Created</b>:  {{ blok.ledger.date_created }}<br/><br/>
+			{% endif %}
+			<b>Date Created</b>:  {{ blok.ledger.d_date_created }}<br/><br/>
 			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}">Back to account</a></p>
 			</div>
-			<table border=1>
+			<table class="ledger" border=1>
 				<thead>
 				<tr>
-					<th><b>ID</b></th>
-					<th><b>Date</b></th>
-					<th><b>Memo</b></th>
+					{% if blok.ledger.type == "RESERVE" %}
 					<th><b>Res</b></th>
 					<th><b>R.Bal</b></th>
+					{% endif %}
 					<th><b>Net</b></th>
 					<th><b>N.Bal</b></th>
 				</tr>
 				</thead>
 				{% for ftx in blok.ledger.transactions %}
 				<tr>
-					<td>{{ ftx.d_id }}</td>
-					<td>{{ ftx.d_date }}</td>
-					<td>{{ ftx.d_memo }}</td>
-					<td>{{ ftx.d_res }}</td>
-					<td>{{ ftx.d_r_bal }}</td>
-					<td>{{ ftx.d_net }}</td>
-					<td>{{ ftx.d_n_bal }}</td>
+					<td class="ledger ledger_{{ ftx.even_odd }}" colspan=4><b>ID:{{ ftx.d_id }} {{ ftx.d_date }} {{ ftx.d_memo }}</b></td>
+				</tr>
+				<tr>
+					{% if blok.ledger.type == "RESERVE" %}
+					<td class="ledger ledger_{{ ftx.even_odd }}" align="right"><b>{{ ftx.d_res }}</b></td>
+					<td class="ledger ledger_{{ ftx.even_odd }}" align="right"><b>{{ ftx.d_r_bal }}</b></td>
+					{% endif %}
+					<td class="ledger ledger_{{ ftx.even_odd }}" align="right"><b>{{ ftx.d_net }}</b></td>
+					<td class="ledger ledger_{{ ftx.even_odd }}" align="right"><b>{{ ftx.d_n_bal }}</b></td>
 				</tr>
 				{% endfor %}
 			</table>
@@ -378,16 +381,28 @@
 
 	{% if blok.type == "one account" %}
 			<div class="text_bubble ui-body ui-body-c">
-			<p><b>Network Name</b>:  {{ blok.account.network_name }}<br/>
+			{% if blok.account.is_my_account %}
+				{% if blok.account.is_my_default %}
+				<p><b>NETWORK DEFAULT</b></p>
+				{% else %}
+				<p><b>NOT DEFAULTED</b></p>
+				{% endif %}
+			{% else %}
+				<p><b>NOT YOUR ACCOUNT</b></p>
+			{% endif %}
+			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
 			<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
-			<b>Account ID</b>:  {{ blok.account.account_id }}<br/>
-			<b>TX1 Index</b>:  {{ blok.account.tx_index }}<br/>
+			<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
 			<b>Account Status</b>:  {{ blok.account.status }}<br/>
 			<b>Account Type</b>:  {{ blok.account.type }}<br/>
 			<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
+			{% if blok.account.type == "RESERVE" %}
 			<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
-			<b>Date Created</b>:  {{ blok.account.date_created }}<br/><br/>
-			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a></p>
+			{% endif %}
+			<b>Date Created</b>:  {{ blok.account.d_date_created }}<br/><br/>
+			{% if blok.account.is_my_account %}
+			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
+			{% endif %}</p>
 			</div>
 			{% if blok.account.has_connections %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -1218,8 +1233,8 @@
 		{% if blok.error_code == "1298" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Can't load user entity.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1299" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> For alias change, target must be current user.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
