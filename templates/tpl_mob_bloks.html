@@ -426,6 +426,24 @@
 			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
 			{% endif %}</p>
 			</div>
+			{% if blok.has_child_client_offer %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Child Client Account Offer</li>
+				<li><a href="/profile?va={{ blok.account.client_child_entity.username }}">
+				<h3>{{ blok.account.client_child_entity.username }}</h3>
+				<p><b>Username</b>: {{ blok.account.client_child_entity.username }}</p>
+				</a></li>
+			</ul>
+			{% endif %}
+			{% if blok.has_child_joint_offer %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Child Joint Account Offer</li>
+				<li><a href="/profile?va={{ blok.account.joint_child_entity.username }}">
+				<h3>{{ blok.account.joint_child_entity.username }}</h3>
+				<p><b>Username</b>: {{ blok.account.joint_child_entity.username }}</p>
+				</a></li>
+			</ul>
+			{% endif %}
 			{% if blok.account.has_parent %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Parent Account</li>
