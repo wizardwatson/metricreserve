@@ -1236,8 +1236,9 @@ class metric(object):
 	
 		def get_formatted_amount(network,account,raw_amount):
 
-			getcontext().prec = 28
-			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
+			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			# make sure has correct amount of decimal places
+			
 
 		def has_this_account(user_obj,network_id,account_name):
 
@@ -1288,7 +1289,7 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1289"
 			return False # error Could not load metric account
 
-		transactions_per_page = 3
+		transactions_per_page = 10
 		
 		start_index = ((int(fpage) - 1) * transactions_per_page * -1) + metric_entity.tx_index
 		if start_index < 1:
@@ -1335,15 +1336,26 @@ class metric(object):
 			ft["network_balance"] = get_formatted_amount(a,b,metric_entity.current_network_balance)
 			ft["reserve_balance"] = get_formatted_amount(a,b,metric_entity.current_reserve_balance)
 			ft["date_created"] = metric_entity.date_created
+			m = str(ft["date_created"].month)
+			d = str(ft["date_created"].day)
+			y = str(ft["date_created"].year)
+			ft["d_date_created"] = "%s/%s/%s" % (m,d,y)
 			ft["prev_page"] = str(prev_page)
 			ft["next_page"] = str(next_page)
 			ft["start_index"] = start_index
 			ft["finish_index"] = finish_index
 			ft["transactions"] = []
 			
+			is_even = False
 			for tx in list_of_raw_transactions:			
 				ftx = {}
 				ftx["tx_index"] = tx.tx_index
+				if is_even:
+					is_even = False
+					ftx["even_odd"] = "even"
+				else:
+					is_even = True
+					ftx["even_odd"] = "odd"
 				ftx["tx_type"] = tx.tx_type
 				ftx["amount"] = get_formatted_amount(a,b,tx.amount)
 				ftx["description"] = tx.description
@@ -1352,7 +1364,7 @@ class metric(object):
 				ftx["current_network_balance"] = get_formatted_amount(a,b,tx.current_network_balance)
 				ftx["current_reserve_balance"] = get_formatted_amount(a,b,tx.current_reserve_balance)
 				# format display amounts and balances for this transaction
-				ftx["d_id"] = ""
+				ftx["d_id"] = ftx["tx_index"]
 				m = str(ftx["date_created"].month)
 				d = str(ftx["date_created"].day)
 				y = str(ftx["date_created"].year)
@@ -1420,8 +1432,8 @@ class metric(object):
 					ftx["tx_type"] == "CLONE ACCOUNT CREATED ON NETWORK" or
 					ftx["tx_type"] == "JOINED NETWORK"):
 					# just zero amounts and balances, creation transaction				
-					ftx["d_res"] = "0"
-					ftx["d_net"] = "0"
+					ftx["d_res"] = " "
+					ftx["d_net"] = " "
 					ft["transactions"].append(ftx)
 				
 				# -res
@@ -1475,7 +1487,103 @@ class metric(object):
 					ft["transactions"].append(ftx)
 					
 			return ft		
+
+		if metric_entity.account_type == "CLONE":
 		
+			# formatted transactions for RESERVE accounts
+			ft = {}
+			ft["network_name"] = fstr_network_name
+			ft["network_id"] = network.network_id
+			ft["username_alias"] = fstr_account_name
+			ft["account_id"] = metric_entity.account_id
+			ft["total_transactions"] = metric_entity.tx_index
+			ft["status"] = metric_entity.account_status
+			ft["type"] = metric_entity.account_type
+			a = network
+			b = metric_entity
+			ft["network_balance"] = get_formatted_amount(a,b,metric_entity.current_network_balance)
+			ft["date_created"] = metric_entity.date_created
+			m = str(ft["date_created"].month)
+			d = str(ft["date_created"].day)
+			y = str(ft["date_created"].year)
+			ft["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			ft["prev_page"] = str(prev_page)
+			ft["next_page"] = str(next_page)
+			ft["start_index"] = start_index
+			ft["finish_index"] = finish_index
+			ft["transactions"] = []
+			
+			is_even = False
+			for tx in list_of_raw_transactions:			
+				ftx = {}
+				ftx["tx_index"] = tx.tx_index
+				if is_even:
+					is_even = False
+					ftx["even_odd"] = "even"
+				else:
+					is_even = True
+					ftx["even_odd"] = "odd"
+				ftx["tx_type"] = tx.tx_type
+				ftx["amount"] = get_formatted_amount(a,b,tx.amount)
+				ftx["description"] = tx.description
+				ftx["memo"] = tx.memo
+				ftx["date_created"] = tx.date_created
+				ftx["current_network_balance"] = get_formatted_amount(a,b,tx.current_network_balance)
+				# format display amounts and balances for this transaction
+				ftx["d_id"] = ftx["tx_index"]
+				m = str(ftx["date_created"].month)
+				d = str(ftx["date_created"].day)
+				y = str(ftx["date_created"].year)
+				ftx["d_date"] = "%s/%s/%s" % (m,d,y)
+				ftx["d_memo"] = ftx["memo"]
+				ftx["d_n_bal"] = ftx["current_network_balance"]
+				"""
+				
+				# Transaction types and their effect on ledger.
+				
+				(NA) "CLONE ACCOUNT CREATED ON NETWORK"
+
+				-net "PAYMENT MADE"
+				+net "PAYMENT RECEIVED"
+
+				-net "TICKET PAYMENT MADE"
+				+net "TICKET PAYMENT RECEIVED"
+				
+				# so we'll group like formatting together
+				"""
+				checker = []
+				checker.append("CLONE ACCOUNT CREATED ON NETWORK")
+				checker.append("PAYMENT MADE")
+				checker.append("PAYMENT RECEIVED")
+				checker.append("TICKET PAYMENT MADE")
+				checker.append("TICKET PAYMENT RECEIVED")
+				
+				if not ftx["tx_type"] in checker:
+					self.PARENT.RETURN_CODE = "1284"
+					return False # error Bad transaction type.					
+				
+				# (NA)
+				if (ftx["tx_type"] == "CLONE ACCOUNT CREATED ON NETWORK"):
+					# just zero amounts and balances, creation transaction				
+					ftx["d_net"] = " "
+					ft["transactions"].append(ftx)
+
+				# -net
+				if (ftx["tx_type"] == "PAYMENT MADE" or 
+					ftx["tx_type"] == "TICKET PAYMENT MADE"):
+					# 				
+					ftx["d_net"] = "-%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# +net
+				if (ftx["tx_type"] == "PAYMENT RECEIVED" or 
+					ftx["tx_type"] == "TICKET PAYMENT RECEIVED"):
+					# 				
+					ftx["d_net"] = "+%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+					
+			return ft
+			
 		self.PARENT.RETURN_CODE = "1283"
 		return False # error Account type not recognized
 					
@@ -1483,8 +1591,7 @@ class metric(object):
 	
 		def get_formatted_amount(network,account,raw_amount):
 			
-			getcontext().prec = 28
-			return round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places)
+			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 		
 		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
 			if fstr_type == "RESERVE":
@@ -1521,6 +1628,7 @@ class metric(object):
 			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(s_account_id).zfill(12)))
 			t_account_id = s_account_id
 			t_user_object = s_user_object
+			viewing_my_account = True
 		else:
 			viewing_default_account = False
 			# viewing others or non-default account
@@ -1536,6 +1644,10 @@ class metric(object):
 				return False
 			t_account_id = validation_result[2]
 			t_user_object = validation_result[4]
+			if t_user_object.user_id == self.PARENT.user.entity.user_id:
+				viewing_my_account = True
+			else:
+				viewing_my_account = False
 			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(t_account_id).zfill(12)))
 		metric_account_entity = metric_account_key.get()
 		if metric_account_entity is None:
@@ -1545,6 +1657,7 @@ class metric(object):
 		if metric_account_entity.account_type == "RESERVE":
 		
 			reserve_complete = {}
+			reserve_complete["is_my_account"] = viewing_my_account
 			reserve_complete["is_my_default"] = viewing_default_account
 			reserve_complete["network_name"] = fstr_network_name
 			reserve_complete["network_id"] = network_id
@@ -1558,6 +1671,10 @@ class metric(object):
 			reserve_complete["network_balance"] = get_formatted_amount(a,b,metric_account_entity.current_network_balance)
 			reserve_complete["reserve_balance"] = get_formatted_amount(a,b,metric_account_entity.current_reserve_balance)
 			reserve_complete["date_created"] = metric_account_entity.date_created
+			m = str(reserve_complete["date_created"].month)
+			d = str(reserve_complete["date_created"].day)
+			y = str(reserve_complete["date_created"].year)
+			reserve_complete["d_date_created"] = "%s/%s/%s" % (m,d,y)
 			reserve_complete["latitude"] = t_user_object.location_latitude
 			reserve_complete["longitude"] = t_user_object.location_longitude
 			reserve_complete["map_marker_count"] = 1
@@ -1864,8 +1981,38 @@ class metric(object):
 			
 		if metric_account_entity.account_type == "CLONE":
 				
-			#STUB
-			return True
+			clone_complete = {}
+			clone_complete["is_my_account"] = viewing_my_account
+			clone_complete["is_my_default"] = viewing_default_account
+			clone_complete["network_name"] = fstr_network_name
+			clone_complete["network_id"] = network_id
+			clone_complete["username_alias"] = fstr_account_name
+			clone_complete["account_id"] = metric_account_entity.account_id
+			clone_complete["tx_index"] = metric_account_entity.tx_index
+			clone_complete["status"] = metric_account_entity.account_status
+			clone_complete["type"] = metric_account_entity.account_type
+			a = network
+			b = metric_account_entity
+			clone_complete["network_balance"] = get_formatted_amount(a,b,metric_account_entity.current_network_balance)
+			clone_complete["date_created"] = metric_account_entity.date_created
+			m = str(clone_complete["date_created"].month)
+			d = str(clone_complete["date_created"].day)
+			y = str(clone_complete["date_created"].year)
+			clone_complete["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			clone_complete["latitude"] = t_user_object.location_latitude
+			clone_complete["longitude"] = t_user_object.location_longitude
+			clone_complete["map_marker_count"] = 1
+			clone_complete["map_data"] = []
+			# create marker data for target account
+			marker = {}
+			marker["link"] = ""
+			marker["polyline"] = ""
+			marker["username_alias"] = fstr_account_name
+			marker["latitude"] = clone_complete["latitude"]
+			marker["longitude"] = clone_complete["longitude"]
+			clone_complete["map_data"].append(marker)		
+
+			return clone_complete
 			
 		self.PARENT.RETURN_CODE = "1282" # error Invalid account type
 		return False
@@ -2300,7 +2447,7 @@ class metric(object):
 		"""
 		
 		# Get current alias
-		current_alias_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_alias)
+		current_alias_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_current_alias)
 		current_alias_entity = current_alias_key.get()
 		if current_alias_entity is None:
 				self.PARENT.RETURN_CODE = "1225"
@@ -2315,6 +2462,12 @@ class metric(object):
 		if current_user is None:
 				self.PARENT.RETURN_CODE = "1227"
 				return None # error User id from current alias is invalid.
+				
+		# The logged in user must be the target
+		if not current_user.user_id == self.PARENT.user.entity.user_id:
+				self.PARENT.RETURN_CODE = "1299"
+				return None # error For alias change, target must be current user.
+		
 			
 		if not fbool_delete:
 			new_label = fstr_new_alias		
@@ -2438,7 +2591,7 @@ class metric(object):
 	@ndb.transactional(xg=True)
 	def _other_account_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_type):
 	
-		def check_default(self,fobj_user):
+		def check_default(fobj_user):
 		
 			# Check default is just making sure a default account exists
 			# when a user adds or deletes accounts.  They may delete the
@@ -2660,7 +2813,7 @@ class metric(object):
 			
 			return True
 			
-		elif fstr_type == "joint authorize":
+		if fstr_type == "joint authorize":
 		
 			"""
 			joint authorize		
@@ -2776,7 +2929,7 @@ class metric(object):
 				lds_target_tx_log.put()
 
 				# save the transaction
-				self.check_default(source_user)
+				check_default(source_user)
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
@@ -2949,7 +3102,7 @@ class metric(object):
 			
 			return True
 			
-		elif fstr_type == "client authorize":
+		if fstr_type == "client authorize":
 		
 			"""
 			client authorize		
@@ -3066,7 +3219,7 @@ class metric(object):
 				lds_target_tx_log.put()
 
 				# save the transaction
-				self.check_default(source_user)
+				check_default(source_user)
 				source_user.put()
 				target_user.put()
 				lds_new_metric_account.put()
@@ -3080,7 +3233,7 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1201"
 				return False # error: Source and target client offers did not match.
 				
-		elif fstr_type == "clone open":
+		if fstr_type == "clone open":
 		
 			"""
 			clone open			
@@ -3113,7 +3266,7 @@ class metric(object):
 				return False # error: only active reserve accounts can create clone accounts, source is not
 				
 			# 1. Source must not be maxed out on other accounts.
-			if not source_user.total_child_accounts > 19:
+			if source_user.total_child_accounts > 19:
 				self.PARENT.RETURN_CODE = "1204"
 				return False # error: Source other accounts is currently at maximum.
 				
@@ -3178,7 +3331,7 @@ class metric(object):
 			lds_source_tx_log.put()
 
 			# save the transaction
-			self.check_default(source_user)
+			check_default(source_user)
 			source_user.put()
 			lds_new_metric_account.put()
 			lds_cursor.put()
@@ -4818,17 +4971,17 @@ class metric(object):
 		lds_target.put()
 		return True
 
-	def _leave_network(self, fstr_network_name,fstr_source_name):
+	def _leave_network(self, fstr_network_name,fstr_source_name,fstr_type):
 	
 		# we don't want/need to get the network info inside a transaction.
 		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
-		return self._leave_network_transactional(network.network_id,fstr_source_name)
+		return self._leave_network_transactional(network.network_id,fstr_source_name,fstr_type)
 		
 	@ndb.transactional(xg=True)
-	def _leave_network_transactional(self,fint_network_id,fstr_source_name):
+	def _leave_network_transactional(self,fint_network_id,fstr_source_name,fstr_type):
 
-		def check_default(self,fobj_user):
+		def check_default(fobj_user):
 		
 			# Check default is just making sure a default account exists
 			# when a user adds or deletes accounts.  They may delete the
@@ -4964,7 +5117,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
-						self.check_default(source_user)
+						check_default(source_user)
 						source_user.put()
 						parent_user.put()
 						lds_source_metric.put()						
@@ -5023,7 +5176,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
-						self.check_default(source_user)
+						check_default(source_user)
 						source_user.put()
 						parent_user.put()
 						lds_source_metric.put()						
@@ -5063,7 +5216,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
-						self.check_default(source_user)
+						check_default(source_user)
 						source_user.put()
 						lds_source_metric.put()						
 						break
@@ -5113,7 +5266,7 @@ class metric(object):
 						lds_tx_log.account_id = source_account_id
 						lds_tx_log.source_account = source_account_id
 						lds_tx_log.put()
-						self.check_default(source_user)
+						check_default(source_user)
 						source_user.put()
 						lds_source_metric.put()						
 						break
@@ -5345,7 +5498,6 @@ class metric(object):
 				
 	def _set_default(self,fstr_network_name,fstr_source_name):
 
-		# we don't want/need to get the network conversion rate inside a transaction.
 		network = self._get_network(fstr_network_name)
 		if network is None: return False # pass up error code
 		return self._set_default_transactional(network.network_id,fstr_source_name)
@@ -8611,8 +8763,72 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
 
-
-
+			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "alias delete":
+				# delete alias associated with this account
+				# replace with username (error if username unavailable)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.metric._alias_change_transactional(pqc[2],None,True):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) == "alias change":
+				# change alias associated with this account
+				# replace with username (error if username unavailable)
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.metric._alias_change_transactional(pqc[2],ct[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "default":
+				# change default network account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.metric._set_default(pqc[1],pqc[2]):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "clone open":
+				# open clone account through this reserve account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.metric._other_account(pqc[1],pqc[2],None,"clone open"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "clone close":
+				# open clone account through this reserve account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not lobj_master.metric._leave_network(pqc[1],pqc[2],"clone close"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+				
+				"""
+				_other_account(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type)
+				"""
 			###################################
 			# command not recognized
 			###################################
