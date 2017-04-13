@@ -47,6 +47,7 @@ MISCELLANEOUS
 	always positive amounts
 	check on login if email is same as stored
 	form noncing? sessions?
+	context needs to be clearer and "AS" should show default
 
 
 
@@ -69,18 +70,26 @@ IMPLEMENT RESERVE BASED FUNCTIONS
 
 IMPLEMENT OTHER ACCOUNT BASED FUNCTIONS
 	Commands
-		default
-		alias change <alias>
-		alias delete
-		joint offer
-		joint retrieve
-		joint close
-		client offer
-		client close
-		clone open
-		clone close
-		joint authorize
-		client authorize
+		#default
+		
+		#alias change <alias>
+		#alias delete
+		SELF-ACCOUNT
+			joint offer
+			joint close
+
+			client offer
+			client close
+
+			clone open
+			clone close
+		SELF-USER
+			joint offer deny
+			client offer deny
+		OTHER
+			joint retrieve
+			joint authorize
+			client authorize
 	Views Needed
 		profile list of offers to link to account
 		account list of offers to authorize/view
@@ -220,7 +229,7 @@ SPECIFIC ACCOUNT [SELF] CONTEXT:
 SPECIFIC ACCOUNT [OTHER] CONTEXT:
 
 	*joint authorize
-
+	
 	*client authorize
 
 	*connect
