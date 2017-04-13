@@ -423,8 +423,14 @@
 			{% endif %}
 			<b>Date Created</b>:  {{ blok.account.d_date_created }}<br/><br/>
 			{% if blok.account.is_my_account %}
-			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
-			{% endif %}</p>
+			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a><br/><br/>
+			{% endif %}
+			{% if blok.account.is_my_account %}
+				<a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets{% if blok.account.ticket_count > 0 %}:{{ blok.account.ticket_count }}{% endif %}
+				{% if blok.account.ticket_tag_count > 0 %}&nbsp;(Tags:{{ blok.account.ticket_tag_count }}){% endif %}</a></p>
+			{% else %}
+				<a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a></p>
+			{% endif %}
 			</div>
 			{% if blok.has_child_client_offer %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
