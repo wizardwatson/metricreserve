@@ -9290,11 +9290,11 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["va"] = pqc[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
-			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "clone close":
-				# open clone account through this reserve account
+			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["clone close","reserve close","joint close","client close"]:
+				# close account
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._leave_network(pqc[1],pqc[2],"clone close"):
+				elif not lobj_master.metric._leave_network(pqc[1],pqc[2],("%s %s" % (ct[0],ct[1]))):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					ltemp = {}
@@ -9302,6 +9302,66 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["va"] = pqc[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
+			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint offer","client offer"]:
+				# offer to be parent account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1104"))
+				elif not lobj_master.metric._other_account(pqc[1],pqc[2],ct[2],("%s %s" % (ct[0],ct[1]))):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer deny":
+				# deny an existing joint/client offer
+				net_id = self.PARENT.user.entity.parent_client_offer_network_id
+				source_name = self.PARENT.user.entity.username
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				# make sure they actually have 
+				elif net_id == 0:
+					# error No client offer exists
+					r.redirect(self.url_path(error_code="STUB"))
+				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer deny"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return
+			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer deny":
+				# deny an existing joint/client offer
+				net_id = self.PARENT.user.entity.parent_joint_offer_network_id
+				source_name = self.PARENT.user.entity.username
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				# make sure they actually have 
+				elif net_id == 0:
+					# error No joint offer exists
+					r.redirect(self.url_path(error_code="STUB"))
+				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer deny"):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["joint authorize","client authorize"]:
+				# authorize to be child account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif lobj_master.user.entity is None
+					# error User not registered
+					r.redirect(self.url_path(error_code="STUB"))
+				elif not lobj_master.metric._other_account(pqc[1],lobj_master.user.entity.username,pqc[2],("%s %s" % (ct[0],ct[1]))):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+				
 				
 				"""
 				_other_account(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type)
@@ -9312,6 +9372,8 @@ class ph_command(webapp2.RequestHandler):
 			r.redirect(self.url_path(error_code="1278"))
 			return
 			
+def _other_account_transactional(self,fint_network_id,fstr_source_name,fstr_target_name,fstr_type):
+def _other_account(self,fstr_network_name,fstr_source_name,fstr_target_name,fstr_type):
 
 ################################################################
 ###
