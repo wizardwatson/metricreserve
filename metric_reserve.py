@@ -1909,6 +1909,9 @@ class metric(object):
 			reserve_complete["child_client_accounts"] = []
 			reserve_complete["has_child_joint_accounts"] = False
 			reserve_complete["child_joint_accounts"] = []
+			reserve_complete["has_child_client_offer"] = False
+			reserve_complete["has_child_joint_offer"] = False
+			
 			# let's get the counts for our subsets then grab 
 			# accounts and users all in one go
 			reserve_complete["connection_count"] = len(metric_account_entity.current_connections)
@@ -1953,6 +1956,27 @@ class metric(object):
 			for i in range(len(list_of_associated_accounts)):
 				a_key = ndb.Key("ds_mr_user","%s" % list_of_associated_accounts[i].user_id)
 				all_users_key_list.append(a_key)
+			
+			# don't grab accounts for offers
+			reserve_complete["child_client_offer_count"] = 0
+			reserve_complete["child_joint_offer_count"] = 0
+			if not t_user_object.child_client_offer_account_id == 0:
+				reserve_complete["has_child_client_offer"] = True
+				reserve_complete["child_client_offer_count"] += 1
+				all_accounts_key_list.append(None)
+				a_key = ndb.Key("ds_mr_user","%s" % t_user_object.child_client_offer_user_id)
+				all_users_key_list.append(a_key)
+			else:
+				reserve_complete["has_child_client_offer"] = False
+			if not t_user_object.child_joint_offer_account_id == 0:
+				reserve_complete["has_child_joint_offer"] = True
+				reserve_complete["child_joint_offer_count"] += 1
+				all_accounts_key_list.append(None)
+				a_key = ndb.Key("ds_mr_user","%s" % t_user_object.child_joint_offer_user_id)
+				all_users_key_list.append(a_key)
+			else:
+				reserve_complete["has_child_joint_offer"] = False
+				
 			# get the list of associated users
 			list_of_associated_users = ndb.get_multi(all_users_key_list)			
 			if None in list_of_associated_accounts or None in list_of_associated_users:
@@ -1967,7 +1991,9 @@ class metric(object):
 			last_incoming_connection_request_idx = last_connection_idx + reserve_complete["incoming_connection_requests_count"]
 			last_outgoing_connection_request_idx = last_incoming_connection_request_idx + reserve_complete["outgoing_connection_requests_count"] 
 			last_child_client_account_idx = last_outgoing_connection_request_idx + reserve_complete["child_client_account_count"]  
-			last_child_joint_account_idx = last_child_client_account_idx + reserve_complete["child_joint_account_count"] 
+			last_child_joint_account_idx = last_child_client_account_idx + reserve_complete["child_joint_account_count"]
+			last_child_client_offer_idx = last_child_joint_account_idx + reserve_complete["child_client_offer_count"]
+			last_child_joint_offer_idx = last_child_client_offer_idx + reserve_complete["child_joint_offer_count"]
 			for i in range(len(list_of_associated_accounts)):
 				
 				next_entity = {}
@@ -2122,7 +2148,55 @@ class metric(object):
 					next_marker["latitude"] = next_entity["latitude"]
 					next_marker["longitude"] = next_entity["longitude"]
 					reserve_complete["map_data"].append(next_marker)
-					continue						
+					continue
+					
+				# process client account offer
+				if i < last_child_client_offer_idx:
+
+					reserve_complete["client_child_entity"] = {}
+					reserve_complete["client_child_entity"]["username"] = list_of_associated_users[i].username
+
+
+				# process joint account offer
+				if i < last_child_joint_offer_idx:
+
+					reserve_complete["joint_child_entity"] = {}
+					reserve_complete["joint_child_entity"]["username"] = list_of_associated_users[i].username
+
+					# check for child account offers
+
+					"""
+					{% if blok.has_child_client_offer %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Child Client Account Offer</li>
+						<li><a href="/network?vn={{ blok.account.client_child_entity.network_name }}&va={{ blok.account.client_child_entity.username }}">
+						<h3>{{ blok.account.client_child_entity.username }}</h3>
+						<p><b>Username</b>: {{ blok.account.client_child_entity.username }}</p>
+						</a></li>
+					</ul>
+					{% endif %}
+					{% if blok.has_child_joint_offer %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Child Joint Account Offer</li>
+						<li><a href="/network?vn={{ blok.account.joint_child_entity.network_name }}&va={{ blok.account.joint_child_entity.username }}">
+						<h3>{{ blok.account.joint_child_entity.username }}</h3>
+						<p><b>Username</b>: {{ blok.account.joint_child_entity.username }}</p>
+						</a></li>
+					</ul>
+					{% endif %}
+
+					child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					"""
+
+				
+					continue
 				
 				"""
 				DATA LAYOUT FOR RESERVE COMPLETE
