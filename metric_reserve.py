@@ -1488,6 +1488,201 @@ class metric(object):
 					
 			return ft		
 
+		if metric_entity.account_type == "CLIENT":
+
+			# formatted transactions for CLIENT accounts
+			ft = {}
+			ft["network_name"] = fstr_network_name
+			ft["network_id"] = network.network_id
+			ft["username_alias"] = fstr_account_name
+			ft["account_id"] = metric_entity.account_id
+			ft["total_transactions"] = metric_entity.tx_index
+			ft["status"] = metric_entity.account_status
+			ft["type"] = metric_entity.account_type
+			a = network
+			b = metric_entity
+			ft["network_balance"] = get_formatted_amount(a,b,metric_entity.current_network_balance)
+			ft["date_created"] = metric_entity.date_created
+			m = str(ft["date_created"].month)
+			d = str(ft["date_created"].day)
+			y = str(ft["date_created"].year)
+			ft["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			ft["prev_page"] = str(prev_page)
+			ft["next_page"] = str(next_page)
+			ft["start_index"] = start_index
+			ft["finish_index"] = finish_index
+			ft["transactions"] = []
+			
+			is_even = False
+			for tx in list_of_raw_transactions:			
+				ftx = {}
+				ftx["tx_index"] = tx.tx_index
+				if is_even:
+					is_even = False
+					ftx["even_odd"] = "even"
+				else:
+					is_even = True
+					ftx["even_odd"] = "odd"
+				ftx["tx_type"] = tx.tx_type
+				ftx["amount"] = get_formatted_amount(a,b,tx.amount)
+				ftx["description"] = tx.description
+				ftx["memo"] = tx.memo
+				ftx["date_created"] = tx.date_created
+				ftx["current_network_balance"] = get_formatted_amount(a,b,tx.current_network_balance)
+				# format display amounts and balances for this transaction
+				ftx["d_id"] = ftx["tx_index"]
+				m = str(ftx["date_created"].month)
+				d = str(ftx["date_created"].day)
+				y = str(ftx["date_created"].year)
+				ftx["d_date"] = "%s/%s/%s" % (m,d,y)
+				ftx["d_memo"] = ftx["memo"]
+				ftx["d_n_bal"] = ftx["current_network_balance"]
+				"""
+				
+				# Transaction types and their effect on ledger.
+				
+				(NA) "CLIENT ACCOUNT CREATED ON NETWORK"
+
+				-net "PAYMENT MADE"
+				+net "PAYMENT RECEIVED"
+
+				-net "TICKET PAYMENT MADE"
+				+net "TICKET PAYMENT RECEIVED"
+				
+				# so we'll group like formatting together
+				"""
+				checker = []
+				checker.append("CLIENT ACCOUNT CREATED ON NETWORK")
+				checker.append("PAYMENT MADE")
+				checker.append("PAYMENT RECEIVED")
+				checker.append("TICKET PAYMENT MADE")
+				checker.append("TICKET PAYMENT RECEIVED")
+				
+				if not ftx["tx_type"] in checker:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # error Bad transaction type.					
+				
+				# (NA)
+				if (ftx["tx_type"] == "CLIENT ACCOUNT CREATED ON NETWORK"):
+					# just zero amounts and balances, creation transaction				
+					ftx["d_net"] = " "
+					ft["transactions"].append(ftx)
+
+				# -net
+				if (ftx["tx_type"] == "PAYMENT MADE" or 
+					ftx["tx_type"] == "TICKET PAYMENT MADE"):
+					# 				
+					ftx["d_net"] = "-%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# +net
+				if (ftx["tx_type"] == "PAYMENT RECEIVED" or 
+					ftx["tx_type"] == "TICKET PAYMENT RECEIVED"):
+					# 				
+					ftx["d_net"] = "+%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+					
+			return ft
+			
+		if metric_entity.account_type == "JOINT":
+		
+			# formatted transactions for JOINT accounts
+			ft = {}
+			ft["network_name"] = fstr_network_name
+			ft["network_id"] = network.network_id
+			ft["username_alias"] = fstr_account_name
+			ft["account_id"] = metric_entity.account_id
+			ft["total_transactions"] = metric_entity.tx_index
+			ft["status"] = metric_entity.account_status
+			ft["type"] = metric_entity.account_type
+			a = network
+			b = metric_entity
+			ft["network_balance"] = get_formatted_amount(a,b,metric_entity.current_network_balance)
+			ft["date_created"] = metric_entity.date_created
+			m = str(ft["date_created"].month)
+			d = str(ft["date_created"].day)
+			y = str(ft["date_created"].year)
+			ft["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			ft["prev_page"] = str(prev_page)
+			ft["next_page"] = str(next_page)
+			ft["start_index"] = start_index
+			ft["finish_index"] = finish_index
+			ft["transactions"] = []
+			
+			is_even = False
+			for tx in list_of_raw_transactions:			
+				ftx = {}
+				ftx["tx_index"] = tx.tx_index
+				if is_even:
+					is_even = False
+					ftx["even_odd"] = "even"
+				else:
+					is_even = True
+					ftx["even_odd"] = "odd"
+				ftx["tx_type"] = tx.tx_type
+				ftx["amount"] = get_formatted_amount(a,b,tx.amount)
+				ftx["description"] = tx.description
+				ftx["memo"] = tx.memo
+				ftx["date_created"] = tx.date_created
+				ftx["current_network_balance"] = get_formatted_amount(a,b,tx.current_network_balance)
+				# format display amounts and balances for this transaction
+				ftx["d_id"] = ftx["tx_index"]
+				m = str(ftx["date_created"].month)
+				d = str(ftx["date_created"].day)
+				y = str(ftx["date_created"].year)
+				ftx["d_date"] = "%s/%s/%s" % (m,d,y)
+				ftx["d_memo"] = ftx["memo"]
+				ftx["d_n_bal"] = ftx["current_network_balance"]
+				"""
+				
+				# Transaction types and their effect on ledger.
+				
+				(NA) "JOINT ACCOUNT CREATED ON NETWORK"
+				-net "JOINT RETRIEVE OUT"
+				
+				-net "PAYMENT MADE"
+				+net "PAYMENT RECEIVED"
+
+				-net "TICKET PAYMENT MADE"
+				+net "TICKET PAYMENT RECEIVED"
+				
+				# so we'll group like formatting together
+				"""
+				checker = []
+				checker.append("JOINT ACCOUNT CREATED ON NETWORK")
+				checker.append("JOINT RETRIEVE OUT")
+				checker.append("PAYMENT MADE")
+				checker.append("PAYMENT RECEIVED")
+				checker.append("TICKET PAYMENT MADE")
+				checker.append("TICKET PAYMENT RECEIVED")
+				
+				if not ftx["tx_type"] in checker:
+					self.PARENT.RETURN_CODE = "STUB"
+					return False # error Bad transaction type.					
+				
+				# (NA)
+				if (ftx["tx_type"] == "JOINT ACCOUNT CREATED ON NETWORK"):
+					# just zero amounts and balances, creation transaction				
+					ftx["d_net"] = " "
+					ft["transactions"].append(ftx)
+
+				# -net
+				if (ftx["tx_type"] == "PAYMENT MADE" or
+					ftx["tx_type"] == "JOINT RETRIEVE OUT" or
+					ftx["tx_type"] == "TICKET PAYMENT MADE"):
+					# 				
+					ftx["d_net"] = "-%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+
+				# +net
+				if (ftx["tx_type"] == "PAYMENT RECEIVED" or 
+					ftx["tx_type"] == "TICKET PAYMENT RECEIVED"):
+					# 				
+					ftx["d_net"] = "+%s" % ftx["amount"]
+					ft["transactions"].append(ftx)
+					
+			return ft
+			
 		if metric_entity.account_type == "CLONE":
 		
 			# formatted transactions for RESERVE accounts
@@ -1592,7 +1787,22 @@ class metric(object):
 		def get_formatted_amount(network,account,raw_amount):
 			
 			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
-		
+
+		def get_parent_for_account(network_id,account_id):
+			
+			# get parent metric account
+			metric_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(account_id).zfill(12)))
+			metric_account = metric_key.get()
+			if metric_account is None:
+				self.PARENT.RETURN_CODE = "STUB" # error Couldn't load parent metric account.
+				return False, None, None
+			user_key = ndb.Key("ds_mr_user", "%s" % str(metric_account.user_id))
+			user_entity = user_key.get()
+			if user_entity is None:
+				self.PARENT.RETURN_CODE = "STUB" # error Couldn't load parent user object.
+				return False, None, None
+			return True, user_entity, metric_account
+							
 		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
 			if fstr_type == "RESERVE":
 				for i in range(len(user_obj.reserve_network_ids)):
@@ -1687,7 +1897,8 @@ class metric(object):
 			marker["latitude"] = reserve_complete["latitude"]
 			marker["longitude"] = reserve_complete["longitude"]
 			reserve_complete["map_data"].append(marker)		
-			
+			# reserve accounts don't have parents
+			reserve_complete["has_parent"] = False
 			reserve_complete["has_connections"] = False
 			reserve_complete["connections"] = []
 			reserve_complete["has_incoming_connection_requests"] = False
@@ -1914,6 +2125,8 @@ class metric(object):
 					continue						
 				
 				"""
+				DATA LAYOUT FOR RESERVE COMPLETE
+				
 				reserve_complete["connections_count"]
 				reserve_complete["connections"] = []
 				reserve_complete["connections"][i] = {}
@@ -1967,17 +2180,112 @@ class metric(object):
 				reserve_complete["map_data"][i]["latitude"]
 				reserve_complete["map_data"][i]["longitude"]		
 				"""
+				
 			return reserve_complete
 			
 		if metric_account_entity.account_type == "CLIENT":
 			
-			#STUB
-			return True
+			client_complete = {}
+			client_complete["is_my_account"] = viewing_my_account
+			client_complete["is_my_default"] = viewing_default_account
+			client_complete["network_name"] = fstr_network_name
+			client_complete["network_id"] = network_id
+			client_complete["username_alias"] = fstr_account_name
+			client_complete["account_id"] = metric_account_entity.account_id
+			client_complete["tx_index"] = metric_account_entity.tx_index
+			client_complete["status"] = metric_account_entity.account_status
+			client_complete["type"] = metric_account_entity.account_type
+			a = network
+			b = metric_account_entity
+			client_complete["network_balance"] = get_formatted_amount(a,b,metric_account_entity.current_network_balance)
+			client_complete["date_created"] = metric_account_entity.date_created
+			m = str(client_complete["date_created"].month)
+			d = str(client_complete["date_created"].day)
+			y = str(client_complete["date_created"].year)
+			client_complete["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			client_complete["latitude"] = t_user_object.location_latitude
+			client_complete["longitude"] = t_user_object.location_longitude
+			client_complete["map_marker_count"] = 1
+			client_complete["map_data"] = []
+			# create marker data for target account
+			marker = {}
+			marker["link"] = ""
+			marker["polyline"] = ""
+			marker["username_alias"] = fstr_account_name
+			marker["latitude"] = client_complete["latitude"]
+			marker["longitude"] = client_complete["longitude"]
+			client_complete["map_data"].append(marker)
+			# get the client accounts parent information
+			client_complete["has_parent"] = True
+			result, parent_user, parent_metric = get_parent_for_account(network_id,metric_account_entity.account_parent)
+			if not result:
+				return False # error pass up error
+			client_complete["parent_entity"] = {}
+			a = parent_user
+			b = network_id
+			c = parent_metric.account_id
+			d = parent_metric.account_type
+			client_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			a = network
+			b = parent_metric
+			c = parent_metric.current_network_balance
+			d = parent_metric.current_reserve_balance
+			client_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
+			client_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
+
+			return client_complete
 
 		if metric_account_entity.account_type == "JOINT":
 				
-			#STUB
-			return True
+			joint_complete = {}
+			joint_complete["is_my_account"] = viewing_my_account
+			joint_complete["is_my_default"] = viewing_default_account
+			joint_complete["network_name"] = fstr_network_name
+			joint_complete["network_id"] = network_id
+			joint_complete["username_alias"] = fstr_account_name
+			joint_complete["account_id"] = metric_account_entity.account_id
+			joint_complete["tx_index"] = metric_account_entity.tx_index
+			joint_complete["status"] = metric_account_entity.account_status
+			joint_complete["type"] = metric_account_entity.account_type
+			a = network
+			b = metric_account_entity
+			joint_complete["network_balance"] = get_formatted_amount(a,b,metric_account_entity.current_network_balance)
+			joint_complete["date_created"] = metric_account_entity.date_created
+			m = str(joint_complete["date_created"].month)
+			d = str(joint_complete["date_created"].day)
+			y = str(joint_complete["date_created"].year)
+			joint_complete["d_date_created"] = "%s/%s/%s" % (m,d,y)
+			joint_complete["latitude"] = t_user_object.location_latitude
+			joint_complete["longitude"] = t_user_object.location_longitude
+			joint_complete["map_marker_count"] = 1
+			joint_complete["map_data"] = []
+			# create marker data for target account
+			marker = {}
+			marker["link"] = ""
+			marker["polyline"] = ""
+			marker["username_alias"] = fstr_account_name
+			marker["latitude"] = joint_complete["latitude"]
+			marker["longitude"] = joint_complete["longitude"]
+			joint_complete["map_data"].append(marker)		
+			# get the joint accounts parent information
+			joint_complete["has_parent"] = True
+			result, parent_user, parent_metric = get_parent_for_account(network_id,metric_account_entity.account_parent)
+			if not result:
+				return False # error pass up error
+			joint_complete["parent_entity"] = {}
+			a = parent_user
+			b = network_id
+			c = parent_metric.account_id
+			d = parent_metric.account_type
+			joint_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			a = network
+			b = parent_metric
+			c = parent_metric.current_network_balance
+			d = parent_metric.current_reserve_balance
+			joint_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
+			joint_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
+			
+			return joint_complete
 			
 		if metric_account_entity.account_type == "CLONE":
 				
@@ -2011,7 +2319,24 @@ class metric(object):
 			marker["latitude"] = clone_complete["latitude"]
 			marker["longitude"] = clone_complete["longitude"]
 			clone_complete["map_data"].append(marker)		
-
+			# get the clone accounts parent information
+			clone_complete["has_parent"] = True
+			result, parent_user, parent_metric = get_parent_for_account(network_id,metric_account_entity.account_parent)
+			if not result:
+				return False # error pass up error
+			clone_complete["parent_entity"] = {}
+			a = parent_user
+			b = network_id
+			c = parent_metric.account_id
+			d = parent_metric.account_type
+			clone_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			a = network
+			b = parent_metric
+			c = parent_metric.current_network_balance
+			d = parent_metric.current_reserve_balance
+			clone_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
+			clone_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
+			
 			return clone_complete
 			
 		self.PARENT.RETURN_CODE = "1282" # error Invalid account type
