@@ -1788,6 +1788,16 @@ class metric(object):
 			
 			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 
+		def get_ticket_info(fdict,fmetric):
+			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fmetric.network_id, fmetric.account_id))
+			ticket_index_entity = ticket_index_key.get()
+			if ticket_index_entity is None:
+				fdict["ticket_count"] = 0
+				fdict["ticket_tag_count"] = 0
+			else:
+				fdict["ticket_count"] = ticket_index_entity.ticket_data["ticket_count"]
+				fdict["ticket_tag_count"] = ticket_index_entity.ticket_data["tag_count"]
+			
 		def get_parent_for_account(network_id,account_id):
 			
 			# get parent metric account
@@ -1867,6 +1877,7 @@ class metric(object):
 		if metric_account_entity.account_type == "RESERVE":
 		
 			reserve_complete = {}
+			get_ticket_info(reserve_complete,metric_account_entity)
 			reserve_complete["is_my_account"] = viewing_my_account
 			reserve_complete["is_my_default"] = viewing_default_account
 			reserve_complete["network_name"] = fstr_network_name
@@ -2260,6 +2271,7 @@ class metric(object):
 		if metric_account_entity.account_type == "CLIENT":
 			
 			client_complete = {}
+			get_ticket_info(client_complete,metric_account_entity)
 			client_complete["is_my_account"] = viewing_my_account
 			client_complete["is_my_default"] = viewing_default_account
 			client_complete["network_name"] = fstr_network_name
@@ -2306,12 +2318,14 @@ class metric(object):
 			d = parent_metric.current_reserve_balance
 			client_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
 			client_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
+			# get ticket tag count
 
 			return client_complete
 
 		if metric_account_entity.account_type == "JOINT":
 				
 			joint_complete = {}
+			get_ticket_info(joint_complete,metric_account_entity)
 			joint_complete["is_my_account"] = viewing_my_account
 			joint_complete["is_my_default"] = viewing_default_account
 			joint_complete["network_name"] = fstr_network_name
@@ -2364,6 +2378,7 @@ class metric(object):
 		if metric_account_entity.account_type == "CLONE":
 				
 			clone_complete = {}
+			get_ticket_info(clone_complete,metric_account_entity)
 			clone_complete["is_my_account"] = viewing_my_account
 			clone_complete["is_my_default"] = viewing_default_account
 			clone_complete["network_name"] = fstr_network_name
@@ -6083,7 +6098,7 @@ class metric(object):
 				ticket_index_entity.ticket_data["ticket_tag_account_ids"] = []
 				ticket_index_entity.ticket_data["ticket_tag_user_ids"] = []
 
-				ticket_index_entity.ticket_data["tag_count"] = []
+				ticket_index_entity.ticket_data["tag_count"] = 0
 				ticket_index_entity.ticket_data["tag_labels"] = []
 				ticket_index_entity.ticket_data["tag_amounts"] = []
 				ticket_index_entity.ticket_data["tag_memos"] = []
@@ -8144,6 +8159,17 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
+			# view all tickets
+			result.append(100)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
+		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET and "vt" in self.master.request.GET:
+			# view specific ticket
+			result.append(110)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
+			result.append(self.master.request.GET["vt"])
 		if self.master.PATH_CONTEXT == "root/ledger" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view specific account ledger
 			result.append(90)
@@ -8384,6 +8410,24 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			
+			"""
+			# metric ticket
+			class ds_mr_metric_ticket_index(ndb.Model):
+
+				account_id = ndb.IntegerProperty(indexed=False)
+				network_id = ndb.IntegerProperty(indexed=False)
+				user_id = ndb.StringProperty(indexed=False)
+				ticket_data = ndb.PickleProperty()
+			"""
+			
+			if pqc[0] == 100:
+			
+				# all tickets
+				
+				pass
+			
+			
 			if pqc[0] == 90:
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -9412,7 +9456,128 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["va"] = pqc[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
+
+			"""
+			ticket functions parsed separately
+			
+			
+			TICKETS ALL [OWNER] CONTEXT: 
+
+			(#) *open <name>
+			(#) *open <name> <user>
+			(#) *open <name> <amount>
+			(#) *open <name> <amount> m <memo>
+			(#) *open <name> <amount> <user>
+			(#) *open <name> <amount> <user> m <memo>
+
+			(#) *close <name> : close an open ticket
+			(#) *remove <ticket> : remove user association with a ticket
+
+			TICKETS ALL [OTHER] CONTEXT:
+
+			(#) *ticket <name> : search/go to a specific ticket
+
+			TICKETS SPECIFIC [OWNER] CONTEXT: 
+
+			(#) *close : close the ticket
+			(#) *attach <user> : associate a specific user with a ticket
+			(#) *remove : removes any associated user
+			(#) *amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+			(#) *amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
+
+			TICKETS SPECIFIC [OTHER] CONTEXT: 
+
+			(#) *pay <amount> : pay a ticket
+			(#) *pay <amount> <amount|percent> : pay a ticket plus add gratuity
+			(#) *remove : removes visiting users association from a ticket
+			"""
+
+			ticket_1st_tokens = ["open","close","remove","attach","amount","pay"]
+			ticket_ct = ct.append(lstr_command_text)
+			if pqc[0] == 110 and ct[0] in ticket_1st_tokens:
+				# specific ticket
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+					return
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				# We want to know if the default is the account we're viewing.
+				# That determines whether the user is the owner or a visitor
+				# in the ticket context.  Even if the user owns the account, if
+				# it's not set to default, they are a visitor.
+				if not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					return
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+					return
+				else:
+					# Determine whether visitor or owner.
+					if account_name == pqc[2]:
+						visitor = None
+					else:
+						visitor = account_name
+				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct,pqc[3]):
+					# error Pass up error
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					ltemp["vt"] = pqc[3]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
+					
+			
+			if pqc[0] == 100 and ct[0] in ticket_1st_tokens:
+				# all tickets
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+					return
+				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+				# We want to know if the default is the account we're viewing.
+				# That determines whether the user is the owner or a visitor
+				# in the ticket context.  Even if the user owns the account, if
+				# it's not set to default, they are a visitor.
+				if not a:
+					# error Pass up error from get_default function.
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					return
+				elif not account_name:
+					# error No account found for user on this network.
+					r.redirect(self.url_path(error_code="1292"))
+					return
+				else:
+					# Determine whether visitor or owner.
+					if account_name == pqc[2]:
+						visitor = None
+					else:
+						visitor = account_name
+				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct):
+					# error Pass up error
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+				return
 				
+			if ct[0] == "ticket" and len(ct) == 2 and (pqc[0] == 100 or pqc[0] == 110):
+				# ticket search
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1104"))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					ltemp["vt"] = pqc[3]
+					r.redirect(self.url_path(new_vars=ltemp))
+				return
+
 			###################################
 			# command not recognized
 			###################################
@@ -9444,10 +9609,10 @@ class ph_command(webapp2.RequestHandler):
 application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
-	('/network/account', ph_command),
 	('/profile', ph_command),
 	('/messages', ph_command),
-	('/ledger', ph_command)
+	('/ledger', ph_command),
+	('/tickets', ph_command)
 	],debug=True)
 
 ##########################################################################
