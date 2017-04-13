@@ -404,6 +404,17 @@
 			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
 			{% endif %}</p>
 			</div>
+			{% if blok.account.has_parent %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Parent Account</li>
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.parent_entity.username_alias }}">
+				<h3>{{ account.parent_entity.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.parent_entity.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ account.parent_entity.reserve_balance }}</p>
+				</a></li>
+			</ul>
+			{% endif %}
 			{% if blok.account.has_connections %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Connections</li>
