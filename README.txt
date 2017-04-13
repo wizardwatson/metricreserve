@@ -1,129 +1,72 @@
-
-
-
-(NA) "JOINT ACCOUNT CREATED ON NETWORK"
-(NA) "CLIENT ACCOUNT CREATED ON NETWORK"
-(NA) "CLONE ACCOUNT CREATED ON NETWORK"
-(NA) "JOINED NETWORK"
-
--res "RESERVE OVERRIDE SUBTRACT"
-+res "RESERVE OVERRIDE ADD"
--r&n "RESERVE SUBTRACT"
-+r&n "RESERVE ADD"
-
--net "PAYMENT MADE"
-+net "PAYMENT RECEIVED"
-
-+res "USER INCOMING RESERVE TRANSFER AUTHORIZED"
--res "USER OUTGOING RESERVE TRANSFER AUTHORIZED"
-+res "SUGGESTED INCOMING RESERVE TRANSFER AUTHORIZED"
--res "SUGGESTED OUTGOING RESERVE TRANSFER AUTHORIZED"
-
--net "JOINT RETRIEVE OUT"
-+net "JOINT RETRIEVE IN"
-
--net "TICKET PAYMENT MADE"
-+net "TICKET PAYMENT RECEIVED"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Metric Reserve Stuff
 
+#######################################
+#######################################
+#######################################
+SCRATCH/NOTES:
+
+
+
+
+dev_appserver.py --clear_datastore=yes app.yaml
+
+TESTDIR=~/src/metricreserve313/metric
+
+TESTDIR=~/src/mr2017development/metric
+
+git clone https://github.com/wizardwatson/metricreserve.git $TESTDIR
+
+cd $TESTDIR
+
+dev_appserver.py --clear_datastore=yes $PWD
+
+dev_appserver.py $PWD
+
+git pull https://github.com/wizardwatson/metricreserve.git
+
+36.6678 -96.3372
+
+
+
+
+
+#######################################
 TO DO:
 
-MISCELLANEOUS
-	valid names should be 50 character or less?
-	always positive amounts
-	check on login if email is same as stored
-	form noncing? sessions?
-	context needs to be clearer and "AS" should show default
+	MISCELLANEOUS
+		valid names should be 50 character or less?
+		always positive amounts
+		check on login if email is same as stored
+		form noncing? sessions?
+		context needs to be clearer and "AS" should show default
+		currency symbol setting per network, can turn off on metric account
+		decimal setting per network, but overridden by metric account
+		alias changing and account deleting should redirect as breaks back/last functionality
 
+	IMPLEMENT TICKET BASED FUNCTIONS
+		Commands
+			*see below
+		Views Needed
+			All tickets own
+			All tickets others
+			Specific ticket own
+			Specific ticket others
 
+	FINALIZE GRAPH PROCESS
+		Scheduling
+		How accounts will update?
+		What restrictions for off-tree accounts?
+		Testing Scaffolding for making fake accounts
 
-IMPLEMENT RESERVE BASED FUNCTIONS
-	Commands
-		modify up|down|destroy|create <amount>
-		connect
-		disconnect
-		pay <amount>
-		suggested request <amount>
-		suggested authorize <amount>
-		suggested cancel <amount>
-		suggested deny <amount>
-		transfer request <amount>
-		transfer authorize <amount>
-		transfer cancel <amount>
-		transfer deny <amount>
-	Views Needed
-		Ledger (dialog for detailed tx descriptions)
+	FINAL TESTING AND DEBUGGING
 
-IMPLEMENT OTHER ACCOUNT BASED FUNCTIONS
-	Commands
-		#default
-		
-		#alias change <alias>
-		#alias delete
-		SELF-ACCOUNT
-			joint offer
-			joint close
+	DOCUMENT
 
-			client offer
-			client close
+	DEPLOY
+		Domain name
+		Budgeting
 
-			clone open
-			clone close
-		SELF-USER
-			joint offer deny
-			client offer deny
-		OTHER
-			joint retrieve
-			joint authorize
-			client authorize
-	Views Needed
-		profile list of offers to link to account
-		account list of offers to authorize/view
-		account should show current default
-		account should show whether name is alias or username
-
-IMPLEMENT TICKET BASED FUNCTIONS
-	Commands
-		*see below
-	Views Needed
-		All tickets own
-		All tickets others
-		Specific ticket own
-		Specific ticket others
-		
-FINALIZE GRAPH PROCESS
-	Scheduling
-	How accounts will update?
-	What restrictions for off-tree accounts?
-	Testing Scaffolding for making fake accounts
-	
-FINAL TESTING AND DEBUGGING
-
-DOCUMENT
-
-DEPLOY
-	Domain name
-	Budgeting
-
-
-
-
-
-
+#######################################
 PAGES
 
 [root]
@@ -166,20 +109,9 @@ PAGES
 	list of accounts and networks
 	
 	
+#######################################
+COMMAND LIST (#) = NOT IMPLEMENTED
 	
-	
-	
-
-
-
-
-	
-	
-	
-	
-
-36.6678 -96.3372
-
 
 * must be logged in
 ** must be admin
@@ -224,7 +156,7 @@ SPECIFIC ACCOUNT [SELF] CONTEXT:
 
 	*modify up|down|destroy|create <amount>
 	
-	*tickets : go to your accounts ticket page
+	(#) *tickets : go to your accounts ticket page
 
 SPECIFIC ACCOUNT [OTHER] CONTEXT:
 
@@ -249,33 +181,33 @@ SPECIFIC ACCOUNT [OTHER] CONTEXT:
 
 TICKETS ALL [OWNER] CONTEXT: 
 
-*open <name>
-*open <name> <user>
-*open <name> <amount>
-*open <name> <amount> m <memo>
-*open <name> <amount> <user>
-*open <name> <amount> <user> m <memo>
+(#) *open <name>
+(#) *open <name> <user>
+(#) *open <name> <amount>
+(#) *open <name> <amount> m <memo>
+(#) *open <name> <amount> <user>
+(#) *open <name> <amount> <user> m <memo>
 
-*close <name> : close an open ticket
-*remove <ticket> : remove user association with a ticket
+(#) *close <name> : close an open ticket
+(#) *remove <ticket> : remove user association with a ticket
 
 TICKETS ALL [OTHER] CONTEXT:
 
-*ticket <name> : search/go to a specific ticket
+(#) *ticket <name> : search/go to a specific ticket
 
 TICKETS SPECIFIC [OWNER] CONTEXT: 
 
-*close : close the ticket
-*attach <user> : associate a specific user with a ticket
-*remove : removes any associated user
-*amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
-*amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
+(#) *close : close the ticket
+(#) *attach <user> : associate a specific user with a ticket
+(#) *remove : removes any associated user
+(#) *amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+(#) *amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
 
 TICKETS SPECIFIC [OTHER] CONTEXT: 
-cd 
-*pay <amount> : pay a ticket
-*pay <amount> <amount|percent> : pay a ticket plus add gratuity
-*remove : removes visiting users association from a ticket
+ 
+(#) *pay <amount> : pay a ticket
+(#) *pay <amount> <amount|percent> : pay a ticket plus add gratuity
+(#) *remove : removes visiting users association from a ticket
 
 PROFILE [SELF] CONTEXT:
 
@@ -297,25 +229,7 @@ PROFILE [OTHER] CONTEXT:
 
 
 
-dev_appserver.py --clear_datastore=yes app.yaml
 
-
-
-
-TESTDIR=~/src/metricreserve313/metric
-
-
-
-TESTDIR=~/src/mr2017development/metric
-
-git clone https://github.com/wizardwatson/metricreserve.git $TESTDIR
-
-cd $TESTDIR
-
-dev_appserver.py --clear_datastore=yes $PWD
-dev_appserver.py $PWD
-
-git pull https://github.com/wizardwatson/metricreserve.git
 
 
 
@@ -489,76 +403,11 @@ COMMANDS
 
 
 
-	
-alias change <alias>
-alias delete
-
-
-*** joint ***
-(parent/child)
-PARENT
-	joint offer
-	joint close
-	joint retrieve
-CHILD
-	joint authorize
-	joint close
-
-*** client ***
-(parent/child)
-PARENT
-	client offer
-	client close
-CHILD
-	client authorize
-	client close
-	
-*** clone ***
-(self only)
-clone open
-clone close
-
-*** reserve ***
-(self only)
-reserve open
-reserve close
 
 
 
 
 
-
-		CONTEXT:network:username
-				COMMAND:joint
-					CONTEXT:parent(client|reserve)
-						COMMAND:offer (child username)
-						COMMAND:del(child username)
-					CONTEXT:child
-						COMMAND:ask(parent username)
-						COMMAND:del(parent username)
-				COMMAND:sub
-					CONTEXT:parent(client|reserve)
-						COMMAND:give(amount)
-						COMMAND:take(amount)
-						COMMAND:add(child username)
-						COMMAND:del(child username)
-				COMMAND:client
-					CONTEXT:parent(reserve)
-						COMMAND:add(child username)
-						COMMAND:del(child username)
-						COMMAND:give(amount)
-					CONTEXT:child
-						COMMAND:del
-				COMMAND:reserve
-					COMMAND:add
-					COMMAND:connect
-					COMMAND:disconnect
-					COMMAND:modify up|down|create|destroy(amount)
-					COMMAND:transfer
-					COMMAND:del
-				(all accounts)
-				COMMAND:pay
-				COMMAND:invoice
 		
 		
 		
