@@ -8183,7 +8183,33 @@ class ph_command(webapp2.RequestHandler):
 		# as a string".
 		end_of_marker_word = command_text.index(marker_word) + len(marker_word)
 		return command_text[end_of_marker_word:].strip()		
-	
+
+	def get_label_for_account(self,user_obj,network_id,account_id,fstr_type):		
+		if fstr_type == "RESERVE":
+			for i in range(len(user_obj.reserve_network_ids)):
+				if user_obj.reserve_network_ids[i] == network_id:
+					if user_obj.reserve_account_ids[i] == account_id:
+						return user_obj.reserve_labels[i]
+		if fstr_type == "CLIENT":
+			for i in range(len(user_obj.client_network_ids)):
+				if user_obj.client_network_ids[i] == network_id:
+					if user_obj.client_account_ids[i] == account_id:
+						return user_obj.client_labels[i]
+		if fstr_type == "JOINT":
+			for i in range(len(user_obj.joint_network_ids)):
+				if user_obj.joint_network_ids[i] == network_id:
+					if user_obj.joint_account_ids[i] == account_id:
+						return user_obj.joint_labels[i]
+		if fstr_type == "CLONE":
+			for i in range(len(user_obj.clone_network_ids)):
+				if user_obj.clone_network_ids[i] == network_id:
+					if user_obj.clone_account_ids[i] == account_id:
+						return user_obj.clone_labels[i]
+
+	def get_formatted_amount(self,network,account,raw_amount):
+
+		return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			
 	def get(self):
 		
 		# Instantiate the master object, do security and other app checks. If
@@ -8397,10 +8423,62 @@ class ph_command(webapp2.RequestHandler):
 				page["title"] = "MY PROFILE"
 				blok = {}
 				blok["type"] = "my_profile"
-				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(lobj_master.user.entity.gravatar_url,lobj_master.user.entity.gravatar_type)
-				blok["bio"] = lobj_master.user.entity.bio
-				blok["lat"] = float(lobj_master.user.entity.location_latitude) / 100000000
-				blok["long"] = float(lobj_master.user.entity.location_longitude) / 100000000
+				# get own user transactionally
+				self_user_key = ndb.Key("ds_mr_user", lobj_master.user.entity.user_id) 
+				self_user = self_user_key.get()
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(self_user.gravatar_url,self_user.gravatar_type)
+				blok["bio"] = self_user.bio
+				blok["username"] = self_user.username
+				blok["lat"] = float(self_user.location_latitude) / 100000000
+				blok["long"] = float(self_user.location_longitude) / 100000000
+				
+				# format offers if any
+				if self_user.parent_client_offer_account_id == 0:
+					blok["has_client_offer"] = False
+				else:
+					blok["has_client_offer"] = True
+					blok["client_parent_entity"] = {}
+					network = lobj_master.metric._get_network(fint_network_id=self_user.parent_client_offer_network_id)
+					client_parent_user_key = ndb.Key("ds_mr_user", self_user.parent_client_offer_user_id) 
+					client_parent_user = client_parent_user_key.get()
+					client_parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(self_user.parent_client_offer_account_id).zfill(12))) 
+					client_parent_metric = client_parent_user_key.get()
+					a = client_parent_user
+					b = network.network_id
+					c = self_user.parent_client_offer_account_id
+					d = client_parent_metric.account_type
+					blok["client_parent_entity"]["username_alias"] = self.get_label_for_account()
+					blok["client_parent_entity"]["network_name"] = network.network_name
+					a = network
+					b = client_parent_metric
+					c = client_parent_metric.current_network_balance
+					d = client_parent_metric.current_reserve_balance
+					blok["client_parent_entity"]["network_balance"] = self.get_formatted_amount(a,b,c)
+					blok["client_parent_entity"]["reserve_balance"] = self.get_formatted_amount(a,b,d)
+
+				if self_user.parent_joint_offer_account_id == 0:
+					blok["has_joint_offer"] = False
+				else:
+					blok["has_joint_offer"] = True
+					blok["joint_parent_entity"] = {}
+					network = lobj_master.metric._get_network(fint_network_id=self_user.parent_joint_offer_network_id)
+					joint_parent_user_key = ndb.Key("ds_mr_user", self_user.parent_joint_offer_user_id) 
+					joint_parent_user = joint_parent_user_key.get()
+					joint_parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(self_user.parent_joint_offer_account_id).zfill(12))) 
+					joint_parent_metric = joint_parent_user_key.get()
+					a = joint_parent_user
+					b = network.network_id
+					c = self_user.parent_joint_offer_account_id
+					d = joint_parent_metric.account_type
+					blok["joint_parent_entity"]["username_alias"] = self.get_label_for_account()
+					blok["joint_parent_entity"]["network_name"] = network.network_name
+					a = network
+					b = joint_parent_metric
+					c = joint_parent_metric.current_network_balance
+					d = joint_parent_metric.current_reserve_balance
+					blok["joint_parent_entity"]["network_balance"] = self.get_formatted_amount(a,b,c)
+					blok["joint_parent_entity"]["reserve_balance"] = self.get_formatted_amount(a,b,d)
+				
 				bloks.append(blok)	
 				break
 
