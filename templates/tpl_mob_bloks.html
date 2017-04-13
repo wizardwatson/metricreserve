@@ -51,12 +51,34 @@
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li>
 				<img src="{{ blok.gravatar_url }}" />
-				<h3>{{ master.page.username }}</h3>
+				<h3>{{ blok.username }}</h3>
 			</li>
 			<li>
-				<a href="/messages?channel={{ master.page.username }}"><h3>Public Messages</h3></a>
+				<a href="/messages?channel={{ blok.username }}"><h3>Public Messages</h3></a>
 			</li>
 		</ul>
+		{% if blok.has_client_offer %}
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li data-role="list-divider">Client Account Offer</li>
+			<li><a href="/network?vn={{ blok.client_parent_entity.network_name }}&va={{ blok.client_parent_entity.username_alias }}">
+			<h3>{{ blok.client_parent_entity.username_alias }}</h3>
+			<p><b>Network Name</b>: {{ blok.client_parent_entity.network_name }}</p>
+			<p><b>Network Balance</b>: {{ blok.client_parent_entity.network_balance }}</p>
+			<p><b>Reserve Balance</b>: {{ blok.client_parent_entity.reserve_balance }}</p>
+			</a></li>
+		</ul>
+		{% endif %}
+		{% if blok.has_joint_offer %}
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li data-role="list-divider">Client Account Offer</li>
+			<li><a href="/network?vn={{ blok.joint_parent_entity.network_name }}&va={{ blok.joint_parent_entity.username_alias }}">
+			<h3>{{ blok.joint_parent_entity.username_alias }}</h3>
+			<p><b>Network Name</b>: {{ blok.joint_parent_entity.network_name }}</p>
+			<p><b>Network Balance</b>: {{ blok.joint_parent_entity.network_balance }}</p>
+			<p><b>Reserve Balance</b>: {{ blok.joint_parent_entity.reserve_balance }}</p>
+			</a></li>
+		</ul>
+		{% endif %}
 		<div class="text_bubble ui-body ui-body-c">
 		<h3>Bio:</h3>
 		<p>{{ blok.bio }}</p>
