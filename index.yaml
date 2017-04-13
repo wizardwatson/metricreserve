@@ -14,4 +14,9 @@ indexes:
   properties:
   - name: target_user_id
   - name: date_created
+
+- kind: ds_mr_user_message
+  properties:
+  - name: target_user_id
+  - name: date_created
     direction: desc
