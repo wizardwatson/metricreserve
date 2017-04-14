@@ -34,7 +34,10 @@ git pull https://github.com/wizardwatson/metricreserve.git
 TO DO:
 
 	MISCELLANEOUS
+		show QR code on ticket page
+		polylines and for reserve account view
 		valid names should be 50 character or less?
+		memo and message character limit?
 		always positive amounts
 		check on login if email is same as stored
 		form noncing? sessions?
@@ -87,10 +90,13 @@ PAGES
 	reserve stuff if any
 
 [all tickets]
-	list of created ones
-	list of tagged ones
+	
+	tickets viewer is tagged for in owner
+	tickets owner is tagged for in others
+	owner view of all tickets
 	
 [one ticket]
+
 	qr code
 	amount
 	memo
