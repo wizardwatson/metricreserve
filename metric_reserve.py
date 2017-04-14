@@ -1369,7 +1369,40 @@ class metric(object):
 		# Are we viewing all tickets or just one?
 		if fstr_ticket_name is None:
 			# Viewing all tickets
-			pass
+			# Do we need to get tickets owner is tagged with or
+			# tickets visitor is tagged with from this owner?
+			if ft["is_owner"]:
+				# Get tickets owner is tagged with from others.
+				ft["has_owner_tags"] = False
+				ft["owner_tags"] = []
+				pass
+			else:
+				# Get tickets visitor is tagged with from owner.
+				ft["has_visitor_tags"] = False
+				ft["visitor_tags"] = []
+				ft["visitor_tag_count"] = 0
+				for i in range (len(owner_ticket_entity.ticket_data["ticket_labels"])):
+					if owner_ticket_entity.ticket_data["ticket_tag_user_ids"][i] == self.PARENT.user.entity.user_id:
+						ft["has_visitor_tags"] = True
+						ft["visitor_tag_count"] += 1
+						new_ticket = {}						
+						new_ticket["ticket_label"] = owner_ticket_entity.ticket_data["ticket_labels"][i]
+						a = network
+						b = owner_metric_entity
+						c = owner_ticket_entity.ticket_data["ticket_amounts"][i]
+						new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
+						new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][i]
+						new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][i]
+						new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][i]
+						new_ticket["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_tag_user_ids"][i]						
+						new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][i]
+						# get the username/alias for visitor this ticket is referencing
+						a = self.PARENT.user.entity
+						b = network.network_id
+						c = ft["ticket_tag_account_id"]
+						ft["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)						
+						ft["visitor_tags"].append(new_ticket)
+
 		else:
 			# Viewing one ticket
 			if not fstr_ticket_name in owner_ticket_entity.ticket_data["ticket_labels"]:
@@ -1386,9 +1419,9 @@ class metric(object):
 				c = owner_ticket_entity.ticket_data["ticket_amounts"][idx]
 				ft["ticket_amount"] = get_formatted_amount(a,b,c)
 				ft["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
-				ft["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
-				ft["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
-				ft["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
+				ft["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][idx]
+				ft["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][idx]
+				ft["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_tag_user_ids"][idx]
 				if not ft["ticket_tag_user_id"] is None:				
 					# need to get tagged users label
 					tagged_user_key = ndb.Key("ds_mr_user",ft["ticket_tag_user_id"])
@@ -1411,21 +1444,7 @@ class metric(object):
 				else:
 					ft["visitor_is_tagged"] = False
 			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-		if not name_entity.user_id == self.PARENT.user.entity.user_id:
-					self.PARENT.RETURN_CODE = "STUB" # error Account user doesn't match logged in user.
-					return False
-		
-		
-		network = self._get_network(fstr_network_name=fstr_network_name)
+		return ft	
 		
 	def _view_ledger(self,fstr_network_name,fstr_account_name,fpage=1):
 	
