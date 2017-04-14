@@ -1232,6 +1232,201 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 
+	def _view_tickets(self,fstr_network_name,fstr_account_name,fstr_ticket_name=None):
+	
+		def get_formatted_amount(network,account,raw_amount):
+
+			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			# make sure has correct amount of decimal places
+			
+		def has_this_account(user_obj,network_id,account_name):
+
+			# verify the user object has the network/account and that the label matches
+			for i in range(len(user_obj.reserve_network_ids)):
+				if user_obj.reserve_network_ids[i] == network_id:
+					if user_obj.reserve_labels[i] == account_name:
+						return user_obj.reserve_account_ids[i]
+			for i in range(len(user_obj.client_network_ids)):
+				if user_obj.client_network_ids[i] == network_id:
+					if user_obj.client_labels[i] == account_name:
+						return user_obj.client_account_ids[i]
+			for i in range(len(user_obj.joint_network_ids)):
+				if user_obj.joint_network_ids[i] == network_id:
+					if user_obj.joint_labels[i] == account_name:
+						return user_obj.joint_account_ids[i]
+			for i in range(len(user_obj.clone_network_ids)):
+				if user_obj.clone_network_ids[i] == network_id:
+					if user_obj.clone_labels[i] == account_name:
+						return user_obj.clone_account_ids[i]
+			return False	
+
+		def _get_default(fstr_network,fstr_user):
+
+			network_id = fstr_network.network_id
+			source_user = fstr_user
+			for i in range(len(source_user.reserve_network_ids)):
+				if source_user.reserve_network_ids[i] == network_id:
+					if source_user.reserve_default[i] == True:
+						return source_user.reserve_account_ids[i], source_user.reserve_labels[i]
+			for i in range(len(source_user.client_network_ids)):
+				if source_user.client_network_ids[i] == network_id: 
+					if source_user.client_default[i] == True:
+						return source_user.client_account_ids[i], source_user.client_labels[i]
+			for i in range(len(source_user.joint_network_ids)):
+				if source_user.joint_network_ids[i] == network_id: 
+					if source_user.joint_default[i] == True:
+						return source_user.joint_account_ids[i], source_user.joint_labels[i]
+			for i in range(len(source_user.clone_network_ids)):
+				if source_user.clone_network_ids[i] == network_id: 
+					if source_user.clone_default[i] == True:
+						return source_user.clone_account_ids[i], source_user.clone_labels[i]
+			return None, None
+
+		def get_or_insert_ticket_index(fint_network_id,fint_account_id,fstr_user_id):
+		
+			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fint_network_id, fint_account_id))
+			ticket_index_entity = ticket_index_key.get()
+			if ticket_index_entity is None:
+				ticket_index_entity = ds_mr_metric_ticket_index()
+				ticket_index_entity.key = ticket_index_key
+				ticket_index_entity.account_id = fint_account_id
+				ticket_index_entity.user_id = fstr_user_id
+				ticket_index_entity.network_id = fint_network_id
+				ticket_index_entity.ticket_data = {}
+			if not "ticket_count" in source_ticket_index.ticket_data:
+				# initialize ticket_data
+				ticket_index_entity.ticket_data["ticket_count"] = 0
+				ticket_index_entity.ticket_data["ticket_labels"] = []
+				ticket_index_entity.ticket_data["ticket_amounts"] = []
+				ticket_index_entity.ticket_data["ticket_memos"] = []
+				ticket_index_entity.ticket_data["ticket_tag_network_ids"] = []
+				ticket_index_entity.ticket_data["ticket_tag_account_ids"] = []
+				ticket_index_entity.ticket_data["ticket_tag_user_ids"] = []
+
+				ticket_index_entity.ticket_data["tag_count"] = 0
+				ticket_index_entity.ticket_data["tag_labels"] = []
+				ticket_index_entity.ticket_data["tag_amounts"] = []
+				ticket_index_entity.ticket_data["tag_memos"] = []
+				ticket_index_entity.ticket_data["tag_network_ids"] = []
+				ticket_index_entity.ticket_data["tag_account_ids"] = []
+				ticket_index_entity.ticket_data["tag_user_ids"] = []			
+			return ticket_index_entity
+
+		def get_label_for_account(user_obj,network_id,account_id):		
+			for i in range(len(user_obj.reserve_network_ids)):
+				if user_obj.reserve_network_ids[i] == network_id:
+					if user_obj.reserve_account_ids[i] == account_id:
+						return user_obj.reserve_labels[i]
+			for i in range(len(user_obj.client_network_ids)):
+				if user_obj.client_network_ids[i] == network_id:
+					if user_obj.client_account_ids[i] == account_id:
+						return user_obj.client_labels[i]
+			for i in range(len(user_obj.joint_network_ids)):
+				if user_obj.joint_network_ids[i] == network_id:
+					if user_obj.joint_account_ids[i] == account_id:
+						return user_obj.joint_labels[i]
+			for i in range(len(user_obj.clone_network_ids)):
+				if user_obj.clone_network_ids[i] == network_id:
+					if user_obj.clone_account_ids[i] == account_id:
+						return user_obj.clone_labels[i]
+			return None
+			
+		# get network first
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		# get the name to get user_id
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
+		name_entity = name_key.get()
+		if name_entity is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			return False
+		# need to verify that user has this named account
+		owner_user_key = ndb.Key("ds_mr_user",name_entity.user_id)
+		owner_user = owner_user_key.get()
+		if owner_user is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Couldn't load ticket owner user object
+			return False	
+		result = has_this_account(owner_user,fstr_account_name)
+		if not result:
+			self.PARENT.RETURN_CODE = "STUB" # error Ticket owner name does not match user for this network
+			return False
+		# ok, we have valid account id, load metric account
+		owner_account_id = result
+		owner_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(owner_account_id).zfill(12)))
+		owner_metric_entity = owner_metric_key.get()
+		if owner_metric_entity is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Could not load metric account
+		# Get the ticket data entity
+		owner_ticket_entity = get_or_insert_ticket_index(network.network_id,owner_account_id,owner_user.user_id)
+		# Tickets are account type independent.  All accounts can pay/receive
+		# so all can use tickets the same.
+		ft = {}
+		# Is the logged in viewer the owner?
+		if name_entity.user_id == self.PARENT.user.entity.user_id:
+			ft["is_owner"] == True
+		else:
+			ft["is_owner"] == False
+		# Are we viewing all tickets or just one?
+		if fstr_ticket_name is None:
+			# Viewing all tickets
+			pass
+		else:
+			# Viewing one ticket
+			if not fstr_ticket_name in owner_ticket_entity.ticket_data["ticket_labels"]:
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error Ticket label doesn't exist for owner account
+			else:
+				# get the index of this ticket
+				idx = owner_ticket_entity.ticket_data["ticket_labels"].index(fstr_ticket_name)
+				ft["network_name"] = fstr_network_name
+				ft["ticket_count"] = 1
+				ft["ticket_label"] = owner_ticket_entity.ticket_data["ticket_labels"][idx]
+				a = network
+				b = owner_metric_entity
+				c = owner_ticket_entity.ticket_data["ticket_amounts"][idx]
+				ft["ticket_amount"] = get_formatted_amount(a,b,c)
+				ft["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
+				ft["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
+				ft["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
+				ft["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
+				if not ft["ticket_tag_user_id"] is None:				
+					# need to get tagged users label
+					tagged_user_key = ndb.Key("ds_mr_user",ft["ticket_tag_user_id"])
+					tagged_user = tagged_user_key.get()
+					if tagged_user is None:
+						self.PARENT.RETURN_CODE = "STUB" # error Couldn't load tagged user object
+						return False
+					a = tagged_user
+					b = network.network_id
+					c = ft["ticket_tag_account_id"]
+					ft["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)
+					if ft["ticket_tag_user_account_name"] is None:
+						self.PARENT.RETURN_CODE = "STUB" # error Couldn't render tagged user account name
+						return False
+					ft["ticket_has_tag"] = True
+				else:
+					ft["ticket_has_tag"] = False				
+				if ft["ticket_tag_user_id"] == self.PARENT.user.entity.user_id:
+					ft["visitor_is_tagged"] = True
+				else:
+					ft["visitor_is_tagged"] = False
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		if not name_entity.user_id == self.PARENT.user.entity.user_id:
+					self.PARENT.RETURN_CODE = "STUB" # error Account user doesn't match logged in user.
+					return False
+		
+		
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		
 	def _view_ledger(self,fstr_network_name,fstr_account_name,fpage=1):
 	
 		def get_formatted_amount(network,account,raw_amount):
@@ -5985,7 +6180,7 @@ class metric(object):
 		gratuity_amount = None
 		gratuity_percent = None
 		
-		def is_valid_number(self,fstr_num,fstr_type="amount"):
+		def is_valid_number(fstr_num,fstr_type="amount"):
 		
 			# make sure fstr_amount actually is an integer
 			if fstr_type == "amount":
@@ -6019,7 +6214,7 @@ class metric(object):
 			self.PARENT.RETURN_CODE = "1236"
 			return False # error Invalid type passed.
 		
-		def is_valid_name(self,fstr_name,fstr_type=None):
+		def is_valid_name(fstr_name,fstr_type=None):
 
 			# a valid name is comprised of re.match(r'^[a-z0-9_]+$',fstr_name)
 			# so only a-z, 0-9, or an underscore
@@ -6047,7 +6242,7 @@ class metric(object):
 				ticket_name = fstr_name
 			return True
 		
-		def parse_for_memo(self,command_seq,index_max):
+		def parse_for_memo(command_seq,index_max):
 		
 			found = False
 			new_command_seq = []
@@ -6077,7 +6272,7 @@ class metric(object):
 			else:
 				return (command_seq,memo)
 		
-		def get_or_insert_ticket_index(self,fint_network_id,fint_account_id,fstr_user_id):
+		def get_or_insert_ticket_index(fint_network_id,fint_account_id,fstr_user_id):
 		
 			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fint_network_id, fint_account_id))
 			ticket_index_entity = ticket_index_key.get()
@@ -6160,7 +6355,7 @@ class metric(object):
 					self.PARENT.RETURN_CODE = "1238" # error Not enough arguments for open ticket command.
 					return False
 
-				if not self.is_valid_name(ct[1],"ticket"):
+				if not is_valid_name(ct[1],"ticket"):
 					self.PARENT.RETURN_CODE = "1239" # error Ticket name provided is not valid.
 					return False			
 
@@ -6176,10 +6371,10 @@ class metric(object):
 				# Length 3 is the only variable now, it could be "user" or "amount"
 				# in index 2.
 				if len(ct) == 3:
-					if not self.is_valid_name(ct[2],"user"):
+					if not is_valid_name(ct[2],"user"):
 						self.PARENT.RETURN_CODE = "1241" # error User name provided is not valid.
 						return False
-					elif not self.is_valid_number(ct[2]):
+					elif not is_valid_number(ct[2]):
 						self.PARENT.RETURN_CODE = "1242" # error Amount provided is not valid.
 						return False
 					else:
@@ -6187,11 +6382,11 @@ class metric(object):
 						return False
 				if len(ct) == 4: 
 					# open <name> <user> <amount>	
-					if not self.is_valid_name(ct[2],"user"):
+					if not is_valid_name(ct[2],"user"):
 						self.PARENT.RETURN_CODE = "1244" # error Ticket open() command parsing error on 3rd token. Must be valid username.
 						return False
 
-					if not self.is_valid_number(ct[3]):
+					if not is_valid_number(ct[3]):
 						self.PARENT.RETURN_CODE = "1245" # error Ticket open() command parsing error on 4th token. Must be valid amount.
 						return False
 
@@ -6205,7 +6400,7 @@ class metric(object):
 				network_id = validation_result[0]
 				source_account_id = validation_result[1]
 				source_user = validation_result[3]
-				source_ticket_index = self.get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
+				source_ticket_index = get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
 
 				# Now we just need to make sure the ticket name is available
 				# in the source's index and that the target, if exists, isn't
@@ -6232,7 +6427,7 @@ class metric(object):
 				if not user is None:
 					target_account_id = validation_result[2]
 					target_user = validation_result[4]
-					target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
+					target_ticket_index = get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
 
 					if target_ticket_index.ticket_data["tag_count"] > 19:
 						self.PARENT.RETURN_CODE = "1248" # error Target tag count already at maximum.
@@ -6284,7 +6479,7 @@ class metric(object):
 					command_switch = "remove"
 					ticket_name = fstr_ticket_name
 				if len(ct) == 2 and ct[0] == "amount":
-					if not self.is_valid_number(ct[2]):
+					if not is_valid_number(ct[2]):
 						self.PARENT.RETURN_CODE = "1249" # error Amount provided is not valid.
 						return False
 					parse_match = True
@@ -6304,7 +6499,7 @@ class metric(object):
 				network_id = validation_result[0]
 				source_account_id = validation_result[1]
 				source_user = validation_result[3]
-				source_ticket_index = self.get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
+				source_ticket_index = get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
 				if not ticket_name in source_ticket_index["ticket_labels"]:
 					self.PARENT.RETURN_CODE = "1251" # error Ticket name not in source index.
 					return False
@@ -6317,7 +6512,7 @@ class metric(object):
 					if command_switch == "attach":
 						target_account_id = validation_result[2]
 						target_user = validation_result[4]
-						target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
+						target_ticket_index = get_or_insert_ticket_index(network_id,target_account_id,target_user.user_id)
 						# Fail if target has too many tags already
 						if target_ticket_index.ticket_data["tag_count"] > 19:
 							self.PARENT.RETURN_CODE = "1252" # error Target already has too many ticket tags.
@@ -6335,7 +6530,7 @@ class metric(object):
 					# tagged user wasn't passed in, it is implied in source's ticket index
 					target_account_id = source_ticket_index.ticket_data["ticket_tag_account_ids"][ticket_name_index]
 					target_user_id = source_ticket_index.ticket_data["ticket_tag_user_ids"][ticket_name_index]
-					target_ticket_index = self.get_or_insert_ticket_index(network_id,target_account_id,target_user_id)
+					target_ticket_index = get_or_insert_ticket_index(network_id,target_account_id,target_user_id)
 					# find the tagged index for source ticket
 					found_tagged_index = False
 					for i in range(len(target_ticket_index["tag_network_ids"])):
@@ -6429,10 +6624,10 @@ class metric(object):
 			network_id = validation_result[0]
 			visitor_account_id = validation_result[1]
 			visitor_user = validation_result[3]
-			visitor_ticket_index = self.get_or_insert_ticket_index(network_id,visitor_account_id,visitor_user.user_id)
+			visitor_ticket_index = get_or_insert_ticket_index(network_id,visitor_account_id,visitor_user.user_id)
 			owner_account_id = validation_result[2]
 			owner_user = validation_result[4]
-			owner_ticket_index = self.get_or_insert_ticket_index(network_id,owner_account_id,owner_user.user_id)
+			owner_ticket_index = get_or_insert_ticket_index(network_id,owner_account_id,owner_user.user_id)
 			
 			if not ticket_name in owner_ticket_index["ticket_labels"]:
 				self.PARENT.RETURN_CODE = "1256" # error Ticket name not in owner index.
@@ -6485,17 +6680,17 @@ class metric(object):
 				
 			# only should have "pay" command now
 			parse_match = False
-			if len(ct) == 2 and ct[0] == "pay" and self.is_valid_number(ct[1]):
+			if len(ct) == 2 and ct[0] == "pay" and is_valid_number(ct[1]):
 				parse_match = True
 				# pay <amount>
 			
 			
-			if len(ct) == 3 and ct[0] == "pay" and self.is_valid_number(ct[1]) and self.is_valid_number(ct[2]):
+			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_number(ct[2]):
 				parse_match = True
 				# pay <amount> <plus gratuity as flat amount>
 			
 			
-			if len(ct) == 3 and ct[0] == "pay" and self.is_valid_number(ct[1]) and self.is_valid_percent(ct[2]):
+			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_percent(ct[2]):
 				parse_match = True
 				# pay <amount> <plus gratuity as percentage of previous amount>
 				
