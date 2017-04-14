@@ -1,7 +1,7 @@
 """
 
 
-DATASTORE: METRIC
+DATASTORE: USER AND ACCOUNT RELATED
 
 	ds_mr_user
 	ds_mr_user_message
@@ -12,14 +12,14 @@ DATASTORE: METRIC
 	ds_mr_metric_account
 	ds_mr_tx_log
 
-DATASTORE: COUNTERS
+DATASTORE: COUNTER RELATED
 
 	ds_mr_positive_balance_shard
 	ds_mr_negative_balance_shard
 	ds_mr_positive_reserve_shard
 	ds_mr_negative_reserve_shard
 
-DATASTORE: GRAPH
+DATASTORE: GRAPH RELATED
 
 	ds_mrgp_profile
 	ds_mrgp_staging_chunk
@@ -28,7 +28,7 @@ DATASTORE: GRAPH
 	ds_mrgp_report_chunk
 	ds_mrgp_map_chunk
 
-DATASTORE: DEBUG
+DATASTORE: DEBUG RELATED
 
 	ds_mrgp_big_pickle
 
@@ -137,20 +137,6 @@ CLASS: metric(object)
 ###  IMPORTS
 ###
 ##############################################################################
-
-
-"""
- 
-# Set your variables here
-email = "someone@somewhere.com"
-default = "https://www.example.com/default.jpg"
-size = 40
- 
-# construct the url
-gravatar_url = "https://www.gravatar.com/avatar/" + hashlib.md5(email.lower()).hexdigest() + "?s=40"
-gravatar_url += urllib.urlencode({'d':default, 's':str(size)})
-
-"""
 
 # These are standard python libraries.
 import os
@@ -1232,7 +1218,7 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 
-	def _view_tickets(self,fstr_network_name,fstr_account_name,fstr_ticket_name=None):
+	def _view_tickets(self,fstr_network_name,fstr_account_name,fstr_ticket_name=None,fpage=1):
 	
 		def get_formatted_amount(network,account,raw_amount):
 
@@ -1369,15 +1355,127 @@ class metric(object):
 		# Are we viewing all tickets or just one?
 		if fstr_ticket_name is None:
 			# Viewing all tickets
+			ft["network_name"] = fstr_network_name
+			ft["account_name"] = fstr_account_name
 			# Do we need to get tickets owner is tagged with or
 			# tickets visitor is tagged with from this owner?
 			if ft["is_owner"]:
 				# Get tickets owner is tagged with from others.
 				ft["has_owner_tags"] = False
 				ft["owner_tags"] = []
-				pass
+				ft["owner_tag_count"] = 0
+				user_keys = []
+				for i in range (len(owner_ticket_entity.ticket_data["tag_labels"])):
+					ft["has_owner_tags"] = True
+					ft["owner_tag_count"] += 1
+					new_ticket = {}						
+					new_ticket["ticket_label"] = owner_ticket_entity.ticket_data["tag_labels"][i]
+					a = network
+					b = owner_metric_entity
+					c = owner_ticket_entity.ticket_data["tag_amounts"][i]
+					new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
+					new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["tag_memos"][i]
+					new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["tag_network_ids"][i]
+					new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["tag_account_ids"][i]
+					new_ticket["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["tag_user_ids"][i]						
+					# We need to get username/alias of this ticket owner for
+					# display, but for now just group the keys, so we can do
+					# them all at once
+					user_key = ndb.Key("ds_mr_user",new_ticket["ticket_tag_user_id"])
+					user_keys.append(user_key)
+					# leave blank till after we query users
+					new_ticket["ticket_tag_user_account_name"] = ""						
+					ft["owner_tags"].append(new_ticket)
+				if ft["owner_has_tags"]:
+					# need to get account labels for display and linking
+					user_objects = ndb.get_multi(user_keys)
+					for i in range(len(user_objects)):
+						a = user_objects[i]
+						b = network.network_id
+						c = ft["owner_tags"][i]["ticket_tag_account_id"]
+						ft["owner_tags"][i]["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)
+				# We've got owners "tagged by others" tickets taken care of, 
+				# now lets load the actual lists of tickets for this owner.
+				
+				tickets_per_page = 10
+				
+				ft["all_tickets_count"] = owner_ticket_entity.ticket_data["ticket_count"]
+				ft["has_tickets"] = False
+				
+				if ft["all_tickets_count"] > 0:
+					ft["has_tickets"] = True
+					last_ticket_idx = (int(fpage) * tickets_per_page) - 1
+					first_ticket_idx = last_ticket_idx - tickets_per_page - 1
+					if first_ticket_idx > (ft["all_tickets_count"] - 1):
+						self.PARENT.RETURN_CODE = "STUB"
+						return False # error Invalid page passed
+					if last_ticket_idx > (ft["all_tickets_count"] - 1):
+						last_ticket_idx = ft["all_tickets_count"] - 1
+					if last_ticket_idx == ft["all_tickets_count"] - 1:
+						ft["next_page"] = "0"
+					else:
+						ft["next_page"] = str(int(fpage) + 1)
+					if first_ticket_idx > 0:
+						ft["prev_page"] = str(int(fpage) - 1)
+					else:
+						ft["prev_page"] = "0"
+						
+					# let's loop through our tickets for this page
+					current_idx = first_ticket_idx
+					user_keys_bool = []
+					user_keys = []
+					while True:
+						new_ticket = {}
+						new_ticket["ticket_label"] = owner_ticket_entity.ticket_data["ticket_labels"][current_idx]
+						a = network
+						b = owner_metric_entity
+						c = owner_ticket_entity.ticket_data["ticket_amounts"][current_idx]
+						new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
+						new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][current_idx]
+						new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][current_idx]
+						new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][current_idx]
+						new_ticket["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_tag_user_ids"][current_idx]
+						if new_ticket["ticket_tag_user_id"] is None:
+							# ticket is not tagged
+							new_ticket["ticket_is_tagged"] = False
+							user_keys_bool.append(False)
+						else:
+							new_ticket["ticket_is_tagged"] = True
+							
+							# We need to get username/alias of this ticket tagged identity for
+							# display, but for now just group the keys, so we can do
+							# them all at once
+							user_key = ndb.Key("ds_mr_user",new_ticket["ticket_tag_user_id"])
+							user_keys_bool.append(True)
+							user_keys.append(user_key)
+							# leave blank till after we query users
+							new_ticket["ticket_tag_user_account_name"] = ""	
+							
+						ft["all_tickets"].append(new_ticket)
+						if current_idx == last_ticket_idx:
+							break
+						else:
+							current_idx += 1
+					# get all users, then repopulate user_keys_bool
+					user_objects = ndb.get_multi(user_keys)
+					user_counter = 0
+					for i in range(len(user_keys_bool)):
+						if user_keys_bool[i]:
+							user_keys_bool[i] = user_objects[user_counter]
+							a = user_keys_bool[i]
+							b = network.network_id
+							c = ft["all_tickets"][i]["ticket_tag_account_id"]
+							ft["all_tickets"][i]["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)
+							user_counter += 1
+
 			else:
 				# Get tickets visitor is tagged with from owner.
+				# Visitors don't get to see all the tickets, just the ones
+				# they are tagged in.  A informational message should direct
+				# them to search for a ticket name or click on one they
+				# are tagged with.
+				ft["network_name"] = fstr_network_name
+				ft["account_name"] = fstr_account_name
 				ft["has_visitor_tags"] = False
 				ft["visitor_tags"] = []
 				ft["visitor_tag_count"] = 0
@@ -1395,12 +1493,11 @@ class metric(object):
 						new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][i]
 						new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][i]
 						new_ticket["ticket_tag_user_id"] = owner_ticket_entity.ticket_data["ticket_tag_user_ids"][i]						
-						new_ticket["ticket_tag_account_id"] = owner_ticket_entity.ticket_data["ticket_tag_account_ids"][i]
 						# get the username/alias for visitor this ticket is referencing
 						a = self.PARENT.user.entity
 						b = network.network_id
 						c = ft["ticket_tag_account_id"]
-						ft["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)						
+						new_ticket["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)						
 						ft["visitor_tags"].append(new_ticket)
 
 		else:
@@ -1412,6 +1509,7 @@ class metric(object):
 				# get the index of this ticket
 				idx = owner_ticket_entity.ticket_data["ticket_labels"].index(fstr_ticket_name)
 				ft["network_name"] = fstr_network_name
+				ft["account_name"] = fstr_account_name
 				ft["ticket_count"] = 1
 				ft["ticket_label"] = owner_ticket_entity.ticket_data["ticket_labels"][idx]
 				a = network
@@ -1443,6 +1541,13 @@ class metric(object):
 					ft["visitor_is_tagged"] = True
 				else:
 					ft["visitor_is_tagged"] = False
+				# get the QR code url for the ticket
+				host_name = "STUB"
+				path_qs = "/tickets?vn=%s&va=%s&vt=%s" % (fstr_network_name,fstr_account_name,fstr_ticket_name)
+				qr_url = host_name + path_qs
+				ft["ticket_qr_code_url"] = self.PARENT.metric._get_qr_url(qr_url)
+				
+				
 			
 		return ft	
 		
@@ -8624,23 +8729,35 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 110:
 			
-			"""
-			# metric ticket
-			class ds_mr_metric_ticket_index(ndb.Model):
-
-				account_id = ndb.IntegerProperty(indexed=False)
-				network_id = ndb.IntegerProperty(indexed=False)
-				user_id = ndb.StringProperty(indexed=False)
-				ticket_data = ndb.PickleProperty()
-			"""
-			
+				# one ticket
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "TICKET"
+				blok["type"] = "one ticket"
+				blok["ticket"] = lobj_master.metric._view_tickets(pqc[1],pqc[2],pqc[3])
+				if not blok["ticket"]:
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				bloks.append(blok)
+				break
+				
 			if pqc[0] == 100:
 			
 				# all tickets
-				
-				pass
-			
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "TICKETS"
+				blok["type"] = "all tickets"
+				if "tp" in lobj_master.request.GET:
+					ticket_page = lobj_master.request.GET["tp"]
+				else:
+					ticket_page = 1
+				blok["tickets"] = lobj_master.metric._view_tickets(pqc[1],pqc[2],fpage=ticket_page)
+				if not blok["tickets"]:
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				bloks.append(blok)
+				break
 			
 			if pqc[0] == 90:
 				if not lobj_master.user.IS_LOGGED_IN:
