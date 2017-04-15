@@ -34,6 +34,14 @@ git pull https://github.com/wizardwatson/metricreserve.git
 TO DO:
 
 	MISCELLANEOUS
+		cron finish:
+			call multi
+			viewer for completed processes
+			ability to call manually 
+			test accounts?
+			user status update for which tree belongs to
+			check graph to prevent cross-tree activity
+			
 		show QR code on ticket page
 		polylines and for reserve account view
 		valid names should be 50 character or less?
