@@ -1299,6 +1299,200 @@ class metric(object):
 					tuser.graph_sync = current_time_key
 					tuser.put()
 	
+	def _view_graph(self,fstr_network_name,fstr_account_name,fstr_key_name):
+	
+		def get_f_amt(network,account,raw_amount):
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			# make sure has correct amount of decimal places
+
+		def has_this_account(user_obj,network_id,account_name):
+
+			# verify the user object has the network/account and that the label matches
+			for i in range(len(user_obj.reserve_network_ids)):
+				if user_obj.reserve_network_ids[i] == network_id:
+					if user_obj.reserve_labels[i] == account_name:
+						return user_obj.reserve_account_ids[i]
+			for i in range(len(user_obj.client_network_ids)):
+				if user_obj.client_network_ids[i] == network_id:
+					if user_obj.client_labels[i] == account_name:
+						return user_obj.client_account_ids[i]
+			for i in range(len(user_obj.joint_network_ids)):
+				if user_obj.joint_network_ids[i] == network_id:
+					if user_obj.joint_labels[i] == account_name:
+						return user_obj.joint_account_ids[i]
+			for i in range(len(user_obj.clone_network_ids)):
+				if user_obj.clone_network_ids[i] == network_id:
+					if user_obj.clone_labels[i] == account_name:
+						return user_obj.clone_account_ids[i]
+			return False
+			
+		network = self._get_network(fstr_network_name=fstr_network_name)
+		
+		# get the name to get user_id
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
+		name_entity = name_key.get()
+		if name_entity is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			return False
+		# need to verify that user has this named account
+		user_key = ndb.Key("ds_mr_user",name_entity.user_id)
+		user_entity = user_key.get()
+		if user_entity is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Couldn't load user object
+			return False	
+		result = has_this_account(user_entity,fstr_account_name)
+		if not result:
+			self.PARENT.RETURN_CODE = "STUB" # error Account name does not match user for this network
+			return False
+		# ok, we have valid account id, load metric account
+		account_id = result
+		metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(account_id).zfill(12)))
+		metric_entity = metric_key.get()
+		if metric_entity is None:
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error Could not load metric account		
+		
+		profile_key_network_part = str(network.network_id).zfill(8)		
+		profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (profile_key_network_part, fstr_key_name))
+		profile = profile_key.get()
+		if profile is None:
+			self.PARENT.RETURN_CODE = "STUB" # error Couldn't graph profile object
+			return False			
+		
+		fg = {}
+		
+		a = network
+		b = metric_entity
+		# get_f_amt(a,b,RAW_AMOUNT)
+		
+		fg["network_name"] = fstr_network_name
+		fg["account_name"] = fstr_account_name
+		fg["key_name"] = fstr_key_name
+		
+		fg['TOTAL_TREES'] = profile.report['TOTAL_TREES']
+		fg['RESERVE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['RESERVE_AMT_TOTAL'])
+		fg['NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['NETWORK_AMT_TOTAL'])
+		fg['SUGGESTED_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_AMT_TOTAL'])
+		
+		fg['SUGGESTED_COUNT_TOTAL'] = profile.report['SUGGESTED_COUNT_TOTAL']
+		fg['SUGGESTED_MEMBER_TOTAL'] = profile.report['SUGGESTED_MEMBER_TOTAL']
+		fg['SUGGESTED_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_AMT_TOTAL'])
+		
+		fg['01_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][0]
+		fg['02_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][1]
+		fg['03_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][2]
+		fg['04_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][3]
+		fg['05_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][4]
+		fg['06_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][5]
+		fg['07_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][6]
+		fg['08_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][7]
+		fg['09_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][8]
+		fg['10_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][9]
+		fg['11_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][10]
+		fg['12_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][11]
+		fg['13_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][12]
+		fg['14_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][13]
+		fg['15_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][14]
+		fg['16_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][15]
+		fg['17_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][16]
+		fg['18_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][17]
+		fg['19_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][18]
+		fg['20_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][19]
+		
+		fg['ORPHAN_RESERVE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['ORPHAN_RESERVE_AMT_TOTAL'])
+		fg['ORPHAN_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['ORPHAN_NETWORK_AMT_TOTAL'])
+		fg['ORPHAN_MEMBER_TOTAL'] = profile.report['ORPHAN_MEMBER_TOTAL']
+		
+		fg['TIME_BEGIN'] = profile.report['TIME_BEGIN']
+		fg['TIME_END'] = profile.report['TIME_END']
+		fg['TIME_TOTAL'] = profile.report['TIME_TOTAL']
+		
+		fg['TREES'] = []
+
+		# we want to sort the trees by member count
+		# higher count, better tree
+		tree_key_count_list = []
+		for tree_key in profile.report['TREE_MEMBER_TOTAL']:
+			member_count = profile.report['TREE_MEMBER_TOTAL'][tree_key]
+			tree_key_count_meld = "%s%s" % (str(member_count).zfill(12),str(tree_key).zfill(8))
+			tree_key_count_list.append(tree_key_count_meld)
+			
+		tree_key_count_list.sort()
+		for tree_key_count_meld in tree_key_count_list:
+		
+			new_tree = {}
+			tree_key = int(tree_key_count_meld[-8:])
+			new_tree['TREE_NUMBER'] = tree_key
+			new_tree['TREE_RESERVE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['TREE_RESERVE_AMT_TOTAL'][tree_key])
+			new_tree['TREE_RESERVE_AMT_AVERAGE'] = get_f_amt(a,b,profile.report['TREE_RESERVE_AMT_AVERAGE'][tree_key])
+			new_tree['TREE_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['TREE_NETWORK_AMT_TOTAL'][tree_key])
+			new_tree['TREE_MEMBER_TOTAL'] = profile.report['TREE_MEMBER_TOTAL'][tree_key]
+			
+			if tree_key in profile.report['SUGGESTED_TREE_COUNT_TOTAL']:
+			
+				new_tree['SUGGESTED_TREE_COUNT_TOTAL'] = profile.report['SUGGESTED_TREE_COUNT_TOTAL'][tree_key]
+				new_tree['SUGGESTED_TREE_MEMBER_TOTAL'] = profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][tree_key]
+				new_tree['SUGGESTED_TREE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_TREE_AMT_TOTAL'][tree_key])
+				
+				new_tree['01_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][0]
+				new_tree['02_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][1]
+				new_tree['03_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][2]
+				new_tree['04_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][3]
+				new_tree['05_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][4]
+				new_tree['06_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][5]
+				new_tree['07_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][6]
+				new_tree['08_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][7]
+				new_tree['09_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][8]
+				new_tree['10_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][9]
+				new_tree['11_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][10]
+				new_tree['12_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][11]
+				new_tree['13_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][12]
+				new_tree['14_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][13]
+				new_tree['15_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][14]
+				new_tree['16_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][15]
+				new_tree['17_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][16]
+				new_tree['18_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][17]
+				new_tree['19_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][18]
+				new_tree['20_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][19]
+
+
+		
+		return fg
+		
+		"""				
+		profile.report['TREE_RESERVE_AMT_TOTAL'] = {}
+		profile.report['TREE_RESERVE_AMT_AVERAGE'] = {}
+		profile.report['TREE_NETWORK_AMT_TOTAL'] = {}
+		profile.report['TREE_MEMBER_TOTAL'] = {}
+		
+		profile.report['ORPHAN_RESERVE_AMT_TOTAL'] = 0
+		profile.report['ORPHAN_NETWORK_AMT_TOTAL'] = 0
+		profile.report['ORPHAN_MEMBER_TOTAL'] = 0
+		
+		profile.report['SUGGESTED_TREE_COUNT_TOTAL'] = {}
+		profile.report['SUGGESTED_TREE_MEMBER_TOTAL'] = {}
+		profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'] = {}
+		profile.report['SUGGESTED_TREE_AMT_TOTAL'] = {}
+		
+		profile.report['SUGGESTED_COUNT_TOTAL'] = 0
+		profile.report['SUGGESTED_MEMBER_TOTAL'] = 0
+		profile.report['SUGGESTED_TX_COUNT_TOTAL'] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		profile.report['SUGGESTED_AMT_TOTAL'] = 0
+		profile.report['RESERVE_AMT_TOTAL'] = 0
+		profile.report['NETWORK_AMT_TOTAL'] = 0
+		profile.report['TOTAL_TREES'] = 0
+		profile.report['PARENT_LEVEL'] = 1 # Level Parent
+		profile.report['PARENT_LEVEL_IDX'] = 0 # Level Parent Index
+		profile.report['CHILD_LEVEL_IDX'] = 0 # Level Parent Index
+		# TIME REPORTING VARIABLES
+		profile.report['TIME_BEGIN'] = datetime.datetime.now()
+		profile.report['TIME_END'] = None
+		profile.report['TIME_START'] = profile.report['TIME_BEGIN']
+		profile.report['TIME_STOP'] = None
+		profile.report['TIME_TOTAL'] = None
+		"""
+		
 	def _transact_allow(faccount1,faccount2,ftype="PAYMENT"):
 		
 		if ftype == "PAYMENT":
@@ -8087,7 +8281,7 @@ class metric(object):
 							profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][key1] = 0
 							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][key1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 							profile.report['SUGGESTED_TREE_AMT_TOTAL'][key1] = 0
-							lint_amt = profile.report['TREE_RESERVE_AMT_TOTAL'][key1]
+							lint_amount = profile.report['TREE_RESERVE_AMT_TOTAL'][key1]
 							lint_accounts = profile.report['TREE_MEMBER_TOTAL'][key1]
 							# drop the scintillions and also divide this way so that complies with 
 							# python 3? division if ever migrated.
@@ -8728,6 +8922,15 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if (self.master.PATH_CONTEXT == "root/graph" and 
+			"vn" in self.master.request.GET and 
+			"va" in self.master.request.GET and
+			"vk" in self.master.request.GET):
+			# view graph result
+			result.append(120)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
+			result.append(self.master.request.GET["vk"])
 		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view all tickets
 			result.append(100)
@@ -8979,6 +9182,19 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 120:
+			
+				# one graph result
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "GRAPH"
+				blok["type"] = "graph"
+				blok["graph"] = lobj_master.metric._view_graph(pqc[1],pqc[2],pqc[3])
+				if not blok["graph"]:
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				bloks.append(blok)
+				break
+				
 			if pqc[0] == 110:
 			
 				# one ticket
@@ -10204,7 +10420,8 @@ application = webapp2.WSGIApplication([
 	('/messages', ph_command),
 	('/ledger', ph_command),
 	('/tickets', ph_command),
-	('/graph_process', ph_gp)
+	('/graph_process', ph_gp),
+	('/graph', ph_command)
 	],debug=True)
 
 ##########################################################################
