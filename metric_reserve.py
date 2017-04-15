@@ -1243,20 +1243,7 @@ class metric(object):
 		
 		if self.PARENT.user.IS_LOGGED_IN:
 			# sync user with graph process
-			t_now = datetime.datetime.now()
-			d_since = t_now - T_EPOCH
-			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-			if (t_now - datetime.timedelta(seconds=GRAPH_SYNC_WAIT_SECONDS)) < t_cutoff:
-				# use the one before instead
-				t_now = t_cutoff - datetime.timedelta(seconds=30)
-				d_since = t_now - T_EPOCH
-				t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
-			# make a nice string to serve as our key "YYYYMMDDHHMM"
-			current_time_key = "%s%s%s%s%s" % (str(t_cutoff.year),
-				str(t_cutoff.month).zfill(2),
-				str(t_cutoff.day).zfill(2),
-				str(t_cutoff.hour).zfill(2),
-				str(t_cutoff.minute).zfill(2))
+			current_time_key = self._get_sync_time_key() 
 			# If this isn't the time key stored for the user
 			# then try to sync.
 			if self.entity.graph_sync == current_time_key:
@@ -1319,11 +1306,42 @@ class metric(object):
 								pass
 							sync_accounts[i].graph_sync = current_time_key
 							sync_accounts[i].tree_number = result_dict["tree_number"]
-							sync_accounts[i].put()
-					
+							# load our suggested transfers if any match current connections
+							for i in range(len(result_dict["account"][2])):
+								con_id = result_dict["account"][2][i]
+								if con_id in sync_accounts[i].current_connections:									
+									sync_accounts[i].suggested_inactive_incoming_reserve_transfer_requests.pop(con_id,None)
+									sync_accounts[i].suggested_inactive_outgoing_reserve_transfer_requests.pop(con_id,None)
+									# create new suggestion
+									sug_amt = result_dict["account"][3][i]
+									if sug_amt > 0:
+										# positive means incoming
+										sync_accounts[i].suggested_inactive_incoming_reserve_transfer_requests[con_id] = sug_amt
+									else:
+										# negative means outgoing
+										sync_accounts[i].suggested_inactive_outgoing_reserve_transfer_requests[con_id] = sug_amt * -1
+							sync_accounts[i].put()					
 					tuser.graph_sync = current_time_key
 					tuser.put()
-					
+	
+	def _get_sync_time_key(self):
+	
+		t_now = datetime.datetime.now()
+		d_since = t_now - T_EPOCH
+		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		if (t_now - datetime.timedelta(seconds=GRAPH_SYNC_WAIT_SECONDS)) < t_cutoff:
+			# use the one before instead
+			t_now = t_cutoff - datetime.timedelta(seconds=30)
+			d_since = t_now - T_EPOCH
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+		# make a nice string to serve as our key "YYYYMMDDHHMM"
+		current_time_key = "%s%s%s%s%s" % (str(t_cutoff.year),
+			str(t_cutoff.month).zfill(2),
+			str(t_cutoff.day).zfill(2),
+			str(t_cutoff.hour).zfill(2),
+			str(t_cutoff.minute).zfill(2))
+		return current_time_key
+	
 	def _fetch_user_graph_result(self,time_key,network_id,account_id):
 		
 		# which map indexes?
@@ -1342,82 +1360,38 @@ class metric(object):
 		if map_chunk.stuff[map_within_idx] == 0:
 			return None
 		tree_chunk_idx = map_chunk.stuff[map_within_idx]
-			
-					"""
-					reserve_network_ids = ndb.PickleProperty()
-					reserve_account_ids = ndb.PickleProperty()
-					reserve_labels = ndb.PickleProperty()
-					reserve_default = ndb.PickleProperty()
-
-					client_network_ids = ndb.PickleProperty()
-					client_account_ids = ndb.PickleProperty()
-					client_parent_ids = ndb.PickleProperty()
-					client_labels = ndb.PickleProperty()
-					client_default = ndb.PickleProperty()
-					parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-					parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-					parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-					joint_network_ids = ndb.PickleProperty()
-					joint_account_ids = ndb.PickleProperty()
-					joint_parent_ids = ndb.PickleProperty()
-					joint_labels = ndb.PickleProperty()
-					joint_default = ndb.PickleProperty()
-					parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-					parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-					parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-					clone_network_ids = ndb.PickleProperty()
-					clone_account_ids = ndb.PickleProperty()
-					clone_parent_ids = ndb.PickleProperty()
-					clone_labels = ndb.PickleProperty()
-					clone_default = ndb.PickleProperty()
-
-					child_client_network_ids = ndb.PickleProperty()
-					child_client_account_ids = ndb.PickleProperty()
-					child_client_parent_ids = ndb.PickleProperty()
-					child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-					child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-					child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-					child_joint_network_ids = ndb.PickleProperty()
-					child_joint_account_ids = ndb.PickleProperty()
-					child_joint_parent_ids = ndb.PickleProperty()
-					child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
-					child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
-					child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
-
-					graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
-					"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		key_part3 = str(tree_chunk_idx).zfill(12)
+		tree_chunk_key = ndb.Key("ds_mrgp_tree_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
+		tree_chunk = tree_chunk_key.get()
+		if tree_chunk is None:
+			return None
+		# tree chunks are dicts of dicts
+		# 
+		# tree_chunk.stuff = {}
+		# tree_chunk.stuff[tree index] = {}
+		# tree_chunk.stuff[tree index][level] = [seq of account dicts]
+		# tree_chunk.stuff[tree index][-level] = [seq of account ids]
+		# 
+		# so to get our tree_number, loop through tree numbers, then
+		# loop through -levels to find account index
+		result = {}
+		result["tree_number"] = 0
+		for tree_index in tree_chunk.stuff:
+			if tree_index == 1:
+				if account_id in tree_chunk.stuff[tree_index]:
+					result["tree_number"] = 1
+					break
+			else:
+				for level_index in tree_chunk.stuff[tree_index]:
+					if account_id in tree_chunk.stuff[tree_index][level_index * -1]:
+						# found it
+						account_idx = tree_chunk.stuff[tree_index][level_index * -1].index(account_id)
+						result["account"] = tree_chunk.stuff[tree_index][level_index][account_idx]
+						break
+		if result["tree_number"] == 0:
+			return None
+		else:
+			return result
 
 	def _view_tickets(self,fstr_network_name,fstr_account_name,fstr_ticket_name=None,fpage=1):
 	
@@ -8081,7 +8055,6 @@ class metric(object):
 								profile.report['LAST_TREE_LEVEL'][key1] = key2 + 1
 								child_chunk.stuff[key1][key2 + 1] = []
 								child_chunk.stuff[key1][(key2 + 1) * -1] = []
-								child_chunk.stuff[key1][(key2 + 1) * -1].append(-1)
 							# lets store the parent reference in key 6 of child
 							# chunk.stuff[tree][-level array][account ids]
 							laccount[6] = parent_chunk.stuff[key1][key2 * -1][idx1]
