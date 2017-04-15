@@ -196,6 +196,7 @@ GRAPH_FREQUENCY_MINUTES = 15
 GRAPH_ITERATION_DURATION_SECONDS = 30
 GRAPH_ITERATION_WIGGLE_ROOM_SECONDS = 15
 GRAPH_ITERATION_HIJACK_DURATION_SECONDS = 10
+GRAPH_SYNC_WAIT_SECONDS = 120
 
 # $1 of value = 100,000
 MAX_RESERVE_MODIFY = 100000000
@@ -284,6 +285,8 @@ class ds_mr_user(ndb.Model):
 	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
+	graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
+	
 	extra_pickle = ndb.PickleProperty()
 
 # a Model for user messages
@@ -344,6 +347,8 @@ class ds_mr_metric_account(ndb.Model):
 
 	account_id = ndb.IntegerProperty(indexed=False)
 	network_id = ndb.IntegerProperty(indexed=False)
+	graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
+	tree_number = ndb.IntegerProperty(default=1,indexed=False)
 	user_id = ndb.StringProperty(indexed=False)
 	tx_index = ndb.IntegerProperty(indexed=False)
 	decimal_places = ndb.IntegerProperty(default=2,indexed=False)
@@ -470,6 +475,8 @@ class ds_multi_mrgp_profile(ndb.Model):
 
 class ds_mrgp_profile(ndb.Model):
 
+	network_id = ndb.IntegerProperty()
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	status = ndb.StringProperty(indexed=False)
 	deadline = ndb.DateTimeProperty(indexed=False)
 	max_account = ndb.IntegerProperty(indexed=False)
@@ -617,8 +624,17 @@ class master(object):
 		###############################################
 		###############################################
 		
+		# Start with what time it is:
+		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
+		
+		
+		
+		
+		
+		
 		# mobile QR link for debug
-		self.QR1_DEBUG = self._get_qr_url(("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path_qs))
+		#self.QR1_DEBUG = self._get_qr_url(("https://8080-dot-2189742-dot-devshell.appspot.com" + self.request.path_qs))
 				
 		
 		# GRAVATAR/IDENTICON TESTING
@@ -629,8 +645,7 @@ class master(object):
 		#self.DEBUG_VARS["gravatar_test"] = ('https://www.gravatar.com/avatar/%s' % lstr_gravatar_url)
 		
 
-		# Start with what time it is:
-		self.TRACE.append("current time:%s" % str(datetime.datetime.now()))
+		
 		
 		
 		
@@ -683,7 +698,7 @@ class master(object):
 		
 		"""
 		
-		
+		"""
 		some_obj = ds_mrgp_big_pickle()
 		
 		some_obj.stuff = (1,2,3)
@@ -716,7 +731,7 @@ class master(object):
 		self.TRACE.append("request cutoff time:DAY-%s-" % str(t_cutoff.day))
 		self.TRACE.append("request cutoff time:HOUR-%s-" % str(t_cutoff.hour))
 		self.TRACE.append("request cutoff time:MINUTES-%s-" % str(t_cutoff.minute))
-		
+		"""
 		
 		
 		###############################################
@@ -1225,6 +1240,171 @@ class metric(object):
 	
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
+		
+		if self.PARENT.user.IS_LOGGED_IN:
+			# sync user with graph process
+			t_now = datetime.datetime.now()
+			d_since = t_now - T_EPOCH
+			t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			if (t_now - datetime.timedelta(seconds=GRAPH_SYNC_WAIT_SECONDS)) < t_cutoff:
+				# use the one before instead
+				t_now = t_cutoff - datetime.timedelta(seconds=30)
+				d_since = t_now - T_EPOCH
+				t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
+			# make a nice string to serve as our key "YYYYMMDDHHMM"
+			current_time_key = "%s%s%s%s%s" % (str(t_cutoff.year),
+				str(t_cutoff.month).zfill(2),
+				str(t_cutoff.day).zfill(2),
+				str(t_cutoff.hour).zfill(2),
+				str(t_cutoff.minute).zfill(2))
+			# If this isn't the time key stored for the user
+			# then try to sync.
+			if self.entity.graph_sync == current_time_key:
+				# we're already synced
+				pass
+			else:
+				# get the multi-graph_process profile
+				multi_gp_key = ndb.Key("ds_multi_mrgp_profile",current_time_key)
+				multi_gp_entity = multi_gp_key.get()
+				if multi_gp_entity is None or not multi_gp_entity.current_status == "FINISHED":
+					# next sync is not available or not finished
+					pass
+				else:
+					# This user needs to be synced.
+					# Loop through all accounts, sync non-reserve accounts
+					# based on the parent reserve account.  Ignore any new
+					# network/accounts that weren't processed.
+					sync_account_keys = []
+					sync_network_ids = []
+					sync_account_ids = []
+					tuser = self.PARENT.user.entity
+					for i in range(len(tuser.reserve_network_ids)):
+						a = tuser.reserve_network_ids[i]
+						b = tuser.reserve_account_ids[i]
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						sync_account_keys.append(metric_key)
+						sync_network_ids.append(a)
+						sync_account_ids.append(b)
+					for i in range(len(tuser.client_network_ids)):
+						a = tuser.client_network_ids[i]
+						b = tuser.client_account_ids[i]
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						sync_account_keys.append(metric_key)
+						sync_network_ids.append(a)
+						sync_account_ids.append(tuser.client_parent_ids[i])
+					for i in range(len(tuser.joint_network_ids)):
+						a = tuser.joint_network_ids[i]
+						b = tuser.joint_account_ids[i]
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						sync_account_keys.append(metric_key)
+						sync_network_ids.append(a)
+						sync_account_ids.append(tuser.joint_parent_ids[i])
+					for i in range(len(tuser.clone_network_ids)):
+						a = tuser.clone_network_ids[i]
+						b = tuser.clone_account_ids[i]
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						sync_account_keys.append(metric_key)
+						sync_network_ids.append(a)
+						sync_account_ids.append(tuser.clone_parent_ids[i])
+					sync_accounts = ndb.get_multi(sync_account_keys)
+					for i in range(len(sync_accounts)):
+						if not sync_accounts[i].graph_sync == current_time_key:
+							# fetch graph result
+							a = current_time_key
+							b = sync_network_ids[i]
+							c = sync_account_ids[i]
+							result_dict = self._fetch_user_graph_result(self,time_key,network_id,account_id)
+							if not result_dict:
+								# fail silently here
+								pass
+							sync_accounts[i].graph_sync = current_time_key
+							sync_accounts[i].tree_number = result_dict["tree_number"]
+							sync_accounts[i].put()
+					
+					tuser.graph_sync = current_time_key
+					tuser.put()
+					
+	def _fetch_user_graph_result(self,time_key,network_id,account_id):
+
+		key_part1 = profile_key_network_part
+		key_part2 = profile_key_time_part
+		key_part3 = str(fint_index).zfill(12)
+		map_chunk_key = ndb.Key("ds_mrgp_map_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
+					"""
+					reserve_network_ids = ndb.PickleProperty()
+					reserve_account_ids = ndb.PickleProperty()
+					reserve_labels = ndb.PickleProperty()
+					reserve_default = ndb.PickleProperty()
+
+					client_network_ids = ndb.PickleProperty()
+					client_account_ids = ndb.PickleProperty()
+					client_parent_ids = ndb.PickleProperty()
+					client_labels = ndb.PickleProperty()
+					client_default = ndb.PickleProperty()
+					parent_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					parent_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					parent_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					joint_network_ids = ndb.PickleProperty()
+					joint_account_ids = ndb.PickleProperty()
+					joint_parent_ids = ndb.PickleProperty()
+					joint_labels = ndb.PickleProperty()
+					joint_default = ndb.PickleProperty()
+					parent_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					parent_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					parent_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					clone_network_ids = ndb.PickleProperty()
+					clone_account_ids = ndb.PickleProperty()
+					clone_parent_ids = ndb.PickleProperty()
+					clone_labels = ndb.PickleProperty()
+					clone_default = ndb.PickleProperty()
+
+					child_client_network_ids = ndb.PickleProperty()
+					child_client_account_ids = ndb.PickleProperty()
+					child_client_parent_ids = ndb.PickleProperty()
+					child_client_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_client_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_client_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					child_joint_network_ids = ndb.PickleProperty()
+					child_joint_account_ids = ndb.PickleProperty()
+					child_joint_parent_ids = ndb.PickleProperty()
+					child_joint_offer_network_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
+					child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
+
+					graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
+					"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	def _view_tickets(self,fstr_network_name,fstr_account_name,fstr_ticket_name=None,fpage=1):
 	
@@ -2788,21 +2968,6 @@ class metric(object):
 		else:
 			system_cursor.current_index +=1
 
-		# get or insert the multi-graph_process profile
-		# it needs to know the network index as well
-		multi_gp_key = ndb.Key("ds_multi_mrgp_profile","master")
-		multi_gp_entity = multi_gp_key.get()
-		if multi_gp_entity is None:
-			multi_gp_entity = ds_multi_mrgp_profile()
-			multi_gp_entity.key = multi_gp_key
-			multi_gp_entity.current_time_key = "EMPTY"
-			multi_gp_entity.current_status = "UNFINISHED"
-			multi_gp_entity.network_index = 1
-			multi_gp_entity.total_networks = system_cursor.current_index			
-		else:
-			multi_gp_entity.total_networks = system_cursor.current_index
-			
-		multi_gp_entity.put()
 		system_cursor.put()
 		new_name_entity.network_id = system_cursor.current_index
 		new_name_entity.put()
@@ -7061,10 +7226,6 @@ class metric(object):
 
 
 
-
-
-
-
 	def _multi_graph_process(self):
 	
 		# So...we meet again.
@@ -7084,16 +7245,29 @@ class metric(object):
 			str(t_cutoff.hour).zfill(2),
 			str(t_cutoff.minute).zfill(2))
 
+		system_cursor_key = ndb.Key("ds_mr_system_cursor", "system")
+		system_cursor = system_cursor_key.get()
+		if system_cursor is None:
+			total_networks = 0
+		else:
+			total_networks = system_cursor.current_index +=1
+
 		# get or insert the multi-graph_process profile
-		multi_gp_key = ndb.Key("ds_multi_mrgp_profile","master")
+		multi_gp_key = ndb.Key("ds_multi_mrgp_profile",current_time_key)
 		multi_gp_entity = multi_gp_key.get()
-		if multi_gp_entity is None:
+		if multi_gp_entity is None:		
+			system_cursor_key = ndb.Key("ds_mr_system_cursor", "system")
+			system_cursor = system_cursor_key.get()
+			if system_cursor is None:
+				total_networks = 0
+			else:
+				total_networks = system_cursor.current_index +=1
 			multi_gp_entity = ds_multi_mrgp_profile()
 			multi_gp_entity.key = multi_gp_key
 			multi_gp_entity.current_time_key = current_time_key
 			multi_gp_entity.current_status = "UNFINISHED"
 			multi_gp_entity.network_index = 1
-			multi_gp_entity.total_networks = 0
+			multi_gp_entity.total_networks = total_networks
 			multi_gp_entity.put()
 			
 		if multi_gp_entity.current_time_key == current_time_key:
@@ -7190,6 +7364,8 @@ class metric(object):
 			
 			if what_to_do == "NEW":
 			
+				profile.network_id = fint_network_id
+				profile.time_key = fstr_current_time_key
 				profile.max_account = 0
 				profile.phase_cursor = 1
 				profile.tree_cursor = 0
@@ -7232,7 +7408,15 @@ class metric(object):
 				profile.report['PARENT_LEVEL'] = 1 # Level Parent
 				profile.report['PARENT_LEVEL_IDX'] = 0 # Level Parent Index
 				profile.report['CHILD_LEVEL_IDX'] = 0 # Level Parent Index
-		
+				# TIME REPORTING VARIABLES
+				profile.report['TIME_BEGIN'] = datetime.datetime.now()
+				profile.report['TIME_END'] = None
+				profile.report['TIME_START'] = profile.report['TIME_BEGIN']
+				profile.report['TIME_STOP'] = None
+				profile.report['TIME_TOTAL'] = None
+			else:
+				profile.report['TIME_START'] = datetime.datetime.now()
+
 			profile.status = "IN PROCESS"
 			profile.deadline = fdate_deadline
 			profile.put()
@@ -7441,8 +7625,21 @@ class metric(object):
 		def process_stop(fbool_is_finished=False):
 			if fbool_is_finished:
 				profile.status = "FINISHED"
+				profile.report['TIME_END'] = datetime.datetime.now()
+				profile.report['TIME_STOP'] = profile.report['TIME_END']
+				profile.report['TIME_TOTAL'] = profile.report['TIME_END'] - profile.report['TIME_BEGIN']
 			else:
-				profile.status = "PAUSED"		
+				profile.status = "PAUSED"
+				t_stop = profile.report['TIME_STOP'] = datetime.datetime.now()
+				if profile.report['TIME_TOTAL'] is None:
+					t_start = profile.report['TIME_START']
+					t_stop = profile.report['TIME_STOP']
+					profile.report['TIME_TOTAL'] = t_stop - t_start
+				else:
+					t_start = profile.report['TIME_START']
+					t_stop = profile.report['TIME_STOP']
+					t_total = profile.report['TIME_TOTAL']
+					profile.report['TIME_TOTAL'] = t_total + (t_stop - t_start)
 			do_juggler_puts()
 			
 			@ndb.transactional
@@ -9988,6 +10185,7 @@ class ph_gp(webapp2.RequestHandler):
 		# X-Appengine-Cron: true
 		#pass
 		lobj_master = master(self,"get","unsecured",True)
+		lobj_master.metric._multi_graph_process()
 
 ##########################################################################
 # BEGIN: Python Entry point.  This function should be permanent.
