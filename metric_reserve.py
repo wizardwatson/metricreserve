@@ -466,6 +466,7 @@ class ds_multi_mrgp_profile(ndb.Model):
 	current_time_key = ndb.StringProperty(indexed=False)
 	current_status = ndb.StringProperty(indexed=False)
 	network_index = ndb.StringProperty(indexed=False)
+	total_networks = ndb.IntegerProperty(indexed=False)
 
 class ds_mrgp_profile(ndb.Model):
 
@@ -530,7 +531,7 @@ class ds_mrgp_big_pickle(ndb.Model):
 class master(object):
 
 	# intialization function, called when object is instantiated with or without a function call
-	def __init__(self, fobj_request,fstr_request_type,fstr_security_req):
+	def __init__(self, fobj_request,fstr_request_type,fstr_security_req,is_cron=False):
 	
 		@ndb.transactional()
 		def create_system_settings_object():		
@@ -579,22 +580,24 @@ class master(object):
 		# A var for functions in different objects to pass around error/success codes
 		self.RETURN_CODE = ""
 		
-		# see if this site is being viewed on mobile browser
-		self.IS_MOBILE = False
-		user_agent = self.request.headers["User-Agent"]
-		http_accept = self.request.headers["Accept"]
-		if user_agent and http_accept:
-			agent = mdetect.UAgentInfo(userAgent=user_agent, httpAccept=http_accept)
-			is_tablet = agent.detectTierTablet()
-			is_phone = agent.detectTierIphone()
-			if is_tablet or is_phone or agent.detectMobileQuick():
-				self.IS_MOBILE = True
-				self.TRACE.append("mobile detected")
-			else:
-				self.TRACE.append("mobile not detected")
+		# skip for cron as causes header errors
+		if not is_cron:
+			# see if this site is being viewed on mobile browser
+			self.IS_MOBILE = False
+			user_agent = self.request.headers["User-Agent"]
+			http_accept = self.request.headers["Accept"]
+			if user_agent and http_accept:
+				agent = mdetect.UAgentInfo(userAgent=user_agent, httpAccept=http_accept)
+				is_tablet = agent.detectTierTablet()
+				is_phone = agent.detectTierIphone()
+				if is_tablet or is_phone or agent.detectMobileQuick():
+					self.IS_MOBILE = True
+					self.TRACE.append("mobile detected")
+				else:
+					self.TRACE.append("mobile not detected")
 		
-		# instantiate a user via class - see 'class user(object)'
-		self.user = user(self)
+			# instantiate a user via class - see 'class user(object)'
+			self.user = user(self)
 		
 		# instantiate the metric object
 		self.metric = metric(self)
@@ -2784,6 +2787,22 @@ class metric(object):
 			system_cursor.current_index = 1
 		else:
 			system_cursor.current_index +=1
+
+		# get or insert the multi-graph_process profile
+		# it needs to know the network index as well
+		multi_gp_key = ndb.Key("ds_multi_mrgp_profile","master")
+		multi_gp_entity = multi_gp_key.get()
+		if multi_gp_entity is None:
+			multi_gp_entity = ds_multi_mrgp_profile()
+			multi_gp_entity.key = multi_gp_key
+			multi_gp_entity.current_time_key = "EMPTY"
+			multi_gp_entity.current_status = "UNFINISHED"
+			multi_gp_entity.network_index = 1
+			multi_gp_entity.total_networks = system_cursor.current_index			
+		else:
+			multi_gp_entity.total_networks = system_cursor.current_index
+			
+		multi_gp_entity.put()
 		system_cursor.put()
 		new_name_entity.network_id = system_cursor.current_index
 		new_name_entity.put()
@@ -7074,10 +7093,11 @@ class metric(object):
 			multi_gp_entity.current_time_key = current_time_key
 			multi_gp_entity.current_status = "UNFINISHED"
 			multi_gp_entity.network_index = 1
+			multi_gp_entity.total_networks = 0
 			multi_gp_entity.put()
 			
 		if multi_gp_entity.current_time_key == current_time_key:
-			if multi_gp_entity.current_status = "FINISHED":
+			if multi_gp_entity.current_status == "FINISHED":
 				# nothing to do right now
 				return
 		else:
@@ -7092,14 +7112,25 @@ class metric(object):
 		deadline = t_now + datetime.timedelta(seconds=deadline_seconds_away)
 
 		while t_now < deadline:
-		
-			result_status, result_profile = self._process_graph(network_id, current_time_key, deadline)
-			
-			
+			if multi_gp_entity.network_index > multi_gp_entity.total_networks:
+				multi_gp_entity.current_status = "FINISHED"
+				multi_gp_entity.network_index = 1
+				break
+			network = self._get_network(fint_network_id=multi_gp_entity.network_index)
+			if not network.network_status == "ACTIVE":
+				multi_gp_entity.network_index += 1
+			else:			
+				result_status, result_profile = self._process_graph(network_id, current_time_key, deadline)
+				if result_status == "LOCKED":
+					# no monopoly on process, get out
+					return
+				if result_status == "FINISHED":
+					multi_gp_entity.network_index += 1
 			t_now = datetime.datetime.now()
+			
+		multi_gp_entity.put()
 
-
-	def _process_graph(self, fint_network_id, fstr_current_time_key):
+	def _process_graph(self, fint_network_id, fstr_current_time_key, fdate_deadline):
 	
 		profile_key_time_part = fstr_current_time_key
 			
@@ -7141,12 +7172,12 @@ class metric(object):
 					# the process, otherwise exit.
 					if t_now > profile.deadline:
 						what_to_do = "NEW"
-					else: return "PROCESS LOCKED", profile
+					else: return "LOCKED", profile
 						
 				if profile.status == "FINISHED":
 				
 					if not REDO_FINISHED_GRAPH_PROCESS:
-						return "PROCESS FINISHED FOR CURRENT TIMEFRAME", profile
+						return "FINISHED", profile
 					else: what_to_do = "NEW"
 					
 				if profile.status == "PAUSED":
@@ -7203,9 +7234,7 @@ class metric(object):
 				profile.report['CHILD_LEVEL_IDX'] = 0 # Level Parent Index
 		
 			profile.status = "IN PROCESS"
-			deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
-						GRAPH_ITERATION_WIGGLE_ROOM_SECONDS)
-			profile.deadline = t_now + datetime.timedelta(seconds=deadline_seconds_away)
+			profile.deadline = fdate_deadline
 			profile.put()
 			return "GOT THE LOCK", profile
 						
@@ -7424,6 +7453,7 @@ class metric(object):
 				network_profile.total_trees = profile.report['TOTAL_TREES']
 				network_profile.last_graph_process = profile_key_time_part
 				network_profile.put()
+			return "FINISHED", profile
 			
 		""" 
 		**************************************************
@@ -9784,7 +9814,7 @@ class ph_command(webapp2.RequestHandler):
 				# authorize to be child account
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
-				elif lobj_master.user.entity is None
+				elif lobj_master.user.entity is None:
 					# error User not registered
 					r.redirect(self.url_path(error_code="STUB"))
 				elif not lobj_master.metric._other_account(pqc[1],lobj_master.user.entity.username,pqc[2],("%s %s" % (ct[0],ct[1]))):
@@ -9950,6 +9980,15 @@ class ph_command(webapp2.RequestHandler):
 ###
 ################################################################
 
+class ph_gp(webapp2.RequestHandler):
+
+	def get(self):
+	
+		# STUB check cron request header
+		# X-Appengine-Cron: true
+		#pass
+		lobj_master = master(self,"get","unsecured",True)
+
 ##########################################################################
 # BEGIN: Python Entry point.  This function should be permanent.
 ##########################################################################
@@ -9972,7 +10011,8 @@ application = webapp2.WSGIApplication([
 	('/profile', ph_command),
 	('/messages', ph_command),
 	('/ledger', ph_command),
-	('/tickets', ph_command)
+	('/tickets', ph_command),
+	('/graph_process', ph_gp)
 	],debug=True)
 
 ##########################################################################
