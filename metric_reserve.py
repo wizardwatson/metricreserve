@@ -462,23 +462,28 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 # at and where it needs to continue from.  It holds all the important
 # information about how many chunks there are for this process, etc.
 
+class ds_multi_mrgp_profile(ndb.Model):
+	current_time_key = ndb.StringProperty(indexed=False)
+	current_status = ndb.StringProperty(indexed=False)
+	network_index = ndb.StringProperty(indexed=False)
+
 class ds_mrgp_profile(ndb.Model):
 
-	status = ndb.StringProperty()
-	deadline = ndb.DateTimeProperty()
-	max_account = ndb.IntegerProperty()
-	phase_cursor = ndb.IntegerProperty()
-	tree_cursor = ndb.IntegerProperty()
-	count_cursor = ndb.IntegerProperty()
-	tree_chunks = ndb.IntegerProperty()
-	tree_in_process = ndb.BooleanProperty()
-	index_chunks = ndb.IntegerProperty()
-	parent_pointer = ndb.IntegerProperty()
-	child_pointer = ndb.IntegerProperty()
-	index_chunk_counter = ndb.IntegerProperty()
-	tree_chunk_counter = ndb.IntegerProperty()
-	map_chunk_counter = ndb.IntegerProperty()
-	report = ndb.PickleProperty()
+	status = ndb.StringProperty(indexed=False)
+	deadline = ndb.DateTimeProperty(indexed=False)
+	max_account = ndb.IntegerProperty(indexed=False)
+	phase_cursor = ndb.IntegerProperty(indexed=False)
+	tree_cursor = ndb.IntegerProperty(indexed=False)
+	count_cursor = ndb.IntegerProperty(indexed=False)
+	tree_chunks = ndb.IntegerProperty(indexed=False)
+	tree_in_process = ndb.BooleanProperty(indexed=False)
+	index_chunks = ndb.IntegerProperty(indexed=False)
+	parent_pointer = ndb.IntegerProperty(indexed=False)
+	child_pointer = ndb.IntegerProperty(indexed=False)
+	index_chunk_counter = ndb.IntegerProperty(indexed=False)
+	tree_chunk_counter = ndb.IntegerProperty(indexed=False)
+	map_chunk_counter = ndb.IntegerProperty(indexed=False)
+	report = ndb.PickleProperty(indexed=False)
 
 # *** the staging chunk ***
 class ds_mrgp_staging_chunk(ndb.Model):
@@ -7041,25 +7046,11 @@ class metric(object):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-	def _process_graph(self, fint_network_id):
+	def _multi_graph_process(self):
 	
 		# So...we meet again.
 		
 		# Each NETWORK!!! has a process lock. Network, not application
-		# ..so if you and 50 of your buddies are playing around on the
-		# same application running graph processing on 50 different
-		# networks, might explain any slowness.
 				
 		# first get the cutoff time
 		# It is from the cutoff time that we derive the entity key/id
@@ -7068,11 +7059,49 @@ class metric(object):
 		d_since = t_now - T_EPOCH
 		t_cutoff = t_now - datetime.timedelta(seconds=(d_since.total_seconds() % (GRAPH_FREQUENCY_MINUTES * 60)))
 		# make a nice string to serve as our key "YYYYMMDDHHMM"
-		profile_key_time_part = "%s%s%s%s%s" % (str(t_cutoff.year),
+		current_time_key = "%s%s%s%s%s" % (str(t_cutoff.year),
 			str(t_cutoff.month).zfill(2),
 			str(t_cutoff.day).zfill(2),
 			str(t_cutoff.hour).zfill(2),
 			str(t_cutoff.minute).zfill(2))
+
+		# get or insert the multi-graph_process profile
+		multi_gp_key = ndb.Key("ds_multi_mrgp_profile","master")
+		multi_gp_entity = multi_gp_key.get()
+		if multi_gp_entity is None:
+			multi_gp_entity = ds_multi_mrgp_profile()
+			multi_gp_entity.key = multi_gp_key
+			multi_gp_entity.current_time_key = current_time_key
+			multi_gp_entity.current_status = "UNFINISHED"
+			multi_gp_entity.network_index = 1
+			multi_gp_entity.put()
+			
+		if multi_gp_entity.current_time_key == current_time_key:
+			if multi_gp_entity.current_status = "FINISHED":
+				# nothing to do right now
+				return
+		else:
+			# crossed the time window, need to restart
+			multi_gp_entity.current_time_key = current_time_key
+			multi_gp_entity.current_status = "UNFINISHED"
+			multi_gp_entity.network_index = 1	
+		
+		deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
+			GRAPH_ITERATION_WIGGLE_ROOM_SECONDS)
+
+		deadline = t_now + datetime.timedelta(seconds=deadline_seconds_away)
+
+		while t_now < deadline:
+		
+			result_status, result_profile = self._process_graph(network_id, current_time_key, deadline)
+			
+			
+			t_now = datetime.datetime.now()
+
+
+	def _process_graph(self, fint_network_id, fstr_current_time_key):
+	
+		profile_key_time_part = fstr_current_time_key
 			
 		# We use a transactional timelock mechanism to make sure one
 		# and only one process is processing each specific window
@@ -7112,12 +7141,12 @@ class metric(object):
 					# the process, otherwise exit.
 					if t_now > profile.deadline:
 						what_to_do = "NEW"
-					else: return ("PROCESS LOCKED",None)
+					else: return "PROCESS LOCKED", profile
 						
 				if profile.status == "FINISHED":
 				
 					if not REDO_FINISHED_GRAPH_PROCESS:
-						return ("PROCESS FINISHED FOR CURRENT TIMEFRAME",None)
+						return "PROCESS FINISHED FOR CURRENT TIMEFRAME", profile
 					else: what_to_do = "NEW"
 					
 				if profile.status == "PAUSED":
@@ -7178,12 +7207,12 @@ class metric(object):
 						GRAPH_ITERATION_WIGGLE_ROOM_SECONDS)
 			profile.deadline = t_now + datetime.timedelta(seconds=deadline_seconds_away)
 			profile.put()
-			return ("GOT THE LOCK",profile)
+			return "GOT THE LOCK", profile
 						
-		process_lock_result = process_lock()
+		result_status, result_profile = process_lock()
 		
 		# If we didn't get the lock, we're done.
-		if not process_lock_result[0] == "GOT THE LOCK": return process_lock_result[0]
+		if not result_status == "GOT THE LOCK": return result_status, result_profile
 		
 		# now the clock starts.  If we don't finish before the
 		# deadline, then we pause and wait for a different 
