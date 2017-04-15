@@ -42,12 +42,14 @@ TO DO:
 			#1user status update for which tree belongs to
 			#1check graph to prevent cross-tree activity
 			#report accumulated time to process
-			
+		
+		fix decimal formatting like view_graph
 		filter graph process url by cron request header
 		polylines and for reserve account view
 		valid names should be 50 character or less?
 		memo and message character limit?
 		always positive amounts
+		messages should load user instead of storing username
 
 		context needs to be clearer and "AS" should show default
 		currency symbol setting per network, can turn off on metric account
