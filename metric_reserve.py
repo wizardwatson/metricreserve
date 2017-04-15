@@ -1295,34 +1295,59 @@ class metric(object):
 						sync_account_ids.append(tuser.clone_parent_ids[i])
 					sync_accounts = ndb.get_multi(sync_account_keys)
 					for i in range(len(sync_accounts)):
-						if not sync_accounts[i].graph_sync == current_time_key:
-							# fetch graph result
-							a = current_time_key
-							b = sync_network_ids[i]
-							c = sync_account_ids[i]
-							result_dict = self._fetch_user_graph_result(self,time_key,network_id,account_id)
-							if not result_dict:
-								# fail silently here
-								pass
-							sync_accounts[i].graph_sync = current_time_key
-							sync_accounts[i].tree_number = result_dict["tree_number"]
-							# load our suggested transfers if any match current connections
-							for i in range(len(result_dict["account"][2])):
-								con_id = result_dict["account"][2][i]
-								if con_id in sync_accounts[i].current_connections:									
-									sync_accounts[i].suggested_inactive_incoming_reserve_transfer_requests.pop(con_id,None)
-									sync_accounts[i].suggested_inactive_outgoing_reserve_transfer_requests.pop(con_id,None)
-									# create new suggestion
-									sug_amt = result_dict["account"][3][i]
-									if sug_amt > 0:
-										# positive means incoming
-										sync_accounts[i].suggested_inactive_incoming_reserve_transfer_requests[con_id] = sug_amt
-									else:
-										# negative means outgoing
-										sync_accounts[i].suggested_inactive_outgoing_reserve_transfer_requests[con_id] = sug_amt * -1
-							sync_accounts[i].put()					
+						self._sync_account(sync_accounts[i],current_time_key)
 					tuser.graph_sync = current_time_key
 					tuser.put()
+	
+	def _transact_allow(faccount1,faccount2,ftype="PAYMENT"):
+		
+		if ftype == "PAYMENT":
+			# don't allow payment if not on same tree
+			# or don't have same sync key
+			if not faccount1.graph_sync == faccount2.graph_sync:
+				return False
+			if faccount1.tree_number < 2 or faccount2.tree_number < 2:
+				return False
+			if not faccount1.tree_number == faccount2.tree_number:
+				return False
+			return True
+		return True		
+		
+	def _sync_account(self,account,fkey=None):
+		
+		if fkey == None:
+			current_time_key = self._get_sync_time_key()
+		else:
+			current_time_key = fkey
+		if not account.graph_sync == current_time_key:
+			# fetch graph result
+			a = current_time_key
+			b = account.network_id
+			if not account.account_type == "RESERVE":
+				c = account.account_parent
+			else:
+				c = account.account_id
+			result_dict = self._fetch_user_graph_result(a,b,c)
+			if not result_dict:
+				# fail silently here
+				pass
+			account.graph_sync = current_time_key
+			account.tree_number = result_dict["tree_number"]
+			# load our suggested transfers if any match current connections
+			for i in range(len(result_dict["account"][2])):
+				con_id = result_dict["account"][2][i]
+				if con_id in account.current_connections:									
+					account.suggested_inactive_incoming_reserve_transfer_requests.pop(con_id,None)
+					account.suggested_inactive_outgoing_reserve_transfer_requests.pop(con_id,None)
+					# create new suggestion
+					sug_amt = result_dict["account"][3][i]
+					if sug_amt > 0:
+						# positive means incoming
+						account.suggested_inactive_incoming_reserve_transfer_requests[con_id] = sug_amt
+					else:
+						# negative means outgoing
+						account.suggested_inactive_outgoing_reserve_transfer_requests[con_id] = sug_amt * -1
+			account.put()
 	
 	def _get_sync_time_key(self):
 	
@@ -2367,6 +2392,8 @@ class metric(object):
 		if metric_account_entity is None:
 			self.PARENT.RETURN_CODE = "1280" # error Invalid account id
 			return False
+		# let's sneak an account sync in right here
+		self._sync_account(metric_account_entity)
 		# We display an account differently based on the account type
 		if metric_account_entity.account_type == "RESERVE":
 		
@@ -5262,7 +5289,11 @@ class metric(object):
 		if lds_target is None:
 			self.PARENT.RETURN_CODE = "1122"
 			return False # error_target_id_not_valid
-		
+		self._sync_account(lds_source)
+		self._sync_account(lds_target)
+		if not self._transact_allow(lds_source,lds_target):
+			self.PARENT.RETURN_CODE = "STUB"
+			return False # error TREE ERROR Can't make payments between disconnected accounts.		
 		# make sure fstr_amount actually is an integer
 		try:
 			lint_amount = int(float(fstr_amount)*fint_conversion)
@@ -7039,6 +7070,12 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1263"
 				return False # error Ticket pay fail. Owner metric account failed to load.
 
+			self._sync_account(lds_pay_source)
+			self._sync_account(lds_pay_target)
+			if not self._transact_allow(lds_source,lds_target):
+				self.PARENT.RETURN_CODE = "STUB"
+				return False # error TREE ERROR Can't make payments between disconnected accounts.
+
 			# Calculate the payment amount
 			# Gratuity must be greater than zero.
 			# Percent cannot be greater than 100.
@@ -7183,35 +7220,6 @@ class metric(object):
 			lds_pay_target.put()
 			self.PARENT.RETURN_CODE = "7054" # success Ticket payment succeeded.
 			return True	
-				
-				
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	def _multi_graph_process(self):
 	
