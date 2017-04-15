@@ -53,6 +53,7 @@ TO DO:
 		currency symbol setting per network, can turn off on metric account
 		decimal setting per network, but overridden by metric account
 		alias changing and account deleting should redirect as breaks back/last functionality
+		move a lot of the system settings into system settings object (like debug and time constraints)
 
 	IMPLEMENT TICKET BASED FUNCTIONS
 		Commands
