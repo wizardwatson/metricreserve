@@ -35,26 +35,29 @@ TO DO:
 
 	MISCELLANEOUS
 		cron finish:
-			call multi
-			viewer for completed processes
+			#call multi
+			2viewer for completed processes
 			ability to call manually 
-			test accounts?
-			user status update for which tree belongs to
-			check graph to prevent cross-tree activity
+			3test accounts?
+			#1user status update for which tree belongs to
+			#1check graph to prevent cross-tree activity
+			#report accumulated time to process
 			
-		show QR code on ticket page
+		filter graph process url by cron request header
 		polylines and for reserve account view
 		valid names should be 50 character or less?
 		memo and message character limit?
 		always positive amounts
-		check on login if email is same as stored
-		form noncing? sessions?
+
 		context needs to be clearer and "AS" should show default
 		currency symbol setting per network, can turn off on metric account
 		decimal setting per network, but overridden by metric account
+				
 		alias changing and account deleting should redirect as breaks back/last functionality
 		move a lot of the system settings into system settings object (like debug and time constraints)
-
+		check on login if email is same as stored
+		form noncing? sessions?
+		
 	IMPLEMENT TICKET BASED FUNCTIONS
 		Commands
 			*see below
