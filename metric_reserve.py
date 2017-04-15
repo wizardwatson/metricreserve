@@ -1325,11 +1325,24 @@ class metric(object):
 					tuser.put()
 					
 	def _fetch_user_graph_result(self,time_key,network_id,account_id):
-
-		key_part1 = profile_key_network_part
-		key_part2 = profile_key_time_part
-		key_part3 = str(fint_index).zfill(12)
+		
+		# which map indexes?
+		map_chunk_idx = account_id - (account_id % 150000) + 1
+		map_within_idx = (account_id % 150000) - 1
+		
+		key_part1 = str(network_id).zfill(8)
+		key_part2 = time_key
+		key_part3 = str(map_chunk_idx).zfill(12)
 		map_chunk_key = ndb.Key("ds_mrgp_map_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
+		map_chunk = map_chunk_key.get()
+		if map_chunk is None:
+			return None
+		if len(map_chunk.stuff) < (map_within_idx + 1):
+			return None
+		if map_chunk.stuff[map_within_idx] == 0:
+			return None
+		tree_chunk_idx = map_chunk.stuff[map_within_idx]
+			
 					"""
 					reserve_network_ids = ndb.PickleProperty()
 					reserve_account_ids = ndb.PickleProperty()
