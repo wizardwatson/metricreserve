@@ -285,7 +285,7 @@ class ds_mr_user(ndb.Model):
 	child_joint_offer_account_id = ndb.IntegerProperty(default=0,indexed=False)
 	child_joint_offer_user_id = ndb.StringProperty(default="EMPTY",indexed=False)
 	
-	graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
+	graph_sync = ndb.StringProperty(default="EMPTY",indexed=False)
 	
 	extra_pickle = ndb.PickleProperty()
 
@@ -347,7 +347,7 @@ class ds_mr_metric_account(ndb.Model):
 
 	account_id = ndb.IntegerProperty(indexed=False)
 	network_id = ndb.IntegerProperty(indexed=False)
-	graph_sync = ndb.StringProperty(default="201703130313",indexed=False)
+	graph_sync = ndb.StringProperty(default="EMPTY",indexed=False)
 	tree_number = ndb.IntegerProperty(default=1,indexed=False)
 	user_id = ndb.StringProperty(indexed=False)
 	tx_index = ndb.IntegerProperty(indexed=False)
