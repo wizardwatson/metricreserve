@@ -3386,7 +3386,13 @@ class metric(object):
 			if self.PARENT.user.entity.child_joint_network_ids[i] == net_id:
 				list_of_account_ids.append(self.PARENT.user.entity.child_joint_account_ids[i])
 				list_of_group_ids.append(6)
-		
+		if self.PARENT.user.entity.parent_client_offer_network_id == net_id:
+			list_of_account_ids.append(self.PARENT.user.entity.parent_client_offer_account_id)
+			list_of_group_ids.append(7)
+		if self.PARENT.user.entity.parent_joint_offer_network_id == net_id:
+			list_of_account_ids.append(self.PARENT.user.entity.parent_joint_offer_account_id)
+			list_of_group_ids.append(8)
+			
 		if len(list_of_account_ids) == 0:
 			return None
 			
@@ -3405,6 +3411,8 @@ class metric(object):
 		groups["clone_accounts"] = []
 		groups["child_client_accounts"] = []
 		groups["child_joint_accounts"] = []
+		groups["parent_client_offer"] = {}
+		groups["parent_joint_offer"] = {}
 		
 		groups["has_reserve_account"] = False
 		groups["has_client_accounts"] = False
@@ -3412,6 +3420,8 @@ class metric(object):
 		groups["has_clone_accounts"] = False
 		groups["has_child_client_accounts"] = False
 		groups["has_child_joint_accounts"] = False
+		groups["has_parent_client_offer"] = False
+		groups["has_parent_joint_offer"] = False
 		
 		for i in range(len(list_of_accounts)):
 			if list_of_group_ids[i] == 1:
@@ -3438,7 +3448,19 @@ class metric(object):
 				groups["has_child_joint_accounts"] = True
 				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
 				groups["child_joint_accounts"].append(list_of_accounts[i])
-						
+			if list_of_group_ids[i] == 7:
+				groups["has_parent_client_offer"] = True
+				groups["parent_client_offer"]["network_name"] = fstr_network_name
+				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
+				user_entity = a_key.get()
+				groups["parent_client_offer"]["username"] = user_entity.username
+			if list_of_group_ids[i] == 8:
+				groups["has_parent_joint_offer"] = True
+				groups["parent_joint_offer"]["network_name"] = fstr_network_name
+				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
+				user_entity = a_key.get()
+				groups["parent_joint_offer"]["username"] = user_entity.username
+				
 		return groups
 		
 	def _get_all_networks(self):
