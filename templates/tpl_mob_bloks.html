@@ -652,6 +652,7 @@
 			{% else %}
 				<p><b>NOT YOUR ACCOUNT</b></p>
 			{% endif %}
+
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
 			<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
 			<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
@@ -703,11 +704,11 @@
 			{% if blok.account.has_parent %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Parent Account</li>
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.parent_entity.username_alias }}">
-				<h3>{{ account.parent_entity.username_alias }}</h3>
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
+				<h3>{{ blok.account.parent_entity.username_alias }}</h3>
 				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.parent_entity.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ account.parent_entity.reserve_balance }}</p>
+				<p><b>Network Balance</b>: {{ blok.account.parent_entity.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ blok.account.parent_entity.reserve_balance }}</p>
 				</a></li>
 			</ul>
 			{% endif %}
