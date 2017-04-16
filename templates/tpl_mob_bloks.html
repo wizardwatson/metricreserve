@@ -397,9 +397,9 @@
 			<b>TREE_NETWORK_AMT_TOTAL</b>:  {{ tree.TREE_NETWORK_AMT_TOTAL }}<br/>
 			<b>TREE_MEMBER_TOTAL</b>:  {{ tree.TREE_MEMBER_TOTAL }}
 			{% if tree.HAS_SUGGESTED %}
-			<br/><br/><b>SUGGESTED_COUNT_TOTAL</b>:  {{ tree.SUGGESTED_COUNT_TOTAL }}<br/>
-			<b>SUGGESTED_MEMBER_TOTAL</b>:  {{ tree.SUGGESTED_MEMBER_TOTAL }}<br/>
-			<b>SUGGESTED_AMT_TOTAL</b>:  {{ tree.SUGGESTED_AMT_TOTAL }}<br/>
+			<br/><br/><b>SUGGESTED_TREE_COUNT_TOTAL</b>:  {{ tree.SUGGESTED_TREE_COUNT_TOTAL }}<br/>
+			<b>SUGGESTED_TREE_MEMBER_TOTAL</b>:  {{ tree.SUGGESTED_TREE_MEMBER_TOTAL }}<br/>
+			<b>SUGGESTED_TREE_AMT_TOTAL</b>:  {{ tree.SUGGESTED_TREE_AMT_TOTAL }}<br/>
 			{% endif %}
 			</p>
 		</div>
@@ -469,6 +469,7 @@
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.tickets.network_name }}">{{ blok.tickets.network_name }}</a><br/>
 			<b>Tickets Owner Name:</b>:  {{ blok.tickets.account_name }}<br/></p>
+			<p><a href="/network?vn={{ blok.tickets.network_name }}&va={{ blok.tickets.account_name }}">Back to Account</a></p>
 		</div>
 		{% if blok.tickets.is_owner %}
 			{% if blok.tickets.has_owner_tags %}
