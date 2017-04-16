@@ -188,7 +188,7 @@ NUM_BALANCE_NEGATIVE_SHARDS = 20
 NUM_RESERVE_POSITIVE_SHARDS = 20
 NUM_RESERVE_NEGATIVE_SHARDS = 20
 
-IS_DEBUG = True
+IS_DEBUG = False
 REDO_FINISHED_GRAPH_PROCESS = True
 
 # How often do you want the application to process the graph?
@@ -3909,7 +3909,7 @@ class metric(object):
 			# the target just to be sure.		
 			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.child_joint_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1182"
@@ -3954,7 +3954,7 @@ class metric(object):
 			# the target just to be sure.		
 			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.parent_joint_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1184"
@@ -3997,7 +3997,7 @@ class metric(object):
 			
 			# load target transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.parent_joint_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1186"
@@ -4198,7 +4198,7 @@ class metric(object):
 			# the target just to be sure.		
 			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.child_client_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1196"
@@ -4243,7 +4243,7 @@ class metric(object):
 			# the target just to be sure.		
 			# load user transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.parent_client_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1198"
@@ -4286,7 +4286,7 @@ class metric(object):
 			
 			# load target transactionally
 			target_user_key = ndb.Key("ds_mr_user",source_user.parent_client_offer_user_id)
-			target_user = source_user_key.get()
+			target_user = target_user_key.get()
 			# error if target doesn't exist
 			if target_user is None:
 				self.PARENT.RETURN_CODE = "1200"
@@ -8963,53 +8963,65 @@ class ph_command(webapp2.RequestHandler):
 			"va" in self.master.request.GET and
 			"vk" in self.master.request.GET):
 			# view graph result
+			self.master.PATH_CONTEXT = "graph result"
 			result.append(120)
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 			result.append(self.master.request.GET["vk"])
 		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view all tickets
+			self.master.PATH_CONTEXT = "all tickets"
 			result.append(100)
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET and "vt" in self.master.request.GET:
 			# view specific ticket
+			self.master.PATH_CONTEXT = "ticket"
 			result.append(110)
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 			result.append(self.master.request.GET["vt"])
 		if self.master.PATH_CONTEXT == "root/ledger" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view specific account ledger
+			self.master.PATH_CONTEXT = "ledger"
 			result.append(90)
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/network" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view specific account
+			self.master.PATH_CONTEXT = "account"
 			result.append(80)
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/network" and "vn" in self.master.request.GET:
 			# view specific network
+			self.master.PATH_CONTEXT = "network"
 			result.append(10)
 			result.append(self.master.request.GET["vn"])
 		if self.master.PATH_CONTEXT == "root/network":
 			# view all networks
+			self.master.PATH_CONTEXT = "all networks"
 			result.append(20)
 		if self.master.PATH_CONTEXT == "root" and "view_menu" in self.master.request.GET:
 			# view root menu
+			self.master.PATH_CONTEXT = "menu"
 			result.append(30)
 		if self.master.PATH_CONTEXT == "root":
 			# home page
+			self.master.PATH_CONTEXT = "home"
 			result.append(40)
 		if self.master.PATH_CONTEXT == "root/profile" and "va" in self.master.request.GET:
 			# viewing someone else's profile
+			self.master.PATH_CONTEXT = "profile"
 			result.append(50)
 			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/profile":
 			# viewing users own profile
+			self.master.PATH_CONTEXT = "profile"
 			result.append(60)
 		if self.master.PATH_CONTEXT == "root/messages" and "channel" in self.master.request.GET:
 			# messages page
+			self.master.PATH_CONTEXT = "messages"
 			result.append(70)
 			result.append(self.master.request.GET["channel"])
 					
@@ -9117,7 +9129,31 @@ class ph_command(webapp2.RequestHandler):
 	def get_formatted_amount(self,network,account,raw_amount):
 
 		return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+	
+	def get_menu_blok(self):
+	
+		blok = {}
+		blok["type"] = "menu"
+		blok["menuitems"] = []
+
+		menuitem = {}
+		menuitem["href"] = "/"
+		menuitem["label"] = "Home"
+		blok["menuitems"].append(menuitem)
+
+		menuitem = {}
+		menuitem["href"] = "/network"
+		menuitem["label"] = "All Networks"
+		blok["menuitems"].append(menuitem)
+
+		if self.master.user.IS_LOGGED_IN:
+			menuitem = {}
+			menuitem["href"] = "/profile"
+			menuitem["label"] = "My Profile"
+			blok["menuitems"].append(menuitem)
 			
+		return blok		
+	
 	def get(self):
 		
 		# Instantiate the master object, do security and other app checks. If
@@ -9230,6 +9266,7 @@ class ph_command(webapp2.RequestHandler):
 				if not blok["graph"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 110:
@@ -9244,6 +9281,7 @@ class ph_command(webapp2.RequestHandler):
 				if not blok["ticket"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 100:
@@ -9262,6 +9300,7 @@ class ph_command(webapp2.RequestHandler):
 				if not blok["tickets"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 			
 			if pqc[0] == 90:
@@ -9278,6 +9317,7 @@ class ph_command(webapp2.RequestHandler):
 				if not blok["ledger"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 			if pqc[0] == 80:
 				if not lobj_master.user.IS_LOGGED_IN:
@@ -9289,6 +9329,7 @@ class ph_command(webapp2.RequestHandler):
 				if not blok["account"]:
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 70:
@@ -9334,14 +9375,29 @@ class ph_command(webapp2.RequestHandler):
 					blok["next_cursor"] = blok["next_cursor"].urlsafe()
 				if not blok["prev_cursor"] is None:
 					blok["prev_cursor"] = blok["prev_cursor"].urlsafe()
+				user_key_list = []
+				for message in blok["messages_raw"]:
+					user_key = ndb.Key("ds_mr_user", message.create_user_id)
+					user_key_list.append(user_key)
+				user_list = ndb.get_multi(user_key_list)
+				user_list_idx = 0
 				for message in blok["messages_raw"]:
 					formatted_message = {}
 					formatted_message["avatar_url"] = lobj_master.user._get_gravatar_url(message.gravatar_url,message.gravatar_type)
 					formatted_message["date"] = message.date_created
+					mo = str(message.date_created.month)
+					d = str(message.date_created.day)
+					y = str(message.date_created.year)
+					h = str(message.date_created.hour).zfill(2)
+					m = str(message.date_created.minute).zfill(2)
+					s = str(message.date_created.second).zfill(2)
+					formatted_message["date"] = "%s/%s/%s %s:%s:%s" % (mo,d,y,h,m,s)
 					formatted_message["text"] = message.message_content
-					formatted_message["username"] = message.username
+					formatted_message["username"] = user_list[user_list_idx].username
+					user_list_idx += 1
 					blok["messages"].append(formatted_message)
 				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
 				break
 
 			if pqc[0] == 50:
@@ -9369,6 +9425,7 @@ class ph_command(webapp2.RequestHandler):
 				blok["lat"] = float(other_user.location_latitude) / 100000000
 				blok["long"] = float(other_user.location_longitude) / 100000000
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 60:
@@ -9434,6 +9491,7 @@ class ph_command(webapp2.RequestHandler):
 					blok["joint_parent_entity"]["reserve_balance"] = self.get_formatted_amount(a,b,d)
 				
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 
 			if pqc[0] == 40:
@@ -9441,37 +9499,12 @@ class ph_command(webapp2.RequestHandler):
 				blok = {}
 				blok["type"] = "home"
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 
 			if pqc[0] == 30:
 				page["title"] = "MENU ROOT"
-				blok = {}
-				blok["type"] = "menu"
-				blok["menuitems"] = []
-
-				menuitem = {}
-				menuitem["href"] = "/"
-				menuitem["label"] = "Root"
-				blok["menuitems"].append(menuitem)
-
-				menuitem = {}
-				menuitem["href"] = "/network"
-				menuitem["label"] = "All Networks"
-				blok["menuitems"].append(menuitem)
-
-				if lobj_master.user.IS_LOGGED_IN:
-					menuitem = {}
-					menuitem["href"] = "/profile"
-					menuitem["label"] = "My Profile"
-					blok["menuitems"].append(menuitem)
-
-				"""
-				menuitem = {}
-				menuitem["href"] = "/?test_code=8002"
-				menuitem["label"] = "Test Bloks"
-				blok["menuitems"].append(menuitem)
-				"""
-				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break	
 
 			if pqc[0] == 20:
@@ -9506,6 +9539,7 @@ class ph_command(webapp2.RequestHandler):
 				"""
 				blok["groups"] = self.master.metric._get_all_networks()
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 
 
@@ -9519,7 +9553,23 @@ class ph_command(webapp2.RequestHandler):
 				if blok["network"] is None: 
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 					return None
-				page["title"] = blok["network"].network_name
+					
+				# format network variables
+				fnetwork = {}
+				fnetwork["network_name"] = blok["network"].network_name
+				fnetwork["network_id"] = blok["network"].network_id
+				fnetwork["network_status"] = blok["network"].network_status
+				fnetwork["network_type"] = blok["network"].network_type
+				fnetwork["skintillionths"] = blok["network"].skintillionths
+				fnetwork["description"] = blok["network"].description
+				fnetwork["date_created"] = blok["network"].date_created
+				m = str(blok["network"].date_created.month)
+				d = str(blok["network"].date_created.day)
+				y = str(blok["network"].date_created.year)
+				fnetwork["date_created"] = "%s/%s/%s" % (m,d,y)
+				blok["network"] = fnetwork				
+				
+				page["title"] = blok["network"]["network_name"]
 				bloks.append(blok)
 
 				# now lets add the view of the users accounts
@@ -9527,6 +9577,7 @@ class ph_command(webapp2.RequestHandler):
 				blok2["type"] = "all accounts"
 				blok2["groups"] = self.master.metric._get_all_accounts(fstr_network_name=pqc[1])
 				bloks.append(blok2)	
+				bloks.append(self.get_menu_blok())	
 				break
 
 			# context not recognized
@@ -9538,6 +9589,7 @@ class ph_command(webapp2.RequestHandler):
 			blok["last_view_link"] = "/"
 			blok["last_view_link_text"] = "Link to ROOT"
 			bloks.append(blok)	
+			bloks.append(self.get_menu_blok())	
 			break			
 		
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
@@ -10184,24 +10236,10 @@ class ph_command(webapp2.RequestHandler):
 					ltemp["va"] = pqc[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
-			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint offer","client offer"]:
-				# offer to be parent account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1104"))
-				elif not lobj_master.metric._other_account(pqc[1],pqc[2],ct[2],("%s %s" % (ct[0],ct[1]))):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
 			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer deny":
 				# deny an existing joint/client offer
-				net_id = self.PARENT.user.entity.parent_client_offer_network_id
-				source_name = self.PARENT.user.entity.username
+				net_id = lobj_master.user.entity.parent_client_offer_network_id
+				source_name = lobj_master.user.entity.username
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				# make sure they actually have 
@@ -10215,8 +10253,8 @@ class ph_command(webapp2.RequestHandler):
 				return
 			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer deny":
 				# deny an existing joint/client offer
-				net_id = self.PARENT.user.entity.parent_joint_offer_network_id
-				source_name = self.PARENT.user.entity.username
+				net_id = lobj_master.user.entity.parent_joint_offer_network_id
+				source_name = lobj_master.user.entity.username
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				# make sure they actually have 
@@ -10230,8 +10268,8 @@ class ph_command(webapp2.RequestHandler):
 				return
 			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer cancel":
 				# cancel an existing joint/client offer
-				net_id = self.PARENT.user.entity.child_client_offer_network_id
-				source_name = self.PARENT.user.entity.username
+				net_id = lobj_master.user.entity.child_client_offer_network_id
+				source_name = lobj_master.user.entity.username
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				# make sure they actually have 
@@ -10245,8 +10283,8 @@ class ph_command(webapp2.RequestHandler):
 				return
 			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer cancel":
 				# cancel an existing joint/client offer
-				net_id = self.PARENT.user.entity.child_joint_offer_network_id
-				source_name = self.PARENT.user.entity.username
+				net_id = lobj_master.user.entity.child_joint_offer_network_id
+				source_name = lobj_master.user.entity.username
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				# make sure they actually have 
@@ -10257,6 +10295,20 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
 					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+				return
+			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint offer","client offer"]:
+				# offer to be parent account
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not self.is_valid_name(ct[2]):
+					r.redirect(self.url_path(error_code="1104"))
+				elif not lobj_master.metric._other_account(pqc[1],pqc[2],ct[2],("%s %s" % (ct[0],ct[1]))):
+					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
 			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["joint authorize","client authorize"]:
 				# authorize to be child account
