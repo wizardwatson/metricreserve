@@ -34,6 +34,7 @@ git pull https://github.com/wizardwatson/metricreserve.git
 TO DO:
 
 	MISCELLANEOUS
+		STUBS!
 		cron finish:
 			#call multi
 			2viewer for completed processes
