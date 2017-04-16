@@ -193,7 +193,7 @@ REDO_FINISHED_GRAPH_PROCESS = True
 
 # How often do you want the application to process the graph?
 GRAPH_FREQUENCY_MINUTES = 15
-GRAPH_ITERATION_DURATION_SECONDS = 30
+GRAPH_ITERATION_DURATION_SECONDS = 300
 GRAPH_ITERATION_WIGGLE_ROOM_SECONDS = 15
 GRAPH_ITERATION_HIJACK_DURATION_SECONDS = 10
 GRAPH_SYNC_WAIT_SECONDS = 120
@@ -470,7 +470,7 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 class ds_multi_mrgp_profile(ndb.Model):
 	current_time_key = ndb.StringProperty(indexed=False)
 	current_status = ndb.StringProperty(indexed=False)
-	network_index = ndb.StringProperty(indexed=False)
+	network_index = ndb.IntegerProperty(indexed=False)
 	total_networks = ndb.IntegerProperty(indexed=False)
 
 class ds_mrgp_profile(ndb.Model):
@@ -1241,16 +1241,17 @@ class metric(object):
 		# give this object a reference to the master object
 		self.PARENT = fobj_master
 		
-		if self.PARENT.user.IS_LOGGED_IN:
+		if hasattr(self.PARENT,"user") and self.PARENT.user.IS_LOGGED_IN:
 			# sync user with graph process
 			current_time_key = self._get_sync_time_key() 
 			# If this isn't the time key stored for the user
 			# then try to sync.
-			if self.entity.graph_sync == current_time_key:
+			if self.PARENT.user.entity.graph_sync == current_time_key:
 				# we're already synced
 				pass
 			else:
 				# get the multi-graph_process profile
+				
 				multi_gp_key = ndb.Key("ds_multi_mrgp_profile",current_time_key)
 				multi_gp_entity = multi_gp_key.get()
 				if multi_gp_entity is None or not multi_gp_entity.current_status == "FINISHED":
@@ -1268,28 +1269,28 @@ class metric(object):
 					for i in range(len(tuser.reserve_network_ids)):
 						a = tuser.reserve_network_ids[i]
 						b = tuser.reserve_account_ids[i]
-						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 						sync_account_keys.append(metric_key)
 						sync_network_ids.append(a)
 						sync_account_ids.append(b)
 					for i in range(len(tuser.client_network_ids)):
 						a = tuser.client_network_ids[i]
 						b = tuser.client_account_ids[i]
-						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 						sync_account_keys.append(metric_key)
 						sync_network_ids.append(a)
 						sync_account_ids.append(tuser.client_parent_ids[i])
 					for i in range(len(tuser.joint_network_ids)):
 						a = tuser.joint_network_ids[i]
 						b = tuser.joint_account_ids[i]
-						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 						sync_account_keys.append(metric_key)
 						sync_network_ids.append(a)
 						sync_account_ids.append(tuser.joint_parent_ids[i])
 					for i in range(len(tuser.clone_network_ids)):
 						a = tuser.clone_network_ids[i]
 						b = tuser.clone_account_ids[i]
-						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str((b).zfill(12)))
+						metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 						sync_account_keys.append(metric_key)
 						sync_network_ids.append(a)
 						sync_account_ids.append(tuser.clone_parent_ids[i])
@@ -1341,7 +1342,7 @@ class metric(object):
 		if user_entity is None:
 			self.PARENT.RETURN_CODE = "1301" # error Couldn't load user object
 			return False	
-		result = has_this_account(user_entity,fstr_account_name)
+		result = has_this_account(user_entity,network.network_id,fstr_account_name)
 		if not result:
 			self.PARENT.RETURN_CODE = "1302" # error Account name does not match user for this network
 			return False
@@ -1354,7 +1355,7 @@ class metric(object):
 			return False # error Could not load metric account		
 		
 		profile_key_network_part = str(network.network_id).zfill(8)		
-		profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (profile_key_network_part, fstr_key_name))
+		profile_key = ndb.Key("ds_mrgp_profile", "%s%s" % (profile_key_network_part, fstr_key_name))
 		profile = profile_key.get()
 		if profile is None:
 			self.PARENT.RETURN_CODE = "1304" # error Couldn't graph profile object
@@ -1379,26 +1380,26 @@ class metric(object):
 		fg['SUGGESTED_MEMBER_TOTAL'] = profile.report['SUGGESTED_MEMBER_TOTAL']
 		fg['SUGGESTED_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_AMT_TOTAL'])
 		
-		fg['01_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][0]
-		fg['02_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][1]
-		fg['03_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][2]
-		fg['04_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][3]
-		fg['05_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][4]
-		fg['06_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][5]
-		fg['07_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][6]
-		fg['08_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][7]
-		fg['09_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][8]
-		fg['10_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][9]
-		fg['11_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][10]
-		fg['12_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][11]
-		fg['13_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][12]
-		fg['14_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][13]
-		fg['15_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][14]
-		fg['16_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][15]
-		fg['17_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][16]
-		fg['18_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][17]
-		fg['19_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][18]
-		fg['20_STX_COUNT'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][19]
+		fg['STX_COUNT_01'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][0]
+		fg['STX_COUNT_02'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][1]
+		fg['STX_COUNT_03'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][2]
+		fg['STX_COUNT_04'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][3]
+		fg['STX_COUNT_05'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][4]
+		fg['STX_COUNT_06'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][5]
+		fg['STX_COUNT_07'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][6]
+		fg['STX_COUNT_08'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][7]
+		fg['STX_COUNT_09'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][8]
+		fg['STX_COUNT_10'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][9]
+		fg['STX_COUNT_11'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][10]
+		fg['STX_COUNT_12'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][11]
+		fg['STX_COUNT_13'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][12]
+		fg['STX_COUNT_14'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][13]
+		fg['STX_COUNT_15'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][14]
+		fg['STX_COUNT_16'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][15]
+		fg['STX_COUNT_17'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][16]
+		fg['STX_COUNT_18'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][17]
+		fg['STX_COUNT_19'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][18]
+		fg['STX_COUNT_20'] = profile.report['SUGGESTED_TX_COUNT_TOTAL'][19]
 		
 		fg['ORPHAN_RESERVE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['ORPHAN_RESERVE_AMT_TOTAL'])
 		fg['ORPHAN_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['ORPHAN_NETWORK_AMT_TOTAL'])
@@ -1437,26 +1438,26 @@ class metric(object):
 				new_tree['SUGGESTED_TREE_MEMBER_TOTAL'] = profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][tree_key]
 				new_tree['SUGGESTED_TREE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_TREE_AMT_TOTAL'][tree_key])
 				
-				new_tree['01_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][0]
-				new_tree['02_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][1]
-				new_tree['03_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][2]
-				new_tree['04_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][3]
-				new_tree['05_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][4]
-				new_tree['06_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][5]
-				new_tree['07_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][6]
-				new_tree['08_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][7]
-				new_tree['09_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][8]
-				new_tree['10_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][9]
-				new_tree['11_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][10]
-				new_tree['12_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][11]
-				new_tree['13_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][12]
-				new_tree['14_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][13]
-				new_tree['15_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][14]
-				new_tree['16_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][15]
-				new_tree['17_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][16]
-				new_tree['18_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][17]
-				new_tree['19_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][18]
-				new_tree['20_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][19]
+				new_tree['STX_COUNT_01'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][0]
+				new_tree['STX_COUNT_02'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][1]
+				new_tree['STX_COUNT_03'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][2]
+				new_tree['STX_COUNT_04'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][3]
+				new_tree['STX_COUNT_05'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][4]
+				new_tree['STX_COUNT_06'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][5]
+				new_tree['STX_COUNT_07'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][6]
+				new_tree['STX_COUNT_08'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][7]
+				new_tree['STX_COUNT_09'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][8]
+				new_tree['STX_COUNT_10'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][9]
+				new_tree['STX_COUNT_11'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][10]
+				new_tree['STX_COUNT_12'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][11]
+				new_tree['STX_COUNT_13'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][12]
+				new_tree['STX_COUNT_14'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][13]
+				new_tree['STX_COUNT_15'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][14]
+				new_tree['STX_COUNT_16'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][15]
+				new_tree['STX_COUNT_17'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][16]
+				new_tree['STX_COUNT_18'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][17]
+				new_tree['STX_COUNT_19'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][18]
+				new_tree['STX_COUNT_20'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][19]
 
 			fg['TREES'].append(new_tree)
 		
@@ -1526,7 +1527,7 @@ class metric(object):
 			result_dict = self._fetch_user_graph_result(a,b,c)
 			if not result_dict:
 				# fail silently here
-				pass
+				return
 			account.graph_sync = current_time_key
 			account.tree_number = result_dict["tree_number"]
 			# load our suggested transfers if any match current connections
@@ -1564,7 +1565,6 @@ class metric(object):
 		return current_time_key
 	
 	def _fetch_user_graph_result(self,time_key,network_id,account_id):
-		
 		# which map indexes?
 		map_chunk_idx = account_id - (account_id % 150000) + 1
 		map_within_idx = (account_id % 150000) - 1
@@ -1608,7 +1608,10 @@ class metric(object):
 						# found it
 						account_idx = tree_chunk.stuff[tree_index][level_index * -1].index(account_id)
 						result["account"] = tree_chunk.stuff[tree_index][level_index][account_idx]
+						result["tree_number"] = tree_index
 						break
+			if not result["tree_number"] == 0:
+				break
 		if result["tree_number"] == 0:
 			return None
 		else:
@@ -2982,7 +2985,6 @@ class metric(object):
 				reserve_complete["map_data"][i]["latitude"]
 				reserve_complete["map_data"][i]["longitude"]		
 				"""
-				
 			if not metric_account_entity.graph_sync == "EMPTY":
 				reserve_complete["has_graph_assignment"] = True
 				reserve_complete["tree_number"] = metric_account_entity.tree_number
@@ -4798,8 +4800,7 @@ class metric(object):
 			# account sequence (like joint/client/clone).  We don't care about
 			# the type as that will be known when calling function queries the
 			# metric account itself.
-			# DEBUG
-			# pdb.set_trace()			
+			
 			for i in range(len(lds_target_user.reserve_network_ids)):
 				if lds_target_user.reserve_network_ids[i] == network_id:
 					if lds_target_user.reserve_labels[i] == fstr_target_name:
@@ -7469,7 +7470,7 @@ class metric(object):
 		if system_cursor is None:
 			total_networks = 0
 		else:
-			total_networks = system_cursor.current_index +=1
+			total_networks = system_cursor.current_index
 
 		# get or insert the multi-graph_process profile
 		multi_gp_key = ndb.Key("ds_multi_mrgp_profile",current_time_key)
@@ -7480,7 +7481,7 @@ class metric(object):
 			if system_cursor is None:
 				total_networks = 0
 			else:
-				total_networks = system_cursor.current_index +=1
+				total_networks = system_cursor.current_index
 			multi_gp_entity = ds_multi_mrgp_profile()
 			multi_gp_entity.key = multi_gp_key
 			multi_gp_entity.current_time_key = current_time_key
@@ -7513,7 +7514,7 @@ class metric(object):
 			if not network.network_status == "ACTIVE":
 				multi_gp_entity.network_index += 1
 			else:			
-				result_status, result_profile = self._process_graph(network_id, current_time_key, deadline)
+				result_status, result_profile = self._process_graph(multi_gp_entity.network_index, current_time_key, deadline, t_cutoff)
 				if result_status == "LOCKED":
 					# no monopoly on process, get out
 					return
@@ -7523,13 +7524,15 @@ class metric(object):
 			
 		multi_gp_entity.put()
 
-	def _process_graph(self, fint_network_id, fstr_current_time_key, fdate_deadline):
+	def _process_graph(self, fint_network_id, fstr_current_time_key, fdate_deadline, fcutoff):
 	
 		profile_key_time_part = fstr_current_time_key
 			
 		# We use a transactional timelock mechanism to make sure one
 		# and only one process is processing each specific window
 		# of time, for each specific network id.
+		t_cutoff = fcutoff
+		lint_deadline_compute_factor = 0
 		
 		profile_key_network_part = str(fint_network_id).zfill(8)
 		
@@ -7546,14 +7549,14 @@ class metric(object):
 		def process_lock():
 		
 			# get or create this networks master process entity
-			profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (profile_key_network_part, profile_key_time_part))
+			profile_key = ndb.Key("ds_mrgp_profile", "%s%s" % (profile_key_network_part, profile_key_time_part))
 			profile = profile_key.get()
 			if profile is None:
 			
 				# This process is creating the profile. We can
 				# start a fresh process.
 				what_to_do = "NEW"
-				profile = ds_mrgp_master()
+				profile = ds_mrgp_profile()
 				profile.key = profile_key
 				
 			else:
@@ -7563,6 +7566,7 @@ class metric(object):
 				
 					# if the deadline has passed reboot
 					# the process, otherwise exit.
+					t_now = datetime.datetime.now()
 					if t_now > profile.deadline:
 						what_to_do = "NEW"
 					else: return "LOCKED", profile
@@ -7658,7 +7662,7 @@ class metric(object):
 		# times, and for large graphs we want to minimize our writes
 		# to the datastore.
 		
-		profile = process_lock_result[1]
+		profile = result_profile
 		juggler = {}
 		juggler_to_put = {}
 		""" 
@@ -7778,7 +7782,7 @@ class metric(object):
 					# that we don't have to wait for a 150,000
 					# list loop to happen. If this is first time
 					# ever, create the generic index.
-					generic_map_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_MAP_CHUNK_150_THOUSAND_0_LIST")
+					generic_map_key = ndb.Key("ds_mrgp_map_chunk","GENERIC_MAP_CHUNK_150_THOUSAND_0_LIST")
 					generic_map_chunk = generic_map_key.get()
 					if generic_map_chunk is None:
 						t_list = []
@@ -7822,6 +7826,8 @@ class metric(object):
 		**************************************************
 		**************************************************
 		"""
+		def reset_juggler(fjuggler):
+			fjuggler = {}
 		@ndb.transactional(xg=True)
 		def do_juggler_puts():
 		
@@ -7830,7 +7836,7 @@ class metric(object):
 			# every chunk object should have a reference in the juggler
 			for juggler_to_put_key in juggler_to_put:
 				juggler[juggler_to_put_key].put()
-				del juggler_to_put[juggler_to_put_key]
+			reset_juggler(juggler_to_put)
 
 		""" 
 		**************************************************
@@ -7869,7 +7875,7 @@ class metric(object):
 				network_profile.total_trees = profile.report['TOTAL_TREES']
 				network_profile.last_graph_process = profile_key_time_part
 				network_profile.put()
-			return "FINISHED", profile
+			return profile.status, profile
 			
 		""" 
 		**************************************************
@@ -7879,18 +7885,19 @@ class metric(object):
 		
 		**************************************************
 		**************************************************
-		"""
-		lint_deadline_compute_factor = 0
+		"""	
+		def reset_counter(fcounter):
+			fcounter = 0
 		def deadline_reached(fbool_use_compute_factor=False):
 			# If the compute factor is > 1000 then we do a check, otherwise
 			# wait until it is.
 			if fbool_use_compute_factor:
 				if lint_deadline_compute_factor > 1000:
-					lint_deadline_compute_factor = 0
+					reset_counter(lint_deadline_compute_factor)
 				else:
 					return False
 			# If we've passed the deadline do our puts
-			if datetime.datetime.now() > process.deadline:
+			if datetime.datetime.now() > profile.deadline:
 				do_juggler_puts()
 				return True
 			else:
@@ -7917,7 +7924,7 @@ class metric(object):
 		if profile.phase_cursor == 1:		
 			# figure out how many accounts there are
 			# if we haven't already
-			if profile.total_accounts == 0:			
+			if profile.max_account == 0:			
 				network_cursor_key = ndb.Key("ds_mr_network_cursor",profile_key_network_part)		
 				lds_network_cursor = network_cursor_key.get()
 				profile.max_account = lds_network_cursor.current_index
@@ -8079,7 +8086,7 @@ class metric(object):
 				# the tree chunk to check its size.
 				if lint_tree_chunk_size_factor < 1000:
 					return None
-			lint_tree_chunk_size_factor = 0
+			reset_counter(lint_tree_chunk_size_factor)
 			# if the size of the child chunk is too big 
 			# create the next one
 			if len(child_chunk._to_pb().Encode()) > 900000:
@@ -8195,12 +8202,12 @@ class metric(object):
 				profile.child_pointer = 1
 			
 			# First, get the tree chunk the parent_pointer is using
-			parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer,lbool_new)
+			parent_chunk = get_chunk_from_juggler("tree",profile.parent_pointer)
 			# For small networks, they will always be the same
 			# For a large tree they may diverge in which tree 
 			# chunk they are pointing at
 			if profile.parent_pointer == profile.child_pointer:
-				child_chunk = get_chunk_from_juggler("tree",profile.child_pointer,lbool_new)
+				child_chunk = get_chunk_from_juggler("tree",profile.child_pointer)
 			else:
 				child_chunk = parent_chunk
 				
@@ -8224,7 +8231,8 @@ class metric(object):
 			# MAIN PHASE 2 TREE PROCESS LOOP
 			while True:
 
-				if deadline_reached(True): return process_stop()
+				if deadline_reached(True): 
+					return process_stop()
 				phz2_chk_chnk_sz(True)
 
 				if profile.tree_in_process:
@@ -8271,12 +8279,12 @@ class metric(object):
 						if not phz2_acct_in_idx(connection):
 							# lets put this connection on the level below
 							# after getting it from the staging chunk
-							laccount = get_acct_fsc(connection)
+							laccount = phz2_get_acct_fsc(connection)
 							# Get tree statistics from this account
 							# get childs reserve total
 							profile.report['TREE_RESERVE_AMT_TOTAL'][key1] += laccount[5]
 							profile.report['TREE_NETWORK_AMT_TOTAL'][key1] += laccount[4]
-							profile.report['TREE_MEMBER_TOTAL'] += 1
+							profile.report['TREE_MEMBER_TOTAL'][key1] += 1
 							profile.report['RESERVE_AMT_TOTAL'] += laccount[5]
 							profile.report['NETWORK_AMT_TOTAL'] += laccount[4]
 							# Make this parent_chunk id the LP_WITH_KIDS
@@ -8305,7 +8313,7 @@ class metric(object):
 							# no level below this, this tree is done
 							profile.report['PARENT_LEVEL'] = 1
 							profile.report['PARENT_LEVEL_IDX'] = 0
-							profile.report['CHILD_LEVEL_IDX'][key1] = idx1
+							profile.report['CHILD_LEVEL_IDX'] = idx1
 							# While we're ending the tree, lets take care of some reporting variables.
 							profile.report['SUGGESTED_TREE_COUNT_TOTAL'][key1] = 0
 							profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][key1] = 0
@@ -8337,7 +8345,7 @@ class metric(object):
 					else:
 						# account not yet processed
 						# try to get it from staging chunk
-						lresult = get_acct_fsc(profile.count_cursor)
+						lresult = phz2_get_acct_fsc(profile.count_cursor)
 						if lresult is None:
 							# nothing to do
 							# let process fall through and 
@@ -8390,7 +8398,6 @@ class metric(object):
 		--------------------------------------------------------
 		--------------------------------------------------------
 		"""
-		
 		if profile.phase_cursor == 3:
 		
 			# PHASE 3
@@ -8429,8 +8436,9 @@ class metric(object):
 			# Main Loop
 			while True:
 			
-				if deadline_reached(True): return process_stop()
-				
+				if deadline_reached(True): 
+					return process_stop()
+					
 				if profile.tree_in_process:
 				
 					# If there's a tree in process there must
@@ -8546,7 +8554,7 @@ class metric(object):
 							# of child level on this tree chunk, which means end
 							# of this group.
 							break
-					# We are done checking the children.
+					# We are done checking nthe children.
 					# Now see if we need to make parent suggestions.
 					if child_has_deficiency and parent_has_reserves:					
 							# create new reference to parents total reserves
@@ -8656,7 +8664,7 @@ class metric(object):
 					# this tree.
 					if lint_p_lvl == 1:
 						# level 1 is the seed, we are done with this tree
-						# Decrement the tree cursor and break
+						# Decrement the tree cursor
 						
 						# Also, being that the parent is on the seed, let's 
 						# record the final report variables we don't get to
@@ -8665,8 +8673,7 @@ class metric(object):
 							profile.report['SUGGESTED_TX_COUNT_TOTAL'][ldict_p_account[7] - 1] += 1 
 							profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][profile.tree_cursor][ldict_p_account[7] - 1] += 1						
 						profile.tree_cursor -= 1
-						profile.tree_in_process = False						
-						break
+						profile.tree_in_process = False	
 					else:
 						# So the child level is at least level 3.  To prepare
 						# the next group we need to find the next child.  Finding
@@ -8742,7 +8749,6 @@ class metric(object):
 									# ready to continue the outer loop.
 									break
 				else:
-				
 					if profile.tree_cursor == 1:
 					
 						# Nothing left but orphans.
@@ -8812,7 +8818,7 @@ class metric(object):
 		--------------------------------------------------------
 		--------------------------------------------------------
 		"""
-		
+
 		if profile.phase_cursor == 4:
 		
 			# Create a map index, that points account ids implicitly to tree chunks
@@ -8820,8 +8826,10 @@ class metric(object):
 
 			# how many maps to query/create?
 			# one for every 150,000 accounts
+
 			t_num = ((profile.max_account - (profile.max_account % 150000)) / 150000) + 1			
 			# initialize map chunks if not already done
+
 			if not profile.map_chunk_counter == t_num:
 				for i in range(profile.map_chunk_counter + 1,t_num + 1):
 					index_chunk[i] = get_chunk_from_juggler("map",i)
@@ -8853,7 +8861,7 @@ class metric(object):
 						marker = marker + 150000
 						map_chunk_id = map_chunk_id + 1				
 				return ldict_blocked_ids
-				
+
 			while True:
 			
 				# Use ***profile.child_pointer*** for position.
@@ -8870,7 +8878,6 @@ class metric(object):
 				
 				# get our blocked ids
 				ldict_blocked_ids = scan_tree_chunk_for_ids(profile.child_pointer,profile.count_cursor)
-				
 				for block_key in ldict_blocked_ids:			
 					if deadline_reached(True): return process_stop()
 					# This if statement below allows the process to stop
@@ -8879,7 +8886,7 @@ class metric(object):
 					# be set to where the correct block_key gets 
 					# done first.
 					if block_key < profile.count_cursor: continue
-					map_chunk = get_chunk_from_juggler("map",block_key,lbool_new)
+					map_chunk = get_chunk_from_juggler("map",block_key)
 					# loop through accounts in this block of ids
 					for account_id in ldict_blocked_ids[block_key]:
 						# set account position in map chunk to tree value
@@ -8892,7 +8899,7 @@ class metric(object):
 				profile.child_pointer += 1
 				if profile.child_pointer > profile.tree_chunks:
 					# We're done, completely.
-					process_stop(True)
+					return process_stop(True)
 				else:
 					# keep going
 					profile.count_cursor = 0					
@@ -9218,6 +9225,7 @@ class ph_command(webapp2.RequestHandler):
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				page["title"] = "GRAPH"
+				blok = {}
 				blok["type"] = "graph"
 				blok["graph"] = lobj_master.metric._view_graph(pqc[1],pqc[2],pqc[3])
 				if not blok["graph"]:
@@ -9456,10 +9464,12 @@ class ph_command(webapp2.RequestHandler):
 					menuitem["label"] = "My Profile"
 					blok["menuitems"].append(menuitem)
 
+				"""
 				menuitem = {}
 				menuitem["href"] = "/?test_code=8002"
 				menuitem["label"] = "Test Bloks"
 				blok["menuitems"].append(menuitem)
+				"""
 				bloks.append(blok)	
 				break	
 
