@@ -2983,6 +2983,13 @@ class metric(object):
 				reserve_complete["map_data"][i]["longitude"]		
 				"""
 				
+			if not metric_account_entity.graph_sync == "EMPTY":
+				reserve_complete["has_graph_assignment"] = True
+				reserve_complete["tree_number"] = metric_account_entity.tree_number
+				reserve_complete["graph_sync"] = metric_account_entity.graph_sync				
+			else:
+				reserve_complete["has_graph_assignment"] = False
+			
 			return reserve_complete
 			
 		if metric_account_entity.account_type == "CLIENT":
@@ -3037,6 +3044,13 @@ class metric(object):
 			client_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
 			# get ticket tag count
 
+			if not metric_account_entity.graph_sync == "EMPTY":
+				client_complete["has_graph_assignment"] = True
+				client_complete["tree_number"] = metric_account_entity.tree_number
+				client_complete["graph_sync"] = metric_account_entity.graph_sync				
+			else:
+				client_complete["has_graph_assignment"] = False
+			
 			return client_complete
 
 		if metric_account_entity.account_type == "JOINT":
@@ -3090,6 +3104,13 @@ class metric(object):
 			joint_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
 			joint_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
 			
+			if not metric_account_entity.graph_sync == "EMPTY":
+				joint_complete["has_graph_assignment"] = True
+				joint_complete["tree_number"] = metric_account_entity.tree_number
+				joint_complete["graph_sync"] = metric_account_entity.graph_sync				
+			else:
+				joint_complete["has_graph_assignment"] = False
+			
 			return joint_complete
 			
 		if metric_account_entity.account_type == "CLONE":
@@ -3142,6 +3163,13 @@ class metric(object):
 			d = parent_metric.current_reserve_balance
 			clone_complete["parent_entity"]["network_balance"] = get_formatted_amount(a,b,c)
 			clone_complete["parent_entity"]["reserve_balance"] = get_formatted_amount(a,b,d)
+			
+			if not metric_account_entity.graph_sync == "EMPTY":
+				clone_complete["has_graph_assignment"] = True
+				clone_complete["tree_number"] = metric_account_entity.tree_number
+				clone_complete["graph_sync"] = metric_account_entity.graph_sync				
+			else:
+				clone_complete["has_graph_assignment"] = False
 			
 			return clone_complete
 			
@@ -10198,7 +10226,7 @@ class ph_command(webapp2.RequestHandler):
 				# make sure they actually have 
 				elif net_id == 0:
 					# error No client offer exists
-					r.redirect(self.url_path(error_code="STUB"))
+					r.redirect(self.url_path(error_code="1321"))
 				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer cancel"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
@@ -10213,7 +10241,7 @@ class ph_command(webapp2.RequestHandler):
 				# make sure they actually have 
 				elif net_id == 0:
 					# error No joint offer exists
-					r.redirect(self.url_path(error_code="STUB"))
+					r.redirect(self.url_path(error_code="1322"))
 				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer cancel"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
@@ -10225,7 +10253,7 @@ class ph_command(webapp2.RequestHandler):
 					r.redirect(self.url_path(error_code="1003"))
 				elif lobj_master.user.entity is None:
 					# error User not registered
-					r.redirect(self.url_path(error_code="STUB"))
+					r.redirect(self.url_path(error_code="1323"))
 				elif not lobj_master.metric._other_account(pqc[1],lobj_master.user.entity.username,pqc[2],("%s %s" % (ct[0],ct[1]))):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
