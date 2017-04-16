@@ -1333,31 +1333,31 @@ class metric(object):
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
 		name_entity = name_key.get()
 		if name_entity is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			self.PARENT.RETURN_CODE = "1300" # error Invalid account name
 			return False
 		# need to verify that user has this named account
 		user_key = ndb.Key("ds_mr_user",name_entity.user_id)
 		user_entity = user_key.get()
 		if user_entity is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Couldn't load user object
+			self.PARENT.RETURN_CODE = "1301" # error Couldn't load user object
 			return False	
 		result = has_this_account(user_entity,fstr_account_name)
 		if not result:
-			self.PARENT.RETURN_CODE = "STUB" # error Account name does not match user for this network
+			self.PARENT.RETURN_CODE = "1302" # error Account name does not match user for this network
 			return False
 		# ok, we have valid account id, load metric account
 		account_id = result
 		metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(account_id).zfill(12)))
 		metric_entity = metric_key.get()
 		if metric_entity is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1303"
 			return False # error Could not load metric account		
 		
 		profile_key_network_part = str(network.network_id).zfill(8)		
 		profile_key = ndb.Key("ds_mrgp_master", "%s%s" % (profile_key_network_part, fstr_key_name))
 		profile = profile_key.get()
 		if profile is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Couldn't graph profile object
+			self.PARENT.RETURN_CODE = "1304" # error Couldn't graph profile object
 			return False			
 		
 		fg = {}
@@ -1428,9 +1428,11 @@ class metric(object):
 			new_tree['TREE_RESERVE_AMT_AVERAGE'] = get_f_amt(a,b,profile.report['TREE_RESERVE_AMT_AVERAGE'][tree_key])
 			new_tree['TREE_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['TREE_NETWORK_AMT_TOTAL'][tree_key])
 			new_tree['TREE_MEMBER_TOTAL'] = profile.report['TREE_MEMBER_TOTAL'][tree_key]
+			new_tree['HAS_SUGGESTED'] = False
 			
 			if tree_key in profile.report['SUGGESTED_TREE_COUNT_TOTAL']:
 			
+				new_tree['HAS_SUGGESTED'] = True
 				new_tree['SUGGESTED_TREE_COUNT_TOTAL'] = profile.report['SUGGESTED_TREE_COUNT_TOTAL'][tree_key]
 				new_tree['SUGGESTED_TREE_MEMBER_TOTAL'] = profile.report['SUGGESTED_TREE_MEMBER_TOTAL'][tree_key]
 				new_tree['SUGGESTED_TREE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['SUGGESTED_TREE_AMT_TOTAL'][tree_key])
@@ -1456,7 +1458,7 @@ class metric(object):
 				new_tree['19_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][18]
 				new_tree['20_STX_COUNT'] = profile.report['SUGGESTED_TREE_TX_COUNT_TOTAL'][tree_key][19]
 
-
+			fg['TREES'].append(new_tree)
 		
 		return fg
 		
@@ -1717,24 +1719,24 @@ class metric(object):
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_account_name)
 		name_entity = name_key.get()
 		if name_entity is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Invalid account name
+			self.PARENT.RETURN_CODE = "1305" # error Invalid account name
 			return False
 		# need to verify that user has this named account
 		owner_user_key = ndb.Key("ds_mr_user",name_entity.user_id)
 		owner_user = owner_user_key.get()
 		if owner_user is None:
-			self.PARENT.RETURN_CODE = "STUB" # error Couldn't load ticket owner user object
+			self.PARENT.RETURN_CODE = "1306" # error Couldn't load ticket owner user object
 			return False	
 		result = has_this_account(owner_user,fstr_account_name)
 		if not result:
-			self.PARENT.RETURN_CODE = "STUB" # error Ticket owner name does not match user for this network
+			self.PARENT.RETURN_CODE = "1307" # error Ticket owner name does not match user for this network
 			return False
 		# ok, we have valid account id, load metric account
 		owner_account_id = result
 		owner_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(owner_account_id).zfill(12)))
 		owner_metric_entity = owner_metric_key.get()
 		if owner_metric_entity is None:
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1308"
 			return False # error Could not load metric account
 		# Get the ticket data entity
 		owner_ticket_entity = get_or_insert_ticket_index(network.network_id,owner_account_id,owner_user.user_id)
@@ -1801,7 +1803,7 @@ class metric(object):
 					last_ticket_idx = (int(fpage) * tickets_per_page) - 1
 					first_ticket_idx = last_ticket_idx - tickets_per_page - 1
 					if first_ticket_idx > (ft["all_tickets_count"] - 1):
-						self.PARENT.RETURN_CODE = "STUB"
+						self.PARENT.RETURN_CODE = "1309"
 						return False # error Invalid page passed
 					if last_ticket_idx > (ft["all_tickets_count"] - 1):
 						last_ticket_idx = ft["all_tickets_count"] - 1
@@ -1897,7 +1899,7 @@ class metric(object):
 		else:
 			# Viewing one ticket
 			if not fstr_ticket_name in owner_ticket_entity.ticket_data["ticket_labels"]:
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1310"
 				return False # error Ticket label doesn't exist for owner account
 			else:
 				# get the index of this ticket
@@ -1919,14 +1921,14 @@ class metric(object):
 					tagged_user_key = ndb.Key("ds_mr_user",ft["ticket_tag_user_id"])
 					tagged_user = tagged_user_key.get()
 					if tagged_user is None:
-						self.PARENT.RETURN_CODE = "STUB" # error Couldn't load tagged user object
+						self.PARENT.RETURN_CODE = "1311" # error Couldn't load tagged user object
 						return False
 					a = tagged_user
 					b = network.network_id
 					c = ft["ticket_tag_account_id"]
 					ft["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)
 					if ft["ticket_tag_user_account_name"] is None:
-						self.PARENT.RETURN_CODE = "STUB" # error Couldn't render tagged user account name
+						self.PARENT.RETURN_CODE = "1312" # error Couldn't render tagged user account name
 						return False
 					ft["ticket_has_tag"] = True
 				else:
@@ -2272,7 +2274,7 @@ class metric(object):
 				checker.append("TICKET PAYMENT RECEIVED")
 				
 				if not ftx["tx_type"] in checker:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1313"
 					return False # error Bad transaction type.					
 				
 				# (NA)
@@ -2370,7 +2372,7 @@ class metric(object):
 				checker.append("TICKET PAYMENT RECEIVED")
 				
 				if not ftx["tx_type"] in checker:
-					self.PARENT.RETURN_CODE = "STUB"
+					self.PARENT.RETURN_CODE = "1314"
 					return False # error Bad transaction type.					
 				
 				# (NA)
@@ -2517,12 +2519,12 @@ class metric(object):
 			metric_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(network_id).zfill(8),str(account_id).zfill(12)))
 			metric_account = metric_key.get()
 			if metric_account is None:
-				self.PARENT.RETURN_CODE = "STUB" # error Couldn't load parent metric account.
+				self.PARENT.RETURN_CODE = "1315" # error Couldn't load parent metric account.
 				return False, None, None
 			user_key = ndb.Key("ds_mr_user", "%s" % str(metric_account.user_id))
 			user_entity = user_key.get()
 			if user_entity is None:
-				self.PARENT.RETURN_CODE = "STUB" # error Couldn't load parent user object.
+				self.PARENT.RETURN_CODE = "1316" # error Couldn't load parent user object.
 				return False, None, None
 			return True, user_entity, metric_account
 							
@@ -5486,7 +5488,7 @@ class metric(object):
 		self._sync_account(lds_source)
 		self._sync_account(lds_target)
 		if not self._transact_allow(lds_source,lds_target):
-			self.PARENT.RETURN_CODE = "STUB"
+			self.PARENT.RETURN_CODE = "1317"
 			return False # error TREE ERROR Can't make payments between disconnected accounts.		
 		# make sure fstr_amount actually is an integer
 		try:
@@ -7267,7 +7269,7 @@ class metric(object):
 			self._sync_account(lds_pay_source)
 			self._sync_account(lds_pay_target)
 			if not self._transact_allow(lds_source,lds_target):
-				self.PARENT.RETURN_CODE = "STUB"
+				self.PARENT.RETURN_CODE = "1318"
 				return False # error TREE ERROR Can't make payments between disconnected accounts.
 
 			# Calculate the payment amount
@@ -10166,7 +10168,7 @@ class ph_command(webapp2.RequestHandler):
 				# make sure they actually have 
 				elif net_id == 0:
 					# error No client offer exists
-					r.redirect(self.url_path(error_code="STUB"))
+					r.redirect(self.url_path(error_code="1319"))
 				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer deny"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
@@ -10181,7 +10183,7 @@ class ph_command(webapp2.RequestHandler):
 				# make sure they actually have 
 				elif net_id == 0:
 					# error No joint offer exists
-					r.redirect(self.url_path(error_code="STUB"))
+					r.redirect(self.url_path(error_code="1320"))
 				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer deny"):
 					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 				else:
