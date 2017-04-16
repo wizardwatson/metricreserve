@@ -8,8 +8,8 @@
 						<img class="qr_code" src="{{ message.avatar_url }}"/>
 					</div>
 					<div style="margin:0px;padding:0px;float: left; width: 77%;">
-						<p style="margin:5px;padding:0px;" >{{ message.username }}<br/>
-						{{ message.date }}<br/>
+						<p style="margin:5px;padding:0px;" ><b>{{ message.username }}</b><br/>
+						<b>{{ message.date }}</b><br/>
 						{{ message.text }}</p>
 					</div>
 				</div>
@@ -660,7 +660,7 @@
 				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
 			{% endif %}
 			{% if blok.account.has_graph_assignment %}
-				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}&nbsp;<a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
+				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
 			{% endif %}</p>
 			</div>
 			{% if blok.account.has_child_client_offer %}
