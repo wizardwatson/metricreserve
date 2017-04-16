@@ -1496,7 +1496,7 @@ class metric(object):
 		profile.report['TIME_TOTAL'] = None
 		"""
 		
-	def _transact_allow(faccount1,faccount2,ftype="PAYMENT"):
+	def _transact_allow(self,faccount1,faccount2,ftype="PAYMENT"):
 		
 		if ftype == "PAYMENT":
 			# don't allow payment if not on same tree
@@ -2666,14 +2666,14 @@ class metric(object):
 					if t_user_object.child_client_parent_ids[i] == metric_account_entity.account_id:
 						# match
 						reserve_complete["child_client_account_count"] += 1
-						all_account_id_list.append(metric_account_entity.child_client_account_ids[i])
+						all_account_id_list.append(t_user_object.child_client_account_ids[i])
 
 			for i in range(len(t_user_object.child_joint_network_ids)):
 				if t_user_object.child_joint_network_ids[i] == network_id:
 					if t_user_object.child_joint_parent_ids[i] == metric_account_entity.account_id:
 						#match
 						reserve_complete["child_joint_account_count"] += 1
-						all_account_id_list.append(metric_account_entity.child_joint_account_ids[i])
+						all_account_id_list.append(t_user_object.child_joint_account_ids[i])
 						
 			# now make a list of keys from our account/network ids
 			all_accounts_key_list = []
@@ -2872,7 +2872,7 @@ class metric(object):
 					next_entity["network_balance"] = get_formatted_amount(a,b,c)
 					next_entity["latitude"] = list_of_associated_users[i].location_latitude
 					next_entity["longitude"] = list_of_associated_users[i].location_longitude
-					reserve_complete["child_client_accounts"].append(next_entity)
+					reserve_complete["child_joint_accounts"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["polyline"] = ""
 					next_marker["username_alias"] = next_entity["username_alias"]
@@ -3326,6 +3326,28 @@ class metric(object):
 
 	def _get_all_accounts(self,fstr_network_name):	
 		
+		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
+			if fstr_type == "RESERVE":
+				for i in range(len(user_obj.reserve_network_ids)):
+					if user_obj.reserve_network_ids[i] == network_id:
+						if user_obj.reserve_account_ids[i] == account_id:
+							return user_obj.reserve_labels[i]
+			if fstr_type == "CLIENT":
+				for i in range(len(user_obj.client_network_ids)):
+					if user_obj.client_network_ids[i] == network_id:
+						if user_obj.client_account_ids[i] == account_id:
+							return user_obj.client_labels[i]
+			if fstr_type == "JOINT":
+				for i in range(len(user_obj.joint_network_ids)):
+					if user_obj.joint_network_ids[i] == network_id:
+						if user_obj.joint_account_ids[i] == account_id:
+							return user_obj.joint_labels[i]
+			if fstr_type == "CLONE":
+				for i in range(len(user_obj.clone_network_ids)):
+					if user_obj.clone_network_ids[i] == network_id:
+						if user_obj.clone_account_ids[i] == account_id:
+							return user_obj.clone_labels[i]
+							
 		# get network by name
 		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_network_name)
 		network_name_entity = network_name_key.get()
@@ -3442,11 +3464,25 @@ class metric(object):
 				groups["clone_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 5:
 				groups["has_child_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
-				groups["child_client_accounts"].append(list_of_accounts[i])
+				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
+				user_entity = a_key.get()
+				a = user_entity
+				b = net_id
+				c = list_of_accounts[i].account_id
+				d = "CLIENT"
+				extra_pickle_label = get_label_for_account(a,b,c,d)
+				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name}
+				groups["child_client_accounts"].append(list_of_accounts[i])				
 			if list_of_group_ids[i] == 6:
 				groups["has_child_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
+				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
+				user_entity = a_key.get()
+				a = user_entity
+				b = net_id
+				c = list_of_accounts[i].account_id
+				d = "JOINT"
+				extra_pickle_label = get_label_for_account(a,b,c,d)
+				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name}
 				groups["child_joint_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 7:
 				groups["has_parent_client_offer"] = True
@@ -3893,7 +3929,7 @@ class metric(object):
 				
 			# should be ok to create this offer
 			source_user.child_joint_offer_network_id = network_id
-			source_user.child_joint_offer_account_id = target_account_id
+			source_user.child_joint_offer_account_id = source_account_id
 			source_user.child_joint_offer_user_id = target_user.user_id
 			target_user.parent_joint_offer_network_id = network_id
 			target_user.parent_joint_offer_account_id = source_account_id
@@ -4027,8 +4063,8 @@ class metric(object):
 			
 			fail_this = False
 			if not source_user.parent_joint_offer_network_id == target_user.child_joint_offer_network_id: fail_this = True
-			if not source_user.parent_joint_offer_account_id == target_user.child_joint_offer_account_id: fail_this = True
-			if not source_user.parent_joint_offer_user_id == target_user.child_joint_offer_user_id: fail_this = True
+			if not source_user.parent_joint_offer_user_id == target_user.user_id: fail_this = True
+			if not target_user.child_joint_offer_user_id == source_user.user_id: fail_this = True
 
 			if not fail_this:
 				# We're good to go.
@@ -4069,6 +4105,7 @@ class metric(object):
 				source_user.total_other_accounts += 1
 				source_user.joint_network_ids.append(network_id)
 				source_user.joint_account_ids.append(lds_cursor.current_index)
+				source_user.joint_parent_ids.append(lds_new_metric_account.account_parent)
 				source_user.joint_labels.append(label)
 				source_user.joint_default.append(False)
 				source_user.parent_joint_offer_network_id = 0
@@ -4182,7 +4219,7 @@ class metric(object):
 				
 			# should be ok to create this offer
 			source_user.child_client_offer_network_id = network_id
-			source_user.child_client_offer_account_id = target_account_id
+			source_user.child_client_offer_account_id = source_account_id
 			source_user.child_client_offer_user_id = target_user.user_id
 			target_user.parent_client_offer_network_id = network_id
 			target_user.parent_client_offer_account_id = source_account_id
@@ -4316,8 +4353,8 @@ class metric(object):
 			
 			fail_this = False
 			if not source_user.parent_client_offer_network_id == target_user.child_client_offer_network_id: fail_this = True
-			if not source_user.parent_client_offer_account_id == target_user.child_client_offer_account_id: fail_this = True
-			if not source_user.parent_client_offer_user_id == target_user.child_client_offer_user_id: fail_this = True
+			if not source_user.parent_client_offer_user_id == target_user.user_id: fail_this = True
+			if not target_user.child_client_offer_user_id == source_user.user_id: fail_this = True
 
 			if not fail_this:
 				# We're good to go.
@@ -4359,6 +4396,7 @@ class metric(object):
 				source_user.total_other_accounts += 1
 				source_user.client_network_ids.append(network_id)
 				source_user.client_account_ids.append(lds_cursor.current_index)
+				source_user.client_parent_ids.append(lds_new_metric_account.account_parent)
 				source_user.client_labels.append(label)
 				source_user.client_default.append(False)
 				source_user.parent_client_offer_network_id = 0
@@ -6573,7 +6611,7 @@ class metric(object):
 
 			# last transaction was in current time window, no need to swap
 			# a.k.a. overwrite current
-			lds_source_metric.current_network_balance -= lint_amount
+			lds_source_metric.current_network_balance += lint_amount
 
 		else:
 
@@ -6589,7 +6627,7 @@ class metric(object):
 
 			# last transaction was in current time window, no need to swap
 			# a.k.a. overwrite current
-			lds_target_metric.current_network_balance += lint_amount
+			lds_target_metric.current_network_balance -= lint_amount
 
 		else:
 
@@ -6644,7 +6682,7 @@ class metric(object):
 		# when looking at a system view, we don't see duplicates.
 		target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
 		target_lds_tx_log.description = "JOINT ACCOUNT FUNDS TO PARENT ACCOUNT" 
-		target_lds_tx_log.user_id_created = lds_source.user_id
+		target_lds_tx_log.user_id_created = lds_source_metric.user_id
 		target_lds_tx_log.network_id = network_id
 		target_lds_tx_log.account_id = target_account_id
 		target_lds_tx_log.source_account = source_account_id 
@@ -8079,7 +8117,7 @@ class metric(object):
 		# check if account is in the tree index already
 		def phz2_acct_in_idx(fint_acc_id):		
 			lint_index_chunk_id = ((fint_acc_id - (fint_acc_id % 500000)) / 500000) + 1
-			lint_index_we_want_in_chunk = fint_acc_id - ((fint_acc_id -1) * 500000)
+			lint_index_we_want_in_chunk = fint_acc_id - ((lint_index_chunk_id - 1) * 500000)
 			if index_chunk[lint_index_chunk_id].stuff[lint_index_we_want_in_chunk - 1]:
 				return True
 			else:
