@@ -2688,21 +2688,21 @@ class metric(object):
 				a_key = ndb.Key("ds_mr_user","%s" % list_of_associated_accounts[i].user_id)
 				all_users_key_list.append(a_key)
 			
-			# don't grab accounts for offers
+			# don't grab accounts for offers			
 			reserve_complete["child_client_offer_count"] = 0
 			reserve_complete["child_joint_offer_count"] = 0
 			if not t_user_object.child_client_offer_account_id == 0:
 				reserve_complete["has_child_client_offer"] = True
 				reserve_complete["child_client_offer_count"] += 1
-				all_accounts_key_list.append(None)
+				list_of_associated_accounts.append("EMPTY")
 				a_key = ndb.Key("ds_mr_user","%s" % t_user_object.child_client_offer_user_id)
 				all_users_key_list.append(a_key)
 			else:
 				reserve_complete["has_child_client_offer"] = False
-			if not t_user_object.child_joint_offer_account_id == 0:
+			if not t_user_object.child_joint_offer_account_id == 0:				
 				reserve_complete["has_child_joint_offer"] = True
 				reserve_complete["child_joint_offer_count"] += 1
-				all_accounts_key_list.append(None)
+				list_of_associated_accounts.append("EMPTY")
 				a_key = ndb.Key("ds_mr_user","%s" % t_user_object.child_joint_offer_user_id)
 				all_users_key_list.append(a_key)
 			else:
@@ -2713,7 +2713,7 @@ class metric(object):
 			if None in list_of_associated_accounts or None in list_of_associated_users:
 				self.PARENT.RETURN_CODE = "1281" # error Associated account/user entities back.
 				return False
-				
+
 			# let's process the associated accounts/users now
 			# list of associated accounts and list of associated users
 			# should be the same length and be indexed parallely.
@@ -2883,14 +2883,13 @@ class metric(object):
 					
 				# process client account offer
 				if i < last_child_client_offer_idx:
-
 					reserve_complete["client_child_entity"] = {}
 					reserve_complete["client_child_entity"]["username"] = list_of_associated_users[i].username
+					continue
 
 
 				# process joint account offer
 				if i < last_child_joint_offer_idx:
-
 					reserve_complete["joint_child_entity"] = {}
 					reserve_complete["joint_child_entity"]["username"] = list_of_associated_users[i].username
 
@@ -3862,17 +3861,17 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1178"
 				return False # error: Target currently has offer for joint account.  Previous offers must be cancelled/authorized before new ones created.
 			# 3. Source must not be maxed out on child accounts.
-			if not source_user.total_child_accounts > 19:
+			if source_user.total_child_accounts > 19:
 				self.PARENT.RETURN_CODE = "1179"
 				return False # error: Source child accounts is currently at maximum.
 			# 4. Target must not be maxed out on alternate accounts.
-			if not target_user.total_other_accounts > 19:
+			if target_user.total_other_accounts > 19:
 				self.PARENT.RETURN_CODE = "1180"
 				return False # error: Target other accounts is currently at maximum.
 				
 			# should be ok to create this offer
 			source_user.child_joint_offer_network_id = network_id
-			source_user.child_joint_offer_account_id = 0
+			source_user.child_joint_offer_account_id = target_account_id
 			source_user.child_joint_offer_user_id = target_user.user_id
 			target_user.parent_joint_offer_network_id = network_id
 			target_user.parent_joint_offer_account_id = source_account_id
@@ -4151,17 +4150,17 @@ class metric(object):
 				self.PARENT.RETURN_CODE = "1192"
 				return False # error: Target currently has offer for client account.  Previous offers must be cancelled/authorized before new ones created.
 			# 3. Source must not be maxed out on child accounts.
-			if not source_user.total_child_accounts > 19:
+			if source_user.total_child_accounts > 19:
 				self.PARENT.RETURN_CODE = "1193"
 				return False # error: Source child accounts is currently at maximum.
 			# 4. Target must not be maxed out on alternate accounts.
-			if not target_user.total_other_accounts > 19:
+			if target_user.total_other_accounts > 19:
 				self.PARENT.RETURN_CODE = "1194"
 				return False # error: Target other accounts is currently at maximum.
 				
 			# should be ok to create this offer
 			source_user.child_client_offer_network_id = network_id
-			source_user.child_client_offer_account_id = 0
+			source_user.child_client_offer_account_id = target_account_id
 			source_user.child_client_offer_user_id = target_user.user_id
 			target_user.parent_client_offer_network_id = network_id
 			target_user.parent_client_offer_account_id = source_account_id
