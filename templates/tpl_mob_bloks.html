@@ -468,7 +468,7 @@
 	{% if blok.type == "all tickets" %}
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.tickets.network_name }}">{{ blok.tickets.network_name }}</a><br/>
-			<b>Tickets Owner Name:</b>:  {{ blok.tickets.account_name }}<br/></p>
+			<b>Tickets Owner Name</b>:  {{ blok.tickets.account_name }}<br/></p>
 			<p><a href="/network?vn={{ blok.tickets.network_name }}&va={{ blok.tickets.account_name }}">Back to Account</a></p>
 		</div>
 		{% if blok.tickets.is_owner %}
@@ -660,10 +660,10 @@
 				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
 			{% endif %}
 			{% if blok.account.has_graph_assignment %}
-				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">(View Graph)</a>
+				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}&nbsp;<a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
 			{% endif %}</p>
 			</div>
-			{% if blok.has_child_client_offer %}
+			{% if blok.account.has_child_client_offer %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Child Client Account Offer</li>
 				<li><a href="/profile?va={{ blok.account.client_child_entity.username }}">
@@ -672,7 +672,7 @@
 				</a></li>
 			</ul>
 			{% endif %}
-			{% if blok.has_child_joint_offer %}
+			{% if blok.account.has_child_joint_offer %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Child Joint Account Offer</li>
 				<li><a href="/profile?va={{ blok.account.joint_child_entity.username }}">
