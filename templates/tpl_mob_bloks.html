@@ -331,12 +331,113 @@
 		{% endif %}
 	{% endif %}
 
+	{% if blok.type == "graph" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<p>
+			<b>Network Name</b>:  {{ blok.graph.network_name }}<br/>
+			<b>Key Name</b>:  {{ blok.graph.key_name }}</p>
+			<p><a href="/network?vn={{ blok.graph.network_name }}&va={{ blok.graph.account_name }}">Back to Account</a></p>
+			<p>
+			<b>TOTAL_TREES</b>:  {{ blok.graph.TOTAL_TREES }}<br/>
+			<b>RESERVE_AMT_TOTAL</b>:  {{ blok.graph.RESERVE_AMT_TOTAL }}<br/>
+			<b>NETWORK_AMT_TOTAL</b>:  {{ blok.graph.NETWORK_AMT_TOTAL }}<br/>
+			<b>SUGGESTED_AMT_TOTAL</b>:  {{ blok.graph.SUGGESTED_AMT_TOTAL }}<br/>
+			<br/>
+			<b>SUGGESTED_COUNT_TOTAL</b>:  {{ blok.graph.SUGGESTED_COUNT_TOTAL }}<br/>
+			<b>SUGGESTED_MEMBER_TOTAL</b>:  {{ blok.graph.SUGGESTED_MEMBER_TOTAL }}<br/>
+			<b>SUGGESTED_AMT_TOTAL</b>:  {{ blok.graph.SUGGESTED_AMT_TOTAL }}<br/></p>
+		</div>
+		<div data-role="collapsible">
+			<h2>Suggested TX Counts</h2>
+			<ul class="myclass" data-role="listview" data-divider-theme="a">
+				<li><b>01_STX_COUNT</b>:  {{ blok.graph.01_STX_COUNT }}</li>
+				<li><b>02_STX_COUNT</b>:  {{ blok.graph.02_STX_COUNT }}</li>
+				<li><b>03_STX_COUNT</b>:  {{ blok.graph.03_STX_COUNT }}</li>
+				<li><b>04_STX_COUNT</b>:  {{ blok.graph.04_STX_COUNT }}</li>
+				<li><b>05_STX_COUNT</b>:  {{ blok.graph.05_STX_COUNT }}</li>
+				<li><b>06_STX_COUNT</b>:  {{ blok.graph.06_STX_COUNT }}</li>
+				<li><b>07_STX_COUNT</b>:  {{ blok.graph.07_STX_COUNT }}</li>
+				<li><b>08_STX_COUNT</b>:  {{ blok.graph.08_STX_COUNT }}</li>
+				<li><b>09_STX_COUNT</b>:  {{ blok.graph.09_STX_COUNT }}</li>
+				<li><b>10_STX_COUNT</b>:  {{ blok.graph.10_STX_COUNT }}</li>
+				<li><b>11_STX_COUNT</b>:  {{ blok.graph.11_STX_COUNT }}</li>
+				<li><b>12_STX_COUNT</b>:  {{ blok.graph.12_STX_COUNT }}</li>
+				<li><b>13_STX_COUNT</b>:  {{ blok.graph.13_STX_COUNT }}</li>
+				<li><b>14_STX_COUNT</b>:  {{ blok.graph.14_STX_COUNT }}</li>
+				<li><b>15_STX_COUNT</b>:  {{ blok.graph.15_STX_COUNT }}</li>
+				<li><b>16_STX_COUNT</b>:  {{ blok.graph.16_STX_COUNT }}</li>
+				<li><b>17_STX_COUNT</b>:  {{ blok.graph.17_STX_COUNT }}</li>
+				<li><b>18_STX_COUNT</b>:  {{ blok.graph.18_STX_COUNT }}</li>
+				<li><b>19_STX_COUNT</b>:  {{ blok.graph.19_STX_COUNT }}</li>
+				<li><b>20_STX_COUNT</b>:  {{ blok.graph.20_STX_COUNT }}</li>
+			</ul>
+		</div>
+		<div class="text_bubble ui-body ui-body-c">
+			<p>
+			<b>ORPHAN_RESERVE_AMT_TOTAL</b>:  {{ blok.graph.ORPHAN_RESERVE_AMT_TOTAL }}<br/>
+			<b>ORPHAN_NETWORK_AMT_TOTAL</b>:  {{ blok.graph.ORPHAN_NETWORK_AMT_TOTAL }}<br/>
+			<b>ORPHAN_MEMBER_TOTAL</b>:  {{ blok.graph.ORPHAN_MEMBER_TOTAL }}<br/>
+			<br/>
+			<b>TIME_BEGIN</b>:  {{ blok.graph.TIME_BEGIN }}<br/>
+			<b>TIME_END</b>:  {{ blok.graph.TIME_END }}<br/>
+			<b>TIME_TOTAL</b>:  {{ blok.graph.TIME_TOTAL }}<br/>
+			</p>
+		</div>
+		<div class="text_bubble ui-body ui-body-c">
+			<p>
+			<b>INDIVIDUAL TREE DATA</b>
+			</p>
+		</div>
+		{% for tree in blok.graph.TREES %}
+		<div class="text_bubble ui-body ui-body-c">
+			<p><b>TREE NUMBER</b>:  {{ tree.TREE_NUMBER }}</p>
+			<p>
+			<b>TREE_RESERVE_AMT_TOTAL</b>:  {{ tree.TREE_RESERVE_AMT_TOTAL }}<br/>
+			<b>TREE_RESERVE_AMT_AVERAGE</b>:  {{ tree.TREE_RESERVE_AMT_AVERAGE }}<br/>
+			<b>TREE_NETWORK_AMT_TOTAL</b>:  {{ tree.TREE_NETWORK_AMT_TOTAL }}<br/>
+			<b>TREE_MEMBER_TOTAL</b>:  {{ tree.TREE_MEMBER_TOTAL }}
+			{% if tree.HAS_SUGGESTED %}
+			<br/><br/><b>SUGGESTED_COUNT_TOTAL</b>:  {{ tree.SUGGESTED_COUNT_TOTAL }}<br/>
+			<b>SUGGESTED_MEMBER_TOTAL</b>:  {{ tree.SUGGESTED_MEMBER_TOTAL }}<br/>
+			<b>SUGGESTED_AMT_TOTAL</b>:  {{ tree.SUGGESTED_AMT_TOTAL }}<br/>
+			{% endif %}
+			</p>
+		</div>
+		{% if tree.HAS_SUGGESTED %}
+		<div data-role="collapsible">
+			<h2>TREE: {{ tree.TREE_NUMBER }} STX Counts</h2>
+			<ul class="myclass" data-role="listview" data-divider-theme="a">
+				<li><b>01_STX_COUNT</b>:  {{ tree.01_STX_COUNT }}</li>
+				<li><b>02_STX_COUNT</b>:  {{ tree.02_STX_COUNT }}</li>
+				<li><b>03_STX_COUNT</b>:  {{ tree.03_STX_COUNT }}</li>
+				<li><b>04_STX_COUNT</b>:  {{ tree.04_STX_COUNT }}</li>
+				<li><b>05_STX_COUNT</b>:  {{ tree.05_STX_COUNT }}</li>
+				<li><b>06_STX_COUNT</b>:  {{ tree.06_STX_COUNT }}</li>
+				<li><b>07_STX_COUNT</b>:  {{ tree.07_STX_COUNT }}</li>
+				<li><b>08_STX_COUNT</b>:  {{ tree.08_STX_COUNT }}</li>
+				<li><b>09_STX_COUNT</b>:  {{ tree.09_STX_COUNT }}</li>
+				<li><b>10_STX_COUNT</b>:  {{ tree.10_STX_COUNT }}</li>
+				<li><b>11_STX_COUNT</b>:  {{ tree.11_STX_COUNT }}</li>
+				<li><b>12_STX_COUNT</b>:  {{ tree.12_STX_COUNT }}</li>
+				<li><b>13_STX_COUNT</b>:  {{ tree.13_STX_COUNT }}</li>
+				<li><b>14_STX_COUNT</b>:  {{ tree.14_STX_COUNT }}</li>
+				<li><b>15_STX_COUNT</b>:  {{ tree.15_STX_COUNT }}</li>
+				<li><b>16_STX_COUNT</b>:  {{ tree.16_STX_COUNT }}</li>
+				<li><b>17_STX_COUNT</b>:  {{ tree.17_STX_COUNT }}</li>
+				<li><b>18_STX_COUNT</b>:  {{ tree.18_STX_COUNT }}</li>
+				<li><b>19_STX_COUNT</b>:  {{ tree.19_STX_COUNT }}</li>
+				<li><b>20_STX_COUNT</b>:  {{ tree.20_STX_COUNT }}</li>
+			</ul>
+		</div>
+		{% endif %}
+		{% endfor %}
+	{% endif %}
 
 
 	{% if blok.type == "one ticket" %}
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.ticket.network_name }}">{{ blok.ticket.network_name }}</a><br/>
-			<b>Ticket Owner Name:</b>:  {{ blok.ticket.account_name }}<br/></p>
+			<b>Ticket Owner Name:</b>:  {{ blok.ticket.account_name }}</p>
 			{% if blok.ticket.is_owner %}
 				{% if blok.ticket.ticket_has_tag %}
 					<p>Tagged Account:  <a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.ticket_tag_user_account_name }}">{{ blok.ticket.ticket_tag_user_account_name }}</a></p>
@@ -1418,6 +1519,120 @@
 		{% endif %}
 		{% if blok.error_code == "1299" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> For alias change, target must be current user.</p>
+		{% endif %}
+		{% if blok.error_code == "1300" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid account name.</p>
+		{% endif %}
+		{% if blok.error_code == "1301" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load user object.</p>
+		{% endif %}
+		{% if blok.error_code == "1302" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Account name does not match user for this network.</p>
+		{% endif %}
+		{% if blok.error_code == "1303" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Could not load metric account	.</p>
+		{% endif %}
+		{% if blok.error_code == "1304" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't graph profile object.</p>
+		{% endif %}
+		{% if blok.error_code == "1305" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid account name.</p>
+		{% endif %}
+		{% if blok.error_code == "1306" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load ticket owner user object.</p>
+		{% endif %}
+		{% if blok.error_code == "1307" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket owner name does not match user for this network.</p>
+		{% endif %}
+		{% if blok.error_code == "1308" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Could not load metric account.</p>
+		{% endif %}
+		{% if blok.error_code == "1309" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Invalid page passed.</p>
+		{% endif %}
+		{% if blok.error_code == "1310" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Ticket label doesn't exist for owner account.</p>
+		{% endif %}
+		{% if blok.error_code == "1311" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load tagged user object.</p>
+		{% endif %}
+		{% if blok.error_code == "1312" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't render tagged user account name.</p>
+		{% endif %}
+		{% if blok.error_code == "1313" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Bad transaction type.</p>
+		{% endif %}
+		{% if blok.error_code == "1314" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Bad transaction type.</p>
+		{% endif %}
+		{% if blok.error_code == "1315" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load parent metric account.</p>
+		{% endif %}
+		{% if blok.error_code == "1316" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Couldn't load parent user object.</p>
+		{% endif %}
+		{% if blok.error_code == "1317" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> TREE ERROR Can't make payments between disconnected accounts.</p>
+		{% endif %}
+		{% if blok.error_code == "1318" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> TREE ERROR Can't make payments between disconnected accounts.</p>
+		{% endif %}
+		{% if blok.error_code == "1319" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No client offer exists.</p>
+		{% endif %}
+		{% if blok.error_code == "1320" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No joint offer exists.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% endif %}
+		{% if blok.error_code == "9999" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
