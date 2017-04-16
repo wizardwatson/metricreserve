@@ -1678,7 +1678,7 @@ class metric(object):
 				ticket_index_entity.user_id = fstr_user_id
 				ticket_index_entity.network_id = fint_network_id
 				ticket_index_entity.ticket_data = {}
-			if not "ticket_count" in source_ticket_index.ticket_data:
+			if not "ticket_count" in ticket_index_entity.ticket_data:
 				# initialize ticket_data
 				ticket_index_entity.ticket_data["ticket_count"] = 0
 				ticket_index_entity.ticket_data["ticket_labels"] = []
@@ -1730,7 +1730,7 @@ class metric(object):
 		if owner_user is None:
 			self.PARENT.RETURN_CODE = "1306" # error Couldn't load ticket owner user object
 			return False	
-		result = has_this_account(owner_user,fstr_account_name)
+		result = has_this_account(owner_user,network.network_id,fstr_account_name)
 		if not result:
 			self.PARENT.RETURN_CODE = "1307" # error Ticket owner name does not match user for this network
 			return False
@@ -1748,9 +1748,9 @@ class metric(object):
 		ft = {}
 		# Is the logged in viewer the owner?
 		if name_entity.user_id == self.PARENT.user.entity.user_id:
-			ft["is_owner"] == True
+			ft["is_owner"] = True
 		else:
-			ft["is_owner"] == False
+			ft["is_owner"] = False
 		# Are we viewing all tickets or just one?
 		if fstr_ticket_name is None:
 			# Viewing all tickets
@@ -1785,7 +1785,7 @@ class metric(object):
 					# leave blank till after we query users
 					new_ticket["ticket_tag_user_account_name"] = ""						
 					ft["owner_tags"].append(new_ticket)
-				if ft["owner_has_tags"]:
+				if ft["has_owner_tags"]:
 					# need to get account labels for display and linking
 					user_objects = ndb.get_multi(user_keys)
 					for i in range(len(user_objects)):
@@ -7970,8 +7970,8 @@ class metric(object):
 					if metric_account.current_timestamp <= t_cutoff:
 						# use current
 						chunk_stuff[t_id][2] = metric_account.current_connections
-						chunk_stuff[t_id][4] = metric_account.last_network_balance
-						chunk_stuff[t_id][5] = metric_account.last_reserve_balance
+						chunk_stuff[t_id][4] = metric_account.current_network_balance
+						chunk_stuff[t_id][5] = metric_account.current_reserve_balance
 					else:
 						# use last
 						chunk_stuff[t_id][2] = metric_account.last_connections
@@ -8485,7 +8485,7 @@ class metric(object):
 							# This child belongs to our parent, and it has a 
 							# reserve deficiency from average.  Add it to list of
 							# candidates for parent-to-child reserve transfer.
-							list_tpl_kids.append((lint_c_idx, lint_c_id, ldict_c_account[5]))
+							list_tpl_kids.append((lint_child_idx, lint_c_id, ldict_c_account[5]))
 							child_has_deficiency = True						
 						if ldict_c_account[5] > profile.report['TREE_RESERVE_AMT_AVERAGE'][lint_tree]:
 							# Most of the complexity in this algorithm is deciding how
@@ -8581,8 +8581,8 @@ class metric(object):
 									lint_average = profile.report['TREE_RESERVE_AMT_AVERAGE'][lint_tree]
 									lint_difference = lint_average - list_tpl_kids_sorted[i][2]
 									lint_needed_to_get_avg = lint_difference * (i + 1)
-									if amount_left_to_use < lint_needed_to_get_avg:
-										lint_fill_line = lint_fill_line + ((amount_left_to_use - (amount_left_to_use % (i + 1))) / (i + 1))
+									if lint_amount_left_to_use < lint_needed_to_get_avg:
+										lint_fill_line = lint_fill_line + ((lint_amount_left_to_use - (lint_amount_left_to_use % (i + 1))) / (i + 1))
 										break
 									else:
 										lint_fill_line = lint_average
@@ -8602,16 +8602,16 @@ class metric(object):
 									# between 0 and i and break.
 									lint_difference = list_tpl_kids_sorted[i + 1][2] - list_tpl_kids_sorted[i][2]
 									lint_needed_to_even = lint_difference * (i + 1)
-									if amount_left_to_use < lint_needed_to_even:
+									if lint_amount_left_to_use < lint_needed_to_even:
 										# not enough to make even with next, get our fill line and break
-										lint_fill_line = lint_fill_line + ((amount_left_to_use - (amount_left_to_use % (i + 1))) / (i + 1))
+										lint_fill_line = lint_fill_line + ((lint_amount_left_to_use - (lint_amount_left_to_use % (i + 1))) / (i + 1))
 										break
 									else:
 										# enough to make even with next
 										lint_fill_line = list_tpl_kids_sorted[i + 1][2]
-										amount_left_to_use = amount_left_to_use - lint_needed_to_even
+										lint_amount_left_to_use = lint_amount_left_to_use - lint_needed_to_even
 										# break if we have less than 20 scintillions
-										if amount_left_to_use < 20: 
+										if lint_amount_left_to_use < 20: 
 											break
 										else:
 											continue
@@ -9239,6 +9239,7 @@ class ph_command(webapp2.RequestHandler):
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				page["title"] = "TICKET"
+				blok = {}
 				blok["type"] = "one ticket"
 				blok["ticket"] = lobj_master.metric._view_tickets(pqc[1],pqc[2],pqc[3])
 				if not blok["ticket"]:
@@ -9252,6 +9253,7 @@ class ph_command(webapp2.RequestHandler):
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 				page["title"] = "TICKETS"
+				blok = {}
 				blok["type"] = "all tickets"
 				if "tp" in lobj_master.request.GET:
 					ticket_page = lobj_master.request.GET["tp"]
