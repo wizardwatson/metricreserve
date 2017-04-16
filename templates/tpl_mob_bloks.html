@@ -278,6 +278,18 @@
 	{% endif %}
 	{% if blok.type == "all accounts" %}
 		{% if blok.groups %}
+			{% if blok.groups.has_parent_client_offer %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">Client Account Offer from:</li>
+					<li><a href="/network?va={{ blok.groups.parent_client_offer.username }}&vn={{ blok.groups.parent_client_offer.network_name }}">{{ blok.groups.parent_client_offer.username }}</a></li>
+				</ul>
+			{% endif %}
+			{% if blok.groups.has_parent_joint_offer %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">Joint Account Offer from:</li>
+					<li><a href="/network?va={{ blok.groups.parent_joint_offer.username }}&vn={{ blok.groups.parent_joint_offer.network_name }}">{{ blok.groups.parent_joint_offer.username }}</a></li>
+				</ul>
+			{% endif %}
 			{% if blok.groups.has_reserve_account %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Reserve Account</li>
