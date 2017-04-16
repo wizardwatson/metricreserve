@@ -648,16 +648,19 @@
 			{% if blok.account.type == "RESERVE" %}
 			<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
 			{% endif %}
-			<b>Date Created</b>:  {{ blok.account.d_date_created }}<br/><br/>
+			<b>Date Created</b>:  {{ blok.account.d_date_created }}
 			{% if blok.account.is_my_account %}
-			<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a><br/><br/>
+				<br/><br/><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
 			{% endif %}
 			{% if blok.account.is_my_account %}
-				<a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets{% if blok.account.ticket_count > 0 %}:{{ blok.account.ticket_count }}{% endif %}
-				{% if blok.account.ticket_tag_count > 0 %}&nbsp;(Tags:{{ blok.account.ticket_tag_count }}){% endif %}</a></p>
+				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets{% if blok.account.ticket_count > 0 %}:{{ blok.account.ticket_count }}{% endif %}
+				{% if blok.account.ticket_tag_count > 0 %}&nbsp;(Tags:{{ blok.account.ticket_tag_count }}){% endif %}</a>
 			{% else %}
-				<a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a></p>
+				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
 			{% endif %}
+			% if blok.account.has_graph_assignment %}
+				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">(View Graph)</a>
+			{% endif %}</p>
 			</div>
 			{% if blok.has_child_client_offer %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -1583,14 +1586,14 @@
 		{% if blok.error_code == "1320" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No joint offer exists.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1321" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No client offer exists.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1322" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> No joint offer exists.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1323" %}
+			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> User not registered.</p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
