@@ -83,28 +83,6 @@
 		<h3>Bio:</h3>
 		<p>{{ blok.bio }}</p>
 		</div>
-
-		<div class="text_bubble ui-body ui-body-c">
-			<h3>Location: {{ blok.lat }}, {{ blok.long }}</h3>
-			<div id="map"></div>
-			<script>
-			  function initMap() {
-				var mylocation = {lat: {{ blok.lat }}, lng: {{ blok.long }}};
-				var map = new google.maps.Map(document.getElementById('map'), {
-				  zoom: 4,
-				  center: mylocation
-				});
-				var marker = new google.maps.Marker({
-				  position: mylocation,
-				  map: map
-				});
-			  }
-			</script>
-			<script async defer
-			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
-			</script>
-		</div>
-
 	{% endif %}
 
 
@@ -122,7 +100,10 @@
 		<h3>Bio:</h3>
 		<p>{{ blok.bio }}</p>
 		</div>
+	{% endif %}
 
+
+	{% if blok.type == "map" %}
 		<div class="text_bubble ui-body ui-body-c">
 			<h3>Location: {{ blok.lat }}, {{ blok.long }}</h3>
 			<div id="map"></div>
@@ -143,32 +124,7 @@
 			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
 			</script>
 		</div>
-
 	{% endif %}
-
-
-	{% if blok.type == "map" %}
-		<div id="map"></div>
-		<script>
-		  function initMap() {
-			var uluru = {lat: -25.363, lng: 131.044};
-			var map = new google.maps.Map(document.getElementById('map'), {
-			  zoom: 4,
-			  center: uluru
-			});
-			var marker = new google.maps.Marker({
-			  position: uluru,
-			  map: map
-			});
-		  }
-		</script>
-		<script async defer
-		src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
-		</script>
-	{% endif %}
-
-
-
 
 
 	{% if blok.type == "menu" %}
@@ -450,6 +406,10 @@
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.ticket.network_name }}">{{ blok.ticket.network_name }}</a><br/>
 			<b>Ticket Owner Name:</b>:  {{ blok.ticket.account_name }}</p>
+			<p><a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}">Back to Account</a></p>
+			<p><a href="/tickets?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}">Back to All Tickets</a></p>
+		</div>
+		<div class="text_bubble ui-body ui-body-c">
 			{% if blok.ticket.is_owner %}
 				{% if blok.ticket.ticket_has_tag %}
 					<p>Tagged Account:  <a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.ticket_tag_user_account_name }}">{{ blok.ticket.ticket_tag_user_account_name }}</a></p>
@@ -461,8 +421,6 @@
 					<p>Ticket is Tagged to your Account</p>
 				{% endif %}
 			{% endif %}
-		</div>
-		<div class="text_bubble ui-body ui-body-c">
 			<p>
 			<b>Ticket Name</b>:  {{ blok.ticket.ticket_label }}<br/>
 			<b>Ticket Amount</b>:  {{ blok.ticket.ticket_amount }}<br/>
@@ -470,7 +428,7 @@
 			</p>
 		</div>
 		<div class="text_bubble ui-body ui-body-c">
-			<p>QR Code that links<br/>
+			<p align=center>QR Code that links<br/>
 			to this page:<br/>
 			<img src="{{ blok.ticket.ticket_qr_code_url }}"/></p>
 		</div>
@@ -1872,7 +1830,7 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket tag successfully removed.</p>
 		{% endif %}
 		{% if blok.success_code == "7052" %}
-			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket successfully closed.</p>
+			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket tag successfully added.</p>
 		{% endif %}
 		{% if blok.success_code == "7053" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Ticket tag successfully removed.</p>
