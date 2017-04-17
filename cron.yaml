@@ -1,0 +1,4 @@
+cron:
+- description: "graph process"
+  url: /graph_process
+  schedule: every 2 minutes
