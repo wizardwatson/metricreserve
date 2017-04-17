@@ -1546,7 +1546,7 @@ class metric(object):
 		return True		
 		
 	def _sync_account(self,account,fkey=None):
-		
+		pdb.set_trace()
 		if fkey == None:
 			current_time_key = self._get_sync_time_key()
 		else:
@@ -1656,7 +1656,8 @@ class metric(object):
 	
 		def get_formatted_amount(network,account,raw_amount):
 
-			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 			# make sure has correct amount of decimal places
 			
 		def has_this_account(user_obj,network_id,account_name):
@@ -1996,7 +1997,8 @@ class metric(object):
 	
 		def get_formatted_amount(network,account,raw_amount):
 
-			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 			# make sure has correct amount of decimal places
 			
 
@@ -2546,7 +2548,8 @@ class metric(object):
 	
 		def get_formatted_amount(network,account,raw_amount):
 			
-			return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 
 		def get_ticket_info(fdict,fmetric):
 			ticket_index_key = ndb.Key("ds_mr_metric_ticket_index", "%s%s" % (fmetric.network_id, fmetric.account_id))
@@ -9241,7 +9244,8 @@ class ph_command(webapp2.RequestHandler):
 
 	def get_formatted_amount(self,network,account,raw_amount):
 
-		return "{:28,.2f}".format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
 	
 	def get_menu_blok(self):
 	
