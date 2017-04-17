@@ -47,6 +47,55 @@
 		{% endif %}
 	{% endif %}
 
+
+	{% if blok.type == "all users" %}
+		{% if blok.users %}
+			{% for fuser in blok.users %}
+				<div class="myclass2 ui-body ui-body-c">
+					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
+						<img class="qr_code" src="{{ fuser.avatar_url }}"/>
+					</div>
+					<div style="margin:0px;padding:0px;float: left; width: 77%;">
+						<p style="margin:5px;padding:0px;" ><b><a href="/profile?va={{ fuser.username }}">{{ fuser.username }}</b></a><br/>
+						<b>Created Date</b>: {{ fuser.d_created_date }}<br/>
+						{{ fuser.bio }}</p>
+					</div>
+				</div>
+			{% endfor %}
+			{% if blok.next_more %}
+				{% if blok.prev_more %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/all_users?rcursor={{ blok.prev_cursor }}">Previous Messages...</a>
+						</li>
+						<li>
+							<a href="/all_users?fcursor={{ blok.next_cursor }}">Next Messages...</a>
+						</li>
+					</ul>
+				{% else %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/all_users?fcursor={{ blok.next_cursor }}">Next Messages...</a>
+						</li>
+					</ul>
+				{% endif %}
+			{% else %}
+				{% if blok.prev_more %}
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li>
+							<a href="/all_users?rcursor={{ blok.prev_cursor }}">Previous Messages...</a>
+						</li>
+					</ul>
+				{% endif %}
+			{% endif %}
+		{% else %}
+			<div class="text_bubble ui-body ui-body-c">
+				<p>No users.</p>
+			</div>
+		{% endif %}
+	{% endif %}
+
+
 	{% if blok.type == "my_profile" %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li>
@@ -102,6 +151,31 @@
 		</div>
 	{% endif %}
 
+	{% if blok.type == "map multiple" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>{{ blok.heading }}</h3>
+			<div id="map"></div>
+			<script>
+			  function initMap() {
+				var mylocation = {lat: {{ blok.my_lat }}, lng: {{ blok.my_long }}};
+				var map = new google.maps.Map(document.getElementById('map'), {
+				  zoom: 4,
+				  center: mylocation
+				});
+				{% for marker in blok.markers %}
+				var marker = new google.maps.Marker({
+				  position: {lat: {{ marker.lat }}, lng: {{ marker.long }}},
+				  title: '{{ marker.username }}',
+				  map: map
+				});
+				{% endfor %}
+			  }
+			</script>
+			<script async defer
+			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+			</script>
+		</div>
+	{% endif %}
 
 	{% if blok.type == "map" %}
 		<div class="text_bubble ui-body ui-body-c">
@@ -125,7 +199,6 @@
 			</script>
 		</div>
 	{% endif %}
-
 
 	{% if blok.type == "menu" %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
