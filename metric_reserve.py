@@ -9402,7 +9402,7 @@ class ph_command(webapp2.RequestHandler):
 					recognized = True
 					
 				if recognized == True:
-					blok["type"] = "documentation_%s" % doc_page
+					blok2["type"] = "documentation_%s" % doc_page
 				else:
 					# redirect home
 					r.redirect(self.url_path(new_path="/"))
