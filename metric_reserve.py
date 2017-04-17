@@ -1171,7 +1171,7 @@ class user(object):
 		self.PARENT.RETURN_CODE = "7057" # success Successfully added message.
 		return True
 
-	def _get_gravatar_url(self,fgurl,fgtype,size=80):
+	def _get_gravatar_url(self,fgurl,fgtype,size=60):
 		
 		# GRAVATAR DOCS
 		# http://en.gravatar.com/site/implement/images/
@@ -3408,7 +3408,7 @@ class metric(object):
 		RESERVE ACCOUNT 
 		LABEL:
 		
-		CUSTOMER ACCOUNTS 
+		client ACCOUNTS 
 		ID: 1 LABEL: wizardwatson
 		
 		JOINT ACCOUNTS
@@ -9064,6 +9064,9 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/documentation":
+			# view documentation
+			result.append(140)
 		if self.master.PATH_CONTEXT == "root/all_users":
 			# view specific network
 			self.master.PATH_CONTEXT = "all users"
@@ -9266,7 +9269,12 @@ class ph_command(webapp2.RequestHandler):
 			menuitem["href"] = "/all_users"
 			menuitem["label"] = "All Users"
 			blok["menuitems"].append(menuitem)
-			
+
+		menuitem = {}
+		menuitem["href"] = "/documentation?p=home"
+		menuitem["label"] = "Documentation"
+		blok["menuitems"].append(menuitem)
+		
 		return blok		
 	
 	def get(self):
@@ -9368,6 +9376,44 @@ class ph_command(webapp2.RequestHandler):
 			# CONTEXT/VIEW PROCESS
 			###################################
 
+			# make bloks from context
+			if pqc[0] == 140:
+				
+				page["title"] = "DOCS"
+				blok2 = {}
+				# documentation
+				if "p" in lobj_master.request.GET:
+					doc_page = lobj_master.request.GET["p"]
+				else:
+					# redirect home
+					r.redirect(self.url_path(new_path="/"))
+				
+				if doc_page == "command_reference":
+					recognized = True
+				if doc_page == "contents":
+					recognized = True
+				if doc_page == "home":
+					recognized = True
+				if doc_page == "overview":
+					recognized = True
+				if doc_page == "general_use":
+					recognized = True
+				if doc_page == "economics":
+					recognized = True
+					
+				if recognized == True:
+					blok["type"] = "documentation_%s" % doc_page
+				else:
+					# redirect home
+					r.redirect(self.url_path(new_path="/"))
+					
+				bloks.append(self.get_menu_blok())
+				blok1 = {}
+				blok1["type"] = "documentation_menu"
+				bloks.append(blok1)
+				bloks.append(blok2)
+				break
+				
 			# make bloks from context
 			if pqc[0] == 120:
 			
@@ -10694,6 +10740,7 @@ class ph_gp(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
 	('/', ph_command),
+	('/documentation', ph_command),
 	('/network', ph_command),
 	('/profile', ph_command),
 	('/all_users', ph_command),
