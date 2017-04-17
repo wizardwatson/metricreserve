@@ -7,7 +7,7 @@
 					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
 						<img class="qr_code" src="{{ message.avatar_url }}"/>
 					</div>
-					<div style="margin:0px;padding:0px;float: left; width: 77%;">
+					<div style="margin:0px;padding:0px;float: left; width: 70%;">
 						<p style="margin:5px;padding:0px;" ><b>{{ message.username }}</b><br/>
 						<b>{{ message.date }}</b><br/>
 						{{ message.text }}</p>
@@ -55,7 +55,7 @@
 					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
 						<img class="qr_code" src="{{ fuser.avatar_url }}"/>
 					</div>
-					<div style="margin:0px;padding:0px;float: left; width: 77%;">
+					<div style="margin:0px;padding:0px;float: left; width: 70%;">
 						<p style="margin:5px;padding:0px;" ><b><a href="/profile?va={{ fuser.username }}">{{ fuser.username }}</b></a><br/>
 						<b>Created Date</b>: {{ fuser.d_created_date }}<br/>
 						{{ fuser.bio }}</p>
@@ -327,7 +327,7 @@
 			{% endif %}
 			{% if blok.groups.has_client_accounts %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-					<li data-role="list-divider">Your Customer Accounts</li>
+					<li data-role="list-divider">Your Client Accounts</li>
 					{% for account in blok.groups.client_accounts %}
 					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
@@ -351,7 +351,7 @@
 			{% endif %}
 			{% if blok.groups.has_child_client_accounts %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-					<li data-role="list-divider">Your Sponsored Customer Accounts</li>
+					<li data-role="list-divider">Your Sponsored Client Accounts</li>
 					{% for account in blok.groups.child_client_accounts %}
 					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
 					{% endfor %}
@@ -1844,4 +1844,286 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully modified system settings.</p>
 		{% endif %}
 	{% endif %}
+
+	{% if blok.type == "documentation_menu" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h4>Documentation</h4>
+			<p><a href="/documentation?p=home">Doc Home</a>
+			<br/><a href="/documentation?p=command_reference">Command Reference</a>
+			<br/><a href="/documentation?p=overview">Overview</a>
+			<br/><a href="/documentation?p=general_use">General Use</a>
+			<br/><a href="/documentation?p=administration">Setup/Administration</a>
+			<br/><a href="/documentation?p=graph">Understanding the Graph</a>
+			<br/><a href="/documentation?p=economics">Economics</a></p>
+			<hr/>
+		</div>
+	{% endif %}
+
+	{% if blok.type == "documentation_overview" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>Overview</h3>
+			<hr/>
+			<p>It's generic, simplified, person-to-person banking software for the most part.</p>
+		</div>
+	{% endif %}
+
+
+	{% if blok.type == "documentation_general_use" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>General Use</h3>
+			<hr/>
+			<p>Create a reserve account.  Connect to people.  Monetize value.  Obey the reserve evening suggestions.  Don't steal.  Monitor and adapt to abuse.</p>
+		</div>
+	{% endif %}
+
+	{% if blok.type == "documentation_administration" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>Setup and Administration</h3>
+			<hr/>
+			<p>In Cloud console:<br/>
+			1. Create indexes.<br/>
+			2. Create Cron Jobs<br/>
+			3. Create a google maps api key.<br/>
+			<br/>
+			Then, in the actual application command field type "settings google_maps_api_key YOUR_API_KEY" where "YOUR_API_KEY" is replaced with your actual api key.</p>
+			<p>That's it really.  As far as administration in the actual application, only admins are allowed to create networks and change settings.  Other than that,
+			everyone is pretty much equal.</p>
+		</div>
+	{% endif %}
+
+
+	{% if blok.type == "documentation_graph" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>Understanding the Graph</h3>
+			<hr/>
+			<p>It's called "metric reserve" for a very specific reason.  "Metric" simply being a greek word rooted in "measure" and "reserve" because each
+			"network"-which can be thought of as a currency-is made up of "reserve" accounts.  Much like a traditional bank, someone is holding your physical
+			money but you are allowed to spend it's value in the system.  Unlike a traditional bank, metric reserve is a 100% reserve system.  Users are not
+			permitted to loan out or otherwise "tie up" reserve funds, as they must be ready at any time to transfer reserves to another connected account.
+			Each user can have one reserve account per network.  Each person ideally holds the same amount of reserves though they may all-and likely
+			do-have separate balances.</p>
+			<p>Users only exchange reserves with other reserve accounts they are connected to.  And users only are allowed to make payments with users who they
+			are connected with-even if it's indirectly-on the same network.  This network of connections is called a "graph" or "social graph" and corresponds
+			to a Facebook-like "friend network".  If there exists some path of connections between you and another user on the same network metric reserve
+			considers those users to be on the same "tree".  One of the two primary algorithms it runs is to determine which users are on the same tree.</p>
+			<p>Currently, in this implementation, metric reserve will prevent users who are not on the same tree from making payments even though they may
+			both have positive balances on the same network.</p>
+			<p>The other primary algorithm metric reserve runs is related to answering the question, "How do we know how to spread out the reserves evenly
+			when people are connecting and disconnecting randomly?"  That algorithm is a little less straightforward but it can be shown logically that the
+			algorithm metric reserve uses, will eventually bring everyone to equilibrium.</p>
+			<p>This problem of distributing reserves actually is closely related to another problem in digital currencies known as "payment routing".  It
+			is relevant to systems like ripplepay.com and bitcoin lightning network.  It's been understood for some time that facilitating payments by
+			routing through a social graph where shared credit or value exists is possible.  The issue becomes when pondering this that each "routing" act
+			changes the shape of the graph and requires further processing.  Hence, the system will gravitate to where "hub" nodes are needed "clear" a
+			payment.  Metric reserve solves this problem the other way.  To avoid hubs and central players everyone shares the risk, but also gets the benefit
+			of more elastic monetization of value.  It's easy to setup and easy to tear down.  Though, admittedly it takes a while to see this economically.
+			I struggled with it for a good 10 years.</p>
+		</div>
+	{% endif %}
+
+
+	{% if blok.type == "documentation_economics" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<h3>Economics</h3>
+			<hr/>
+			<p>The entire "novel" thing about metric reserve is what it aims at economically.  The "way you use" metric reserve is designed with many things in mind.
+			How much liquidity does a monetary system need?  How do you prove whether someone in a system is not double spending?  How do you avoid the dangers of
+			hoarding and deflation and also of centralization and inflation?  Is there a point to having multiple currencies?</p>
+			<p>More blah, blah, later.</p>
+		</div>
+	{% endif %}
+
+
+	{% if blok.type == "documentation_command_reference" %}
+		<div class="command_reference ui-body ui-body-c">
+			<h3>Command Reference:</h3>
+			<hr/>
+			<p>CONTEXT: ([Any]) AS: ([User])</p>
+			<p><span class="command_reference">l</span>
+			<br/>Switch from text field to text area.</p>
+
+			<p><span class="command_reference">menu</span>
+			<br/>Navigate browser to menu page.</p>
+			<p><span class="command_reference">network</span>
+			<br/>Navigate to all networks summary page.</p>
+			<p><span class="command_reference">network [name]</span>
+			<br/>Navigate to a specific network page.</p>
+			<p><span class="command_reference">username change [new name]</span>
+			<br/>change your username</p>
+			<p><span class="command_reference">account [name]</span>
+			<br/>navigate to a specific metric account</p>
+			<p><span class="command_reference">user [name]</span>
+			<br/>navigate to a specific user profile</p>
+			<p><span class="command_reference">gurl [url or email address]</span>
+			<br/>change the url/email associated with gravatar hash</p>
+			<p><span class="command_reference">gtype [value]</span>
+			<br/>change gravatar-based avatar type values allowed: "identicon" (default) "monsterid" "wavatar" "retro" "gravatar" "mm"</p>
+			<p><span class="command_reference">bio [description]</span>
+			<br/>changes your "bio" description on your profile page</p>
+			<p><span class="command_reference">location [latitude as decimal] [longitude as decimal]</span>
+			<br/>changes geo coordinates associated with your user account</p>
+			<p><span class="command_reference">joint offer cancel</span>
+			<br/>cancel your offer for sponsoring a joint account</p>
+			<p><span class="command_reference">client offer cancel</span>
+			<br/>cancel your offer for sponsoring a client account</p>
+			<p><span class="command_reference">joint offer deny</span>
+			<br/>deny a sponsors offer for a joint account</p>
+			<p><span class="command_reference">client offer deny</span>
+			<br/>deny a sponsors offer for a client account</p>
+
+			<hr/>
+			<p>CONTEXT: ([Any]) AS: ([Admin])</p>
+
+			<p><span class="command_reference">settings [key] [value]</span>
+			<br/>change a system setting</p>
+			<p><span class="command_reference">network add [name]</span>
+			<br/>add a new metric reserve network</p>
+
+			<hr/>
+			<p>CONTEXT: (messages) AS: ([User])</p>
+
+			<p><span class="command_reference">message [message text]</span>
+			<br/>posts a message to a users public message channel</p>
+
+			<hr/>
+			<p>CONTEXT: (specific network) AS: ([User])</p>
+
+			<p><span class="command_reference">reserve open</span>
+			<br/>opens a reserve account for the user on this network</p>
+
+			<hr/>
+			<p>CONTEXT: (specific network) AS: ([Admin])</p>
+
+			<p><span class="command_reference">network delete</span>
+			<br/>deletes an inactive network</p>
+			<p><span class="command_reference">network type live</span>
+			<br/>sets a network type to live (default)</p>
+			<p><span class="command_reference">network type test</span>
+			<br/>sets a network type to test</p>
+			<p><span class="command_reference">network describe [description]</span>
+			<br/>saves a description of the network</p>
+			<p><span class="command_reference">network name [new name]</span>
+			<br/>changes the name of a network</p>
+
+			<hr/>
+			<p>CONTEXT: (your reserve account) AS: ([User])</p>
+
+			<p><span class="command_reference">modify add [amount]</span>
+			<br/>add reserves increasing your reserve and network balance</p>
+			<p><span class="command_reference">modify subtract [amount]</span>
+			<br/>decrease reserves decreasing your reserve and network balance</p>
+			<p><span class="command_reference">modify create [amount]</span>
+			<br/>add reserves but increase reserve balance only</p>
+			<p><span class="command_reference">modify destroy [amount]</span>
+			<br/>subtract reserves but decrease reserve balance only</p>
+			<p><span class="command_reference">clone open</span>
+			<br/>open a clone account</p>
+			<p><span class="command_reference">joint offer [name]</span>
+			<br/>offer to sponsor another users joint account</p>
+			<p><span class="command_reference">client offer [name]</span>
+			<br/>offer to sponsor another users client account</p>
+
+			<hr/>
+			<p>CONTEXT: (others reserve account) AS: ([User])</p>
+
+			<p><span class="command_reference">connect</span>
+			<br/>create connection request to other user or authorize other users connection request to you</p>
+			<p><span class="command_reference">disconnect</span>
+			<br/>disconnect from other user or cancels any connection request from either party</p>
+			<p><span class="command_reference">transfer request [amount]</span>
+			<br/>request user defined transfer amount with connection</p>
+			<p><span class="command_reference">transfer cancel [amount]</span>
+			<br/>cancel user defined transfer request with connection</p>
+			<p><span class="command_reference">transfer authorize [amount]</span>
+			<br/>finalize user defined transfer request from connection</p>
+			<p><span class="command_reference">transfer deny [amount]</span>
+			<br/>deny user defined transfer request from connection</p>
+			<p><span class="command_reference">suggested request [amount]</span>
+			<br/>request system defined transfer amount with connection</p>
+			<p><span class="command_reference">suggested cancel [amount]</span>
+			<br/>cancel system defined transfer request with connection</p>
+			<p><span class="command_reference">suggested deny [amount]</span>
+			<br/>deny system defined transfer request from connection</p>
+			<p><span class="command_reference">suggested authorize [amount]</span>
+			<br/>finalize system defined transfer request from connection</p>
+			<p><span class="command_reference">joint authorize</span>
+			<br/>accept sponsor offer from reserve account and create new joint account</p>
+			<p><span class="command_reference">client authorize</span>
+			<br/>accept sponsor offer from reserve account and create new client account</p>
+
+
+			<hr/>
+			<p>CONTEXT: (others joint account) AS: ([User])</p>
+
+			<p><span class="command_reference">joint retrieve [amount]</span>
+			<br/>take funds from a sponsored joint account of yours</p>
+
+			<hr>
+			<p>CONTEXT: (your any type account) AS: ([User])</p>
+
+			<p><span class="command_reference">[account type] close</span>
+			<br/>close an account where type is one of: "reserve" "client" "joint" "clone"</p>
+			<p><span class="command_reference">alias change [new name]</span>
+			<br/>change alias for account name to new name</p>
+			<p><span class="command_reference">alias delete</span>
+			<br/>delete alias account name if username is available</p>
+			<p><span class="command_reference">default</span>
+			<br/>make this account your default pay account on this network</p>
+
+			<hr/>
+			<p>CONTEXT: (others any type account) AS: ([User])</p>
+
+			<p><span class="command_reference">pay [amount]</span>
+			<br/>make a payment to another account</p>
+
+			<hr>
+			<p>CONTEXT: (visiting single ticket) AS: ([User])</p>
+
+			<p><span class="command_reference">remove</span>
+			<br/>remove your accounts attachment (tag) to this ticket</p>
+			<p><span class="command_reference">pay [amount]</span>
+			<br/>or: <span class="command_reference">pay [amount] [gratuity amount]</span>
+			<br/>or: <span class="command_reference">pay [amount] [gratuity percent]</span>
+			<br/>pay a ticket. A second amount can be added as a tip	or gratuity.
+			Percents need to end in % and must be between 0 and 100.  If a percent
+			is not specified it	is assumed to be a regular amount and will be added
+			to the total.  Paying a ticket removes any tag for the paying account.</p>
+
+			<hr/>
+			<p>CONTEXT: (visiting all tickets) AS: ([User])</p>
+
+			<p><span class="command_reference">ticket [name]</span>
+			<br/>go to a specific ticket</p>
+
+			<hr/>
+			<p>CONTEXT: (owner of single ticket) AS: ([User])</p>
+
+			<p><span class="command_reference">close</span>
+			<br/>close this ticket</p>
+			<p><span class="command_reference">attach [user]</span>
+			<br/>associate a specific user with this ticket</p>
+			<p><span class="command_reference">remove</span>
+			<br/>removes any associated user from this ticket</p>
+			<p><span class="command_reference">amount [amount]</span>
+			<br/>directly assigns ticket amount value overwriting previous (blanking memo)</p>
+			<p><span class="command_reference">amount [amount] m <memo></span>
+			<br/>directly assigns ticket amount and memo values overwriting previous</p>
+
+			<hr/>
+			<p>CONTEXT: (owner all tickets) AS: ([User])</p>
+
+			<p><span class="command_reference">open [name]</span>
+			<br/>or: <span class="command_reference">open [name] [user]</span>
+			<br/>or: <span class="command_reference">open [name] [amount]</span>
+			<br/>or: <span class="command_reference">open [name] [amount] m [memo]</span>
+			<br/>or: <span class="command_reference">open [name] [amount] [user]</span>
+			<br/>or: <span class="command_reference">open [name] [amount] [user] m [memo]</span>
+			<br/>all valid methods for creating a ticket. Specifying a user tags that user. Name is only field required.</p>
+			<p><span class="command_reference">close [name]</span>
+			<br/>close a ticket by name</p>
+			<p><span class="command_reference">remove [name]</span>
+			<br/>remove any current attached/tagged user from this ticket</p>
+		</div>
+	{% endif %}
+
 {% endfor %}
