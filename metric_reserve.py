@@ -1331,6 +1331,7 @@ class metric(object):
 						sync_account_ids.append(tuser.clone_parent_ids[i])
 					sync_accounts = ndb.get_multi(sync_account_keys)
 					for i in range(len(sync_accounts)):
+						pdb.set_trace()
 						self._sync_account(sync_accounts[i],current_time_key)
 					tuser.graph_sync = current_time_key
 					tuser.put()
