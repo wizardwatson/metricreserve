@@ -236,7 +236,7 @@ class ds_mr_user(ndb.Model):
 	location_latitude = ndb.IntegerProperty(default=3905580000,indexed=False)
 	location_longitude = ndb.IntegerProperty(default=-9568900000,indexed=False)
 	
-	date_created = ndb.DateTimeProperty(auto_now_add=True,indexed=False)
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	
 	total_reserve_accounts = ndb.IntegerProperty(default=0,indexed=False) # 30 max
 	total_other_accounts = ndb.IntegerProperty(default=0,indexed=False) # 20 max
@@ -1062,7 +1062,42 @@ class user(object):
 		lds_tx_log.put()
 		
 		return True # True meaning "created"
+	def _get_all_users(self,fstr_fcursor=None,fstr_rcursor=None):
 	
+		query = ds_mr_user.query()
+		query = query.order(-ds_mr_user.date_created)		
+		reverse_query = ds_mr_user.query()
+		reverse_query = reverse_query.order(ds_mr_user.date_created)
+
+		users_per_page = 10
+		
+		# if both are None then must be beginning.
+		# if forward exists user for previous link
+		if not fstr_rcursor is None:
+			# reverse cursor used
+			cursor = Cursor(urlsafe=fstr_rcursor)
+			reversed_users, prev_cursor, prev_more = reverse_query.fetch_page(users_per_page, start_cursor=cursor)
+			forward_users = list(reversed(reversed_users))
+			# the old cursor is now the next cursor
+			next_cursor = Cursor(urlsafe=fstr_rcursor)
+			next_more = True
+		
+		if not fstr_fcursor is None:
+			# forward cursor used
+			cursor = Cursor(urlsafe=fstr_fcursor)
+			forward_users, next_cursor, next_more = query.fetch_page(users_per_page, start_cursor=cursor)
+			# the old cursor is now the previous cursor
+			prev_cursor = Cursor(urlsafe=fstr_fcursor)
+			prev_more = True
+			
+		if fstr_fcursor is None and fstr_rcursor is None:
+			# if neither cursor passed, we're at beginning
+			forward_users, next_cursor, next_more = query.fetch_page(users_per_page)
+			prev_cursor = None
+			prev_more = False
+			
+		return forward_users, next_cursor, next_more, prev_cursor, prev_more
+		
 	def _get_user_messages(self,fstr_target_name,fstr_fcursor=None,fstr_rcursor=None):
 	
 		# get target user_id
@@ -9029,6 +9064,10 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/all_users":
+			# view specific network
+			self.master.PATH_CONTEXT = "all users"
+			result.append(130)
 		if (self.master.PATH_CONTEXT == "root/graph" and 
 			"vn" in self.master.request.GET and 
 			"va" in self.master.request.GET and
@@ -9223,6 +9262,11 @@ class ph_command(webapp2.RequestHandler):
 			menuitem["label"] = "My Profile"
 			blok["menuitems"].append(menuitem)
 			
+			menuitem = {}
+			menuitem["href"] = "/all_users"
+			menuitem["label"] = "All Users"
+			blok["menuitems"].append(menuitem)
+			
 		return blok		
 	
 	def get(self):
@@ -9408,7 +9452,66 @@ class ph_command(webapp2.RequestHandler):
 				bloks.append(blok)
 				bloks.append(self.get_menu_blok())	
 				break
-				
+			
+			if pqc[0] == 130:
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				page["title"] = "USERS"
+				blok = {}
+				map_blok = {}
+				map_blok["type"] = "map multiple"
+				map_blok["markers"] = []
+				map_blok["my_lat"] = float(lobj_master.user.entity.location_latitude) / 100000000
+				map_blok["my_long"] = float(lobj_master.user.entity.location_longitude) / 100000000
+				map_blok["heading"] = "Map of above users:"
+				blok["type"] = "all users"
+				blok["users_raw"] = ""
+				blok["users"] = []
+				blok["next_more"] = False
+				blok["next_cursor"] = ""
+				blok["prev_more"] = False
+				blok["prev_cursor"] = ""
+				if "fcursor" in lobj_master.request.GET:
+					current_fcursor = lobj_master.request.GET["fcursor"]
+				else:
+					current_fcursor = None
+				if "rcursor" in lobj_master.request.GET:
+					current_rcursor = lobj_master.request.GET["rcursor"]
+				else:
+					current_rcursor = None
+				a, b, c, d, e = lobj_master.user._get_all_users(current_fcursor,current_rcursor)
+				blok["users_raw"] = a
+				blok["next_cursor"] = b
+				blok["next_more"] = c
+				blok["prev_cursor"] = d
+				blok["prev_more"] = e
+				if not blok["next_cursor"] is None:
+					blok["next_cursor"] = blok["next_cursor"].urlsafe()
+				if not blok["prev_cursor"] is None:
+					blok["prev_cursor"] = blok["prev_cursor"].urlsafe()
+				var_counter = 1
+				for fuser in blok["users_raw"]:
+					formatted_user = {}
+					marker = {}
+					marker["variable_name"] = "marker%s" % str(var_counter).zfill(4)
+					var_counter += 1
+					marker["lat"] = float(fuser.location_latitude) / 100000000
+					marker["long"] = float(fuser.location_longitude) / 100000000
+					marker["username"] = fuser.username
+					map_blok["markers"].append(marker)
+					formatted_user["avatar_url"] = lobj_master.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type)
+					mo = str(fuser.date_created.month)
+					d = str(fuser.date_created.day)
+					y = str(fuser.date_created.year)
+					h = str(fuser.date_created.hour).zfill(2)
+					m = str(fuser.date_created.minute).zfill(2)
+					formatted_user["d_created_date"] = "%s/%s/%s %s:%s UTC" % (mo,d,y,h,m)
+					formatted_user["username"] = fuser.username
+					blok["users"].append(formatted_user)
+				bloks.append(blok)
+				bloks.append(self.get_menu_blok())	
+				bloks.append(map_blok)	
+				break
 			if pqc[0] == 70:
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
@@ -10593,6 +10696,7 @@ application = webapp2.WSGIApplication([
 	('/', ph_command),
 	('/network', ph_command),
 	('/profile', ph_command),
+	('/all_users', ph_command),
 	('/messages', ph_command),
 	('/ledger', ph_command),
 	('/tickets', ph_command),
