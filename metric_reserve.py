@@ -9387,7 +9387,9 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					# redirect home
 					r.redirect(self.url_path(new_path="/"))
+					
 				recognized = False
+				
 				if doc_page == "home":
 					recognized = True
 				if doc_page == "command_reference":
