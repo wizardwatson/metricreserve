@@ -9387,16 +9387,18 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					# redirect home
 					r.redirect(self.url_path(new_path="/"))
-				
-				if doc_page == "command_reference":
-					recognized = True
-				if doc_page == "contents":
-					recognized = True
+				recognized = False
 				if doc_page == "home":
+					recognized = True
+				if doc_page == "command_reference":
 					recognized = True
 				if doc_page == "overview":
 					recognized = True
 				if doc_page == "general_use":
+					recognized = True
+				if doc_page == "administration":
+					recognized = True
+				if doc_page == "graph":
 					recognized = True
 				if doc_page == "economics":
 					recognized = True
