@@ -1331,7 +1331,6 @@ class metric(object):
 						sync_account_ids.append(tuser.clone_parent_ids[i])
 					sync_accounts = ndb.get_multi(sync_account_keys)
 					for i in range(len(sync_accounts)):
-						pdb.set_trace()
 						self._sync_account(sync_accounts[i],current_time_key)
 					tuser.graph_sync = current_time_key
 					tuser.put()
@@ -1547,7 +1546,6 @@ class metric(object):
 		return True		
 		
 	def _sync_account(self,account,fkey=None):
-		pdb.set_trace()
 		if fkey == None:
 			current_time_key = self._get_sync_time_key()
 		else:
@@ -1615,7 +1613,11 @@ class metric(object):
 		if len(map_chunk.stuff) < (map_within_idx + 1):
 			return None
 		if map_chunk.stuff[map_within_idx] == 0:
-			return None
+			result = {}
+			result["tree_number"] = 1
+			result["account"] = {}
+			result["account"][2] = []
+			return result
 		tree_chunk_idx = map_chunk.stuff[map_within_idx]
 		key_part3 = str(tree_chunk_idx).zfill(12)
 		tree_chunk_key = ndb.Key("ds_mrgp_tree_chunk","%s%s%s" % (key_part1, key_part2, key_part3))
