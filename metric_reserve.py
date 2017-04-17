@@ -1772,6 +1772,7 @@ class metric(object):
 					a = network
 					b = owner_metric_entity
 					c = owner_ticket_entity.ticket_data["tag_amounts"][i]
+					if c is None: c = 0
 					new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
 					new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["tag_memos"][i]
 					new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["tag_network_ids"][i]
@@ -1800,16 +1801,19 @@ class metric(object):
 				
 				ft["all_tickets_count"] = owner_ticket_entity.ticket_data["ticket_count"]
 				ft["has_tickets"] = False
+				ft["all_tickets"] = []
 				
 				if ft["all_tickets_count"] > 0:
 					ft["has_tickets"] = True
 					last_ticket_idx = (int(fpage) * tickets_per_page) - 1
-					first_ticket_idx = last_ticket_idx - tickets_per_page - 1
+					first_ticket_idx = last_ticket_idx - (tickets_per_page - 1)
 					if first_ticket_idx > (ft["all_tickets_count"] - 1):
 						self.PARENT.RETURN_CODE = "1309"
 						return False # error Invalid page passed
 					if last_ticket_idx > (ft["all_tickets_count"] - 1):
 						last_ticket_idx = ft["all_tickets_count"] - 1
+					if first_ticket_idx < 0:
+						first_ticket_idx = 0
 					if last_ticket_idx == ft["all_tickets_count"] - 1:
 						ft["next_page"] = "0"
 					else:
@@ -1829,6 +1833,7 @@ class metric(object):
 						a = network
 						b = owner_metric_entity
 						c = owner_ticket_entity.ticket_data["ticket_amounts"][current_idx]
+						if c is None: c = 0
 						new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
 						new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][current_idx]
 						new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][current_idx]
@@ -1887,6 +1892,7 @@ class metric(object):
 						a = network
 						b = owner_metric_entity
 						c = owner_ticket_entity.ticket_data["ticket_amounts"][i]
+						if c is None: c = 0
 						new_ticket["ticket_amount"] = get_formatted_amount(a,b,c)
 						new_ticket["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][i]
 						new_ticket["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][i]
@@ -1914,6 +1920,7 @@ class metric(object):
 				a = network
 				b = owner_metric_entity
 				c = owner_ticket_entity.ticket_data["ticket_amounts"][idx]
+				if c is None: c = 0
 				ft["ticket_amount"] = get_formatted_amount(a,b,c)
 				ft["ticket_memo"] = owner_ticket_entity.ticket_data["ticket_memos"][idx]
 				ft["ticket_tag_network_id"] = owner_ticket_entity.ticket_data["ticket_tag_network_ids"][idx]
@@ -1944,7 +1951,7 @@ class metric(object):
 				host_name = "STUB"
 				path_qs = "/tickets?vn=%s&va=%s&vt=%s" % (fstr_network_name,fstr_account_name,fstr_ticket_name)
 				qr_url = host_name + path_qs
-				ft["ticket_qr_code_url"] = self.PARENT.metric._get_qr_url(qr_url)
+				ft["ticket_qr_code_url"] = self.PARENT._get_qr_url(qr_url)
 				
 				
 			
@@ -6801,16 +6808,14 @@ class metric(object):
 			if fstr_type == "amount":
 				try:
 					lint_amount = int(float(fstr_num)*fint_conversion)
-					amount = lint_amount
-					return True
+					return lint_amount
 				except ValueError, ex:
 					self.PARENT.RETURN_CODE = "1232"
 					return False # error Invalid amount passed.
 			if fstr_type == "gratuity_amount":
 				try:
 					lint_amount = int(float(fstr_num)*fint_conversion)
-					gratuity_amount = lint_amount
-					return True
+					return lint_amount
 				except ValueError, ex:
 					self.PARENT.RETURN_CODE = "1233"
 					return False # error Invalid amount passed.
@@ -6818,18 +6823,17 @@ class metric(object):
 				if not fstr_num[-1] == "%":
 					self.PARENT.RETURN_CODE = "1234"
 					return False # error Gratuity missing percent
-				del fstr_num[-1]					
+				fstr_num = fstr_num[:-1]					
 				try:
 					float_amount = float(fstr_num)
-					gratuity_percent = fstr_num
-					return True
+					return float_amount
 				except ValueError, ex:
 					self.PARENT.RETURN_CODE = "1235"
 					return False # error Invalid gratuity percent passed.
 			self.PARENT.RETURN_CODE = "1236"
 			return False # error Invalid type passed.
 		
-		def is_valid_name(fstr_name,fstr_type=None):
+		def is_valid_name(fstr_name):
 
 			# a valid name is comprised of re.match(r'^[a-z0-9_]+$',fstr_name)
 			# so only a-z, 0-9, or an underscore
@@ -6851,10 +6855,6 @@ class metric(object):
 				return False
 			if len(fstr_name) < 11 and not re.search('[0-9]',fstr_name):
 				return False
-			if fstr_type == "user":
-				user = fstr_name
-			if fstr_type == "ticket":
-				ticket_name = fstr_name
 			return True
 		
 		def parse_for_memo(command_seq,index_max):
@@ -6866,7 +6866,6 @@ class metric(object):
 				if i > index_max:
 					break
 				else:
-					new_command_seq.append()
 					if command_seq[i] == "m":
 						found = True
 						# Find the index of the 'nth' occurrence of "m" 
@@ -6885,7 +6884,8 @@ class metric(object):
 			if found:
 				return (new_command_seq,memo)
 			else:
-				return (command_seq,memo)
+				del command_seq[-1]
+				return (command_seq,None)
 		
 		def get_or_insert_ticket_index(fint_network_id,fint_account_id,fstr_user_id):
 		
@@ -6898,7 +6898,7 @@ class metric(object):
 				ticket_index_entity.user_id = fstr_user_id
 				ticket_index_entity.network_id = fint_network_id
 				ticket_index_entity.ticket_data = {}
-			if not "ticket_count" in source_ticket_index.ticket_data:
+			if not "ticket_count" in ticket_index_entity.ticket_data:
 				# initialize ticket_data
 				ticket_index_entity.ticket_data["ticket_count"] = 0
 				ticket_index_entity.ticket_data["ticket_labels"] = []
@@ -6918,6 +6918,7 @@ class metric(object):
 			return ticket_index_entity
 			
 		raw_command = fct[-1]
+		
 
 		# We have a ticket name.
 		#
@@ -6946,7 +6947,7 @@ class metric(object):
 		result = parse_for_memo(fct,4)
 		ct = result[0]
 		memo = result[1]
-				
+		
 		# If there is a "visitor" user besides the owner of this ticket, it means
 		# that the owner is not the one executing the action.  But we still need
 		# to validate both.  So we'll get the user objects and account id's from
@@ -6970,9 +6971,11 @@ class metric(object):
 					self.PARENT.RETURN_CODE = "1238" # error Not enough arguments for open ticket command.
 					return False
 
-				if not is_valid_name(ct[1],"ticket"):
+				if not is_valid_name(ct[1]):
 					self.PARENT.RETURN_CODE = "1239" # error Ticket name provided is not valid.
-					return False			
+					return False
+				else:
+					ticket_name = ct[1]
 
 				if len(ct) > 4:
 					self.PARENT.RETURN_CODE = "1240" # error Too many arguments for open ticket command.
@@ -6986,22 +6989,24 @@ class metric(object):
 				# Length 3 is the only variable now, it could be "user" or "amount"
 				# in index 2.
 				if len(ct) == 3:
-					if not is_valid_name(ct[2],"user"):
-						self.PARENT.RETURN_CODE = "1241" # error User name provided is not valid.
-						return False
-					elif not is_valid_number(ct[2]):
-						self.PARENT.RETURN_CODE = "1242" # error Amount provided is not valid.
-						return False
+					if not is_valid_name(ct[2]):
+						amount = is_valid_number(ct[2])
+						if not amount:
+							self.PARENT.RETURN_CODE = "1242" # error Amount/Name provided is not valid.
+							return False
 					else:
-						self.PARENT.RETURN_CODE = "1243" # error Ticket open() command parsing error on 3rd token. Must be valid username or amount.
-						return False
+						user = ct[2]						
+
 				if len(ct) == 4: 
 					# open <name> <user> <amount>	
-					if not is_valid_name(ct[2],"user"):
+					if not is_valid_name(ct[2]):
 						self.PARENT.RETURN_CODE = "1244" # error Ticket open() command parsing error on 3rd token. Must be valid username.
 						return False
+					else:
+						user = ct[2]
 
-					if not is_valid_number(ct[3]):
+					amount = is_valid_number(ct[3])
+					if not amount:
 						self.PARENT.RETURN_CODE = "1245" # error Ticket open() command parsing error on 4th token. Must be valid amount.
 						return False
 
@@ -7094,7 +7099,8 @@ class metric(object):
 					command_switch = "remove"
 					ticket_name = fstr_ticket_name
 				if len(ct) == 2 and ct[0] == "amount":
-					if not is_valid_number(ct[2]):
+					amount = is_valid_number(ct[1])
+					if not amount:
 						self.PARENT.RETURN_CODE = "1249" # error Amount provided is not valid.
 						return False
 					parse_match = True
@@ -7115,7 +7121,7 @@ class metric(object):
 				source_account_id = validation_result[1]
 				source_user = validation_result[3]
 				source_ticket_index = get_or_insert_ticket_index(network_id,source_account_id,source_user.user_id)
-				if not ticket_name in source_ticket_index["ticket_labels"]:
+				if not ticket_name in source_ticket_index.ticket_data["ticket_labels"]:
 					self.PARENT.RETURN_CODE = "1251" # error Ticket name not in source index.
 					return False
 				# Do we need to modify a tagged account ticket index? Does it have a tag.
@@ -7221,7 +7227,7 @@ class metric(object):
 					target_ticket_index.ticket_data["tag_user_ids"].append(source_user.user_id)
 					target_ticket_index.put()
 					source_ticket_index.put()
-					self.PARENT.RETURN_CODE = "7052" # success Ticket successfully closed.
+					self.PARENT.RETURN_CODE = "7052" # success Ticket tag successfully added.
 					return True
 		else:
 			
@@ -7244,7 +7250,7 @@ class metric(object):
 			owner_user = validation_result[4]
 			owner_ticket_index = get_or_insert_ticket_index(network_id,owner_account_id,owner_user.user_id)
 			
-			if not ticket_name in owner_ticket_index["ticket_labels"]:
+			if not ticket_name in owner_ticket_index.ticket_data["ticket_labels"]:
 				self.PARENT.RETURN_CODE = "1256" # error Ticket name not in owner index.
 				return False
 				
@@ -7263,7 +7269,7 @@ class metric(object):
 				# it is tagged
 				# find the tagged index for source ticket
 				found_tagged_index = False
-				for i in range(len(visitor_ticket_index["tag_network_ids"])):
+				for i in range(len(visitor_ticket_index.ticket_data["tag_network_ids"])):
 					if not visitor_ticket_index.ticket_data["tag_network_ids"][i] == network_id:
 						continue
 					if not visitor_ticket_index.ticket_data["tag_account_ids"][i] == owner_account_id:
@@ -7296,16 +7302,21 @@ class metric(object):
 			# only should have "pay" command now
 			parse_match = False
 			if len(ct) == 2 and ct[0] == "pay" and is_valid_number(ct[1]):
+				amount = is_valid_number(ct[1])
 				parse_match = True
 				# pay <amount>
 			
 			
-			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_number(ct[2]):
+			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_number(ct[2],"gratuity_amount"):
+				amount = is_valid_number(ct[1])
+				gratuity_amount = is_valid_number(ct[2],"gratuity_amount")
 				parse_match = True
 				# pay <amount> <plus gratuity as flat amount>
 			
 			
-			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_percent(ct[2]):
+			if len(ct) == 3 and ct[0] == "pay" and is_valid_number(ct[1]) and is_valid_number(ct[2],"gratuity_percent"):
+				amount = is_valid_number(ct[1])
+				gratuity_percent = is_valid_number(ct[2],"gratuity_percent")
 				parse_match = True
 				# pay <amount> <plus gratuity as percentage of previous amount>
 				
@@ -7356,13 +7367,14 @@ class metric(object):
 
 			self._sync_account(lds_pay_source)
 			self._sync_account(lds_pay_target)
-			if not self._transact_allow(lds_source,lds_target):
+			if not self._transact_allow(lds_pay_source,lds_pay_target):
 				self.PARENT.RETURN_CODE = "1318"
 				return False # error TREE ERROR Can't make payments between disconnected accounts.
 
 			# Calculate the payment amount
 			# Gratuity must be greater than zero.
 			# Percent cannot be greater than 100.
+			lint_amount = amount
 			if not gratuity_amount is None:
 				if not gratuity_amount > 0:
 					self.PARENT.RETURN_CODE = "1264"
@@ -7377,8 +7389,8 @@ class metric(object):
 				if float(gratuity_percent) > 100:
 					self.PARENT.RETURN_CODE = "1266"
 					return False # error Ticket pay fail. Cannot have gratuity percent greater than 100.
-					
-				lint_amount = amount + (amount * float(gratuity_percent) / 100)
+				
+				lint_amount = int(amount + (amount * float(gratuity_percent) / 100))
 					
 			# can't exceed maximum allowed payment
 			if lint_amount > MAX_PAYMENT:
@@ -7452,9 +7464,8 @@ class metric(object):
 			pay_source_lds_tx_log.amount = lint_amount
 			pay_source_lds_tx_log.current_network_balance = lds_pay_source.current_network_balance
 			pay_source_lds_tx_log.current_reserve_balance = lds_pay_source.current_reserve_balance
-			pay_source_lds_tx_log.memo = source_ticket_index.ticket_data["ticket_memos"][ticket_name_index]
 			pay_source_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
-			pay_source_lds_tx_log.description = "Ticket payment made for ticket name: %s" % ticket_name 
+			pay_source_lds_tx_log.description = "Ticket payment made for ticket name: %s Memo: %s" % (ticket_name,owner_ticket_index.ticket_data["ticket_memos"][ticket_name_index])
 			pay_source_lds_tx_log.user_id_created = lds_pay_source.user_id
 			pay_source_lds_tx_log.network_id = network_id
 			pay_source_lds_tx_log.account_id = pay_source_account_id
@@ -7478,7 +7489,7 @@ class metric(object):
 			# typically we'll make target private for bilateral transactions so that
 			# when looking at a system view, we don't see duplicates.
 			pay_target_lds_tx_log.access = "PRIVATE" # "PUBLIC" OR "PRIVATE"
-			pay_target_lds_tx_log.description = "Ticket payment received for ticket name: %s Memo: %s" % (ticket_name,source_ticket_index.ticket_data["ticket_memos"][ticket_name_index])
+			pay_target_lds_tx_log.description = "Ticket payment received for ticket name: %s Memo: %s" % (ticket_name,owner_ticket_index.ticket_data["ticket_memos"][ticket_name_index])
 			pay_target_lds_tx_log.user_id_created = lds_pay_source.user_id
 			pay_target_lds_tx_log.network_id = network_id
 			pay_target_lds_tx_log.account_id = pay_target_account_id
@@ -9028,12 +9039,6 @@ class ph_command(webapp2.RequestHandler):
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 			result.append(self.master.request.GET["vk"])
-		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
-			# view all tickets
-			self.master.PATH_CONTEXT = "all tickets"
-			result.append(100)
-			result.append(self.master.request.GET["vn"])
-			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET and "vt" in self.master.request.GET:
 			# view specific ticket
 			self.master.PATH_CONTEXT = "ticket"
@@ -9041,6 +9046,12 @@ class ph_command(webapp2.RequestHandler):
 			result.append(self.master.request.GET["vn"])
 			result.append(self.master.request.GET["va"])
 			result.append(self.master.request.GET["vt"])
+		if self.master.PATH_CONTEXT == "root/tickets" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
+			# view all tickets
+			self.master.PATH_CONTEXT = "all tickets"
+			result.append(100)
+			result.append(self.master.request.GET["vn"])
+			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/ledger" and "vn" in self.master.request.GET and "va" in self.master.request.GET:
 			# view specific account ledger
 			self.master.PATH_CONTEXT = "ledger"
@@ -9318,7 +9329,7 @@ class ph_command(webapp2.RequestHandler):
 			
 				# one graph result
 				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
+					r.redirect(self.url_path(new_path="/",error_code="1003"))
 				page["title"] = "GRAPH"
 				blok = {}
 				blok["type"] = "graph"
@@ -9339,7 +9350,10 @@ class ph_command(webapp2.RequestHandler):
 				blok["type"] = "one ticket"
 				blok["ticket"] = lobj_master.metric._view_tickets(pqc[1],pqc[2],pqc[3])
 				if not blok["ticket"]:
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
 				bloks.append(self.get_menu_blok())	
 				break
@@ -9358,7 +9372,10 @@ class ph_command(webapp2.RequestHandler):
 					ticket_page = 1
 				blok["tickets"] = lobj_master.metric._view_tickets(pqc[1],pqc[2],fpage=ticket_page)
 				if not blok["tickets"]:
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 				bloks.append(blok)
 				bloks.append(self.get_menu_blok())	
 				break
@@ -9482,10 +9499,13 @@ class ph_command(webapp2.RequestHandler):
 				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(other_user.gravatar_url,other_user.gravatar_type)
 				blok["bio"] = other_user.bio
 				blok["username"] = other_user.username
+				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
+				blok = {}
+				blok["type"] = "map"
 				blok["lat"] = float(other_user.location_latitude) / 100000000
 				blok["long"] = float(other_user.location_longitude) / 100000000
 				bloks.append(blok)	
-				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 60:
@@ -9500,8 +9520,6 @@ class ph_command(webapp2.RequestHandler):
 				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(self_user.gravatar_url,self_user.gravatar_type)
 				blok["bio"] = self_user.bio
 				blok["username"] = self_user.username
-				blok["lat"] = float(self_user.location_latitude) / 100000000
-				blok["long"] = float(self_user.location_longitude) / 100000000
 				
 				# format offers if any
 				if self_user.parent_client_offer_account_id == 0:
@@ -9552,6 +9570,11 @@ class ph_command(webapp2.RequestHandler):
 				
 				bloks.append(blok)	
 				bloks.append(self.get_menu_blok())	
+				blok = {}
+				blok["type"] = "map"
+				blok["lat"] = float(self_user.location_latitude) / 100000000
+				blok["long"] = float(self_user.location_longitude) / 100000000
+				bloks.append(blok)	
 				break
 
 			if pqc[0] == 40:
@@ -10441,11 +10464,29 @@ class ph_command(webapp2.RequestHandler):
 			(#) *pay <amount> <amount|percent> : pay a ticket plus add gratuity
 			(#) *remove : removes visiting users association from a ticket
 			"""
-
+			if ct[0] == "ticket" and len(ct) == 2 and (pqc[0] == 100 or pqc[0] == 110):
+				# ticket search
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(error_code="1003"))
+				elif not self.is_valid_name(ct[1]):
+					r.redirect(self.url_path(error_code="1104"))
+				else:
+					ltemp = {}
+					ltemp["vn"] = pqc[1]
+					ltemp["va"] = pqc[2]
+					ltemp["vt"] = ct[1]
+					r.redirect(self.url_path(new_vars=ltemp))
+				return
+				
 			ticket_1st_tokens = ["open","close","remove","attach","amount","pay"]
-			ticket_ct = ct.append(lstr_command_text)
+			ticket_ct = ct
+			ticket_ct.append(lstr_command_text)
 			if pqc[0] == 110 and ct[0] in ticket_1st_tokens:
 				# specific ticket
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				ltemp["vt"] = pqc[3]
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 					return
@@ -10456,11 +10497,11 @@ class ph_command(webapp2.RequestHandler):
 				# it's not set to default, they are a visitor.
 				if not a:
 					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 					return
 				elif not account_name:
 					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
+					r.redirect(self.url_path(new_vars=ltemp,error_code="1292"))
 					return
 				else:
 					# Determine whether visitor or owner.
@@ -10470,18 +10511,17 @@ class ph_command(webapp2.RequestHandler):
 						visitor = account_name
 				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct,pqc[3]):
 					# error Pass up error
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					ltemp["vt"] = pqc[3]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 				return
 					
 			
 			if pqc[0] == 100 and ct[0] in ticket_1st_tokens:
 				# all tickets
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(error_code="1003"))
 					return
@@ -10492,7 +10532,7 @@ class ph_command(webapp2.RequestHandler):
 				# it's not set to default, they are a visitor.
 				if not a:
 					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 					return
 				elif not account_name:
 					# error No account found for user on this network.
@@ -10506,26 +10546,9 @@ class ph_command(webapp2.RequestHandler):
 						visitor = account_name
 				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct):
 					# error Pass up error
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
 				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
 					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-				
-			if ct[0] == "ticket" and len(ct) == 2 and (pqc[0] == 100 or pqc[0] == 110):
-				# ticket search
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1104"))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					ltemp["vt"] = pqc[3]
-					r.redirect(self.url_path(new_vars=ltemp))
 				return
 
 			###################################
