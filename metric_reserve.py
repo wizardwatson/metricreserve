@@ -895,7 +895,7 @@ class master(object):
 					list_of_account_labels.append(user_entity.reserve_labels[i])
 					a = user_entity.reserve_network_ids[i]
 					b = user_entity.reserve_account_ids[i]
-					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 					list_of_account_keys.append(new_account_key)
 					
 				for i in range(len(user_entity.client_network_ids)):
@@ -904,7 +904,7 @@ class master(object):
 					list_of_account_labels.append(user_entity.client_labels[i])
 					a = user_entity.client_network_ids[i]
 					b = user_entity.client_account_ids[i]
-					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 					list_of_account_keys.append(new_account_key)
 					
 				for i in range(len(user_entity.joint_network_ids)):
@@ -913,7 +913,7 @@ class master(object):
 					list_of_account_labels.append(user_entity.joint_labels[i])
 					a = user_entity.joint_network_ids[i]
 					b = user_entity.joint_account_ids[i]
-					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 					list_of_account_keys.append(new_account_key)
 					
 				for i in range(len(user_entity.clone_network_ids)):
@@ -922,7 +922,7 @@ class master(object):
 					list_of_account_labels.append(user_entity.clone_labels[i])
 					a = user_entity.clone_network_ids[i]
 					b = user_entity.clone_account_ids[i]
-					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(a).zfill(8),str(b).zfill(12)))
 					list_of_account_keys.append(new_account_key)
 
 				# create a dict where key/value is net_id/net_name
@@ -933,7 +933,6 @@ class master(object):
 				list_of_networks = ndb.get_multi(list_of_network_keys)
 				net_names = {}
 				for network in list_of_networks:
-					pdb.set_trace()
 					net_names[network.network_id] = network.network_name
 					
 				# get all the accounts
@@ -953,7 +952,6 @@ class master(object):
 				
 				"""
 				for i in range(len(list_of_accounts)):
-					pdb.set_trace()
 					if name_entity.name_type == "alias" and fstr_search_term == list_of_account_labels[i]:
 						# this is our alias account
 						formatted_result["alias"]["network_name"] = net_names[list_of_accounts[i].network_id]
