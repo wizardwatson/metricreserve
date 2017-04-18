@@ -9411,7 +9411,6 @@ class ph_command(webapp2.RequestHandler):
 					search_term = urllib.unquote(lobj_master.request.GET["term"])
 					result_blok["search_result"] = search_term #lobj_master._search(search_term)
 					result_blok["has_search_result"] = True 
-					"""
 
 				bloks.append(self.get_menu_blok())	
 				break
