@@ -12,6 +12,7 @@
 		{% endif %}
 	</div>
 	<div data-role="content">
+		{% if master.SHOW_COMMAND %}
 		<form action="{{ master.request.path_qs }}" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
 		  <fieldset>
 			<div data-role="fieldcontain" class="ui-hide-label">
@@ -29,6 +30,7 @@
 		  </fieldset>
 		</form>
 		<div class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font></div>
+		{% endif %}
 		{% include 'templates/tpl_mob_bloks.html' %}
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
