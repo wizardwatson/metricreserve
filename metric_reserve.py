@@ -9070,6 +9070,9 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/search":
+			# view documentation
+			result.append(150)
 		if self.master.PATH_CONTEXT == "root/documentation":
 			# view documentation
 			result.append(140)
@@ -9272,11 +9275,16 @@ class ph_command(webapp2.RequestHandler):
 			menuitem["label"] = "My Profile"
 			blok["menuitems"].append(menuitem)
 			
-			menuitem = {}
-			menuitem["href"] = "/all_users"
-			menuitem["label"] = "All Users"
-			blok["menuitems"].append(menuitem)
+			#menuitem = {}
+			#menuitem["href"] = "/all_users"
+			#menuitem["label"] = "All Users"
+			#blok["menuitems"].append(menuitem)
 
+		menuitem = {}
+		menuitem["href"] = "/search"
+		menuitem["label"] = "Search"
+		blok["menuitems"].append(menuitem)
+		
 		menuitem = {}
 		menuitem["href"] = "/documentation?p=home"
 		menuitem["label"] = "Documentation"
@@ -9294,6 +9302,8 @@ class ph_command(webapp2.RequestHandler):
 		r = lobj_master.request_handler
 		if lobj_master.IS_INTERRUPTED:return
 		
+		# switch to turn command form on/off
+		lobj_master.SHOW_COMMAND = True
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 		# make the menu link href
@@ -9384,6 +9394,28 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 150:			
+				# search
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(new_path="/",error_code="1003"))
+				lobj_master.SHOW_COMMAND = False
+				page["title"] = "SEARCH"
+				blok = {}
+				blok["type"] = "search"
+				bloks.append(blok)	
+				result_blok = {}
+				result_blok["type"] = "search_result"
+				result_blok["has_search_result"] = False 
+				if "term" in lobj_master.request.GET:
+					# STUB
+					search_term = urllib.unquote(lobj_master.request.GET["term"])
+					result_blok["search_result"] = search_term #lobj_master._search(search_term)
+					result_blok["has_search_result"] = True 
+					"""
+
+				bloks.append(self.get_menu_blok())	
+				break
+				
 			if pqc[0] == 140:
 				
 				page["title"] = "DOCS"
@@ -9425,7 +9457,6 @@ class ph_command(webapp2.RequestHandler):
 				bloks.append(blok2)
 				break
 				
-			# make bloks from context
 			if pqc[0] == 120:
 			
 				# one graph result
@@ -9738,7 +9769,7 @@ class ph_command(webapp2.RequestHandler):
 				break
 
 			if pqc[0] == 40:
-				page["title"] = "ROOT"
+				page["title"] = "HOME"
 				blok = {}
 				blok["type"] = "home"
 				bloks.append(blok)	
@@ -9746,7 +9777,7 @@ class ph_command(webapp2.RequestHandler):
 				break
 
 			if pqc[0] == 30:
-				page["title"] = "MENU ROOT"
+				page["title"] = "MENU"
 				bloks.append(self.get_menu_blok())	
 				break	
 
@@ -9830,7 +9861,7 @@ class ph_command(webapp2.RequestHandler):
 			blok["type"] = "error"
 			blok["error_code"] = "1002"
 			blok["last_view_link"] = "/"
-			blok["last_view_link_text"] = "Link to ROOT"
+			blok["last_view_link_text"] = "Link to Home"
 			bloks.append(blok)	
 			bloks.append(self.get_menu_blok())	
 			break			
@@ -9928,6 +9959,22 @@ class ph_command(webapp2.RequestHandler):
 			
 			"""
 			#return lobj_master.dump([pqc[0],pqc[1],ct[0],ct[1]])
+			###################################
+			# /search
+			###################################
+			if pqc[0] == 150:
+				# All we want to do here is put the search term into url query string
+				# Get the search term
+				lstr_search_term = lobj_master.request.POST['form_search_term']
+				if lstr_search_term.isspace() or not lstr_search_term or lstr_search_term is None:
+					# No search term passed
+					r.redirect('/search')
+				else:
+					# quote it and redirect with query string
+					ltemp = {}
+					ltemp["term"] = urllib.quote_plus(lstr_search_term.strip())
+					r.redirect(self.url_path(new_vars=ltemp))
+				return
 			###################################
 			# long command
 			# 
@@ -10755,6 +10802,7 @@ application = webapp2.WSGIApplication([
 	('/network', ph_command),
 	('/profile', ph_command),
 	('/all_users', ph_command),
+	('/search', ph_command),
 	('/messages', ph_command),
 	('/ledger', ph_command),
 	('/tickets', ph_command),
