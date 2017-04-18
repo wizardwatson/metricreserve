@@ -9264,21 +9264,11 @@ class ph_command(webapp2.RequestHandler):
 		menuitem["label"] = "Home"
 		blok["menuitems"].append(menuitem)
 
-		menuitem = {}
-		menuitem["href"] = "/network"
-		menuitem["label"] = "All Networks"
-		blok["menuitems"].append(menuitem)
-
 		if self.master.user.IS_LOGGED_IN:
 			menuitem = {}
 			menuitem["href"] = "/profile"
 			menuitem["label"] = "My Profile"
 			blok["menuitems"].append(menuitem)
-			
-			#menuitem = {}
-			#menuitem["href"] = "/all_users"
-			#menuitem["label"] = "All Users"
-			#blok["menuitems"].append(menuitem)
 
 		menuitem = {}
 		menuitem["href"] = "/search"
