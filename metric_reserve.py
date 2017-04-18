@@ -9981,6 +9981,11 @@ class ph_command(webapp2.RequestHandler):
 				fnetwork["network_status"] = blok["network"].network_status
 				fnetwork["network_type"] = blok["network"].network_type
 				fnetwork["skintillionths"] = blok["network"].skintillionths
+				# check attr for old type
+				if hasattr(blok["network"],"decimal_places"):
+					fnetwork["decimal_places"] = blok["network"].decimal_places
+				else:
+					fnetwork["decimal_places"] = "N/A"
 				fnetwork["description"] = blok["network"].description
 				fnetwork["date_created"] = blok["network"].date_created
 				m = str(blok["network"].date_created.month)
