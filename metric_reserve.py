@@ -10443,7 +10443,7 @@ class ph_command(webapp2.RequestHandler):
 				ltemp["xnetwork_name"] = pqc[1]
 				ltemp["xdecimals"] = ct[2]
 				ltemp["vn"] = pqc[1]
-				r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7059"))
 			return
 		if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
 			# only admins can change a network name
