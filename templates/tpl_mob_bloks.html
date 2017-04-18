@@ -134,7 +134,7 @@
 				<h3>{{ blok.username }}</h3>
 			</li>
 			<li>
-				<a href="/messages?channel={{ blok.username }}"><h3>Public Messages</h3></a>
+				<a href="/messages?channel={{ blok.username }}"><h3>Show public messages</h3></a>
 			</li>
 		</ul>
 		{% if blok.has_client_offer %}
@@ -173,7 +173,12 @@
 				<h3>{{ blok.username }}</h3>
 			</li>
 			<li>
-				<a href="/messages?channel={{ blok.username }}">(Public Messages)</a>
+				<a href="/messages?channel={{ blok.username }}">Send public message</a>
+			</li>
+		</ul>
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li>
+				<a href="/search?term={{ blok.username }}">Metric accounts for {{ blok.username }}</a>
 			</li>
 		</ul>
 		<div class="text_bubble ui-body ui-body-c">
