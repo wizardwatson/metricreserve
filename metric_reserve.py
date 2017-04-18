@@ -939,7 +939,7 @@ class master(object):
 				list_of_accounts = ndb.get_multi(list_of_account_keys)
 				
 				# create the formatted query result
-				formatted_result["gravatar_url"] = lobj_master.user._get_gravatar_url(user_entity.gravatar_url,user_entity.gravatar_type)
+				formatted_result["gravatar_url"] = self.user._get_gravatar_url(user_entity.gravatar_url,user_entity.gravatar_type)
 				formatted_result["username"] = user_entity.username
 				formatted_result["total_accounts"] = len(list_of_accounts)
 				formatted_result["alias"] = {}
