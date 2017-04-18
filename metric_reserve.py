@@ -9868,891 +9868,893 @@ class ph_command(webapp2.RequestHandler):
 		self.master = lobj_master
 		if lobj_master.IS_INTERRUPTED:return
 
-		# get the command text
-		lstr_command_text = lobj_master.request.POST['form_command_text']
-		if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
-			# No command passed, just treat as a refresh, but if they hit
-			# enter when command field is empty and they are also currently
-			# on a error/success/confirm view, then we strip out any query
-			# string vars related to those views before refreshing.
-			# 
-			# That's why we prefix all result view query variables with x.
-			stripped_GET = {}
-			for key in lobj_master.request.GET:
-				# if first character of query string var name is 'x'
-				if key[:1] == "x":
-					# skip it
-					pass
-				else:
-					#include it
-					stripped_GET[key] = lobj_master.request.GET[key]					
-			lobj_master.request_handler.redirect(self.url_path(new_vars=stripped_GET,new_path=lobj_master.request.path))
-		else:
-			# create a shorter reference to the request handler
-			r = lobj_master.request_handler
-			# parse the command and make sure all lowercase
-			ct = lstr_command_text.lower().split()
-			ctraw = lstr_command_text.split()
-			ctraw.append(lstr_command_text)  
-			# is this a confirmation of a previously entered command?
-			is_confirmed = False
-			if ct[0] == "confirm" and len(ct) == 1:
-				# yes, it is
-				# check the hidden confirmed command
-				lstr_command_text = lobj_master.request.POST['form_hidden_command_text']
-				if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
-					# no command passed, just treat as a refresh
-					r.redirect(self.url_path(error_code="1001"))
-					return
-				else:
-					# Make what was in the hidden field what we actually process
-					# and continue.
-					ct = lstr_command_text.lower().split()
-					ctraw = lstr_command_text.split()
-					ctraw.append(lstr_command_text)
-					is_confirmed = True			
-			
-			# get the context
-			lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
-			
-			# get path/query context and variables
-			pqc = self.get_pqc()
-			
-			"""
-			PROCESS THE COMMANDS
-			
-			This is the main switch for processing commands.
-			Most of the logic/rules/permissions for various
-			functions/pages are handled here.
-			
-			"""
-			
-			
-			
-			"""
-			# create shorter references to our objects
-			lobj_master.bloks = []
-			lobj_master.page = {}
-			context = lobj_master.PATH_CONTEXT
-			bloks = lobj_master.bloks
-			page = lobj_master.page
-			lobj_master.TRACE.append("%s" %(ct))
-			lobj_master.TRACE.append("%s" %(pqc[0]))
-			lobj_master.TRACE.append("%s" %(1))
-			lobj_master.TRACE.append("%s" %(1))
-			lobj_master.TRACE.append("%s" %(1))
-			lobj_master.TRACE.append("%s" %(1))
-			lobj_master.TRACE.append("%s" %(1))
-			template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
-			self.response.write(template.render(master=lobj_master))
+		if 'form_command_text' in lobj_master.request.POST:
+			# get the command text
+			lstr_command_text = lobj_master.request.POST['form_command_text']
+			if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
+				# No command passed, just treat as a refresh, but if they hit
+				# enter when command field is empty and they are also currently
+				# on a error/success/confirm view, then we strip out any query
+				# string vars related to those views before refreshing.
+				# 
+				# That's why we prefix all result view query variables with x.
+				stripped_GET = {}
+				for key in lobj_master.request.GET:
+					# if first character of query string var name is 'x'
+					if key[:1] == "x":
+						# skip it
+						pass
+					else:
+						#include it
+						stripped_GET[key] = lobj_master.request.GET[key]					
+				lobj_master.request_handler.redirect(self.url_path(new_vars=stripped_GET,new_path=lobj_master.request.path))
+				return
+			else:
+				# create a shorter reference to the request handler
+				r = lobj_master.request_handler
+				# parse the command and make sure all lowercase
+				ct = lstr_command_text.lower().split()
+				ctraw = lstr_command_text.split()
+				ctraw.append(lstr_command_text)  
+				# is this a confirmation of a previously entered command?
+				is_confirmed = False
+				if ct[0] == "confirm" and len(ct) == 1:
+					# yes, it is
+					# check the hidden confirmed command
+					lstr_command_text = lobj_master.request.POST['form_hidden_command_text']
+					if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
+						# no command passed, just treat as a refresh
+						r.redirect(self.url_path(error_code="1001"))
+						return
+					else:
+						# Make what was in the hidden field what we actually process
+						# and continue.
+						ct = lstr_command_text.lower().split()
+						ctraw = lstr_command_text.split()
+						ctraw.append(lstr_command_text)
+						is_confirmed = True			
+
+		# get the context
+		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
+
+		# get path/query context and variables
+		pqc = self.get_pqc()
+
+		"""
+		PROCESS THE COMMANDS
+
+		This is the main switch for processing commands.
+		Most of the logic/rules/permissions for various
+		functions/pages are handled here.
+
+		"""
+
+
+
+		"""
+		# create shorter references to our objects
+		lobj_master.bloks = []
+		lobj_master.page = {}
+		context = lobj_master.PATH_CONTEXT
+		bloks = lobj_master.bloks
+		page = lobj_master.page
+		lobj_master.TRACE.append("%s" %(ct))
+		lobj_master.TRACE.append("%s" %(pqc[0]))
+		lobj_master.TRACE.append("%s" %(1))
+		lobj_master.TRACE.append("%s" %(1))
+		lobj_master.TRACE.append("%s" %(1))
+		lobj_master.TRACE.append("%s" %(1))
+		lobj_master.TRACE.append("%s" %(1))
+		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
+		self.response.write(template.render(master=lobj_master))
+		return
+
+		"""
+		#return lobj_master.dump([pqc[0],pqc[1],ct[0],ct[1]])
+		###################################
+		# /search
+		###################################
+		if pqc[0] == 150:
+			# All we want to do here is put the search term into url query string
+			# Get the search term
+			lstr_search_term = lobj_master.request.POST['form_search_term']
+			if lstr_search_term.isspace() or not lstr_search_term or lstr_search_term is None:
+				# No search term passed
+				r.redirect('/search')
+			else:
+				# quote it and redirect with query string
+				ltemp = {}
+				ltemp["term"] = urllib.quote_plus(lstr_search_term.strip())
+				r.redirect(self.url_path(new_vars=ltemp))
 			return
-			
-			"""
-			#return lobj_master.dump([pqc[0],pqc[1],ct[0],ct[1]])
-			###################################
-			# /search
-			###################################
-			if pqc[0] == 150:
-				# All we want to do here is put the search term into url query string
-				# Get the search term
-				lstr_search_term = lobj_master.request.POST['form_search_term']
-				if lstr_search_term.isspace() or not lstr_search_term or lstr_search_term is None:
-					# No search term passed
-					r.redirect('/search')
-				else:
-					# quote it and redirect with query string
-					ltemp = {}
-					ltemp["term"] = urllib.quote_plus(lstr_search_term.strip())
-					r.redirect(self.url_path(new_vars=ltemp))
-				return
-			###################################
-			# long command
-			# 
-			# from any context
-			###################################
-			if  len(ct) == 3 and ct[0] == "settings":
-				# only admins can modify settings
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not lobj_master._modify_settings(ct[1],ctraw[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return	
-			###################################
-			# long command
-			# 
-			# from any context
-			###################################
-			if  len(ct) == 1 and ct[0] == "l":
-				r.redirect(self.url_path(new_vars="xcs=long"))
-				return		
-			###################################
-			# menu
-			# 
-			# from any context
-			###################################
-			if  len(ct) == 1 and ct[0] == "menu":
-				r.redirect(self.url_path(new_vars="view_menu=1",new_path="/"))
-				return
-			###################################
-			# user and account search
-			# 
-			# from any context
-			###################################
-			if  len(ct) == 2 and ct[0] == "user":
-				if not self.is_valid_name(ct[1]):
-					r.redirect(self.url_path(error_code="1101"))
-				else:
-					r.redirect(self.url_path(new_vars=("va=%s" % ct[1]),new_path="/profile"))
-				return
-			if  len(ct) == 2 and ct[0] == "account":
-				if not self.is_valid_name(ct[1]):
-					r.redirect(self.url_path(error_code="1101"))
-				else:
-					# get the network name before we redirect
-					name_entity_key = ndb.Key("ds_mr_unique_dummy_entity", ct[1])
-					name_entity = name_entity_key.get()
-					if name_entity is None:
-						# error Account name is invalid
-						r.redirect(self.url_path(error_code="1297"))
-						return None
-					other_user_key = ndb.Key("ds_mr_user", name_entity.user_id) 
-					other_user = other_user_key.get()
-					if other_user is None:
-						# error Can't load user entity
-						r.redirect(self.url_path(error_code="1298"))
-						return None
-					# We've got a valid user, now search the user to
-					# see if the name passed is a valid account.  If
-					# it's not, don't fail, just kick them to the profile.
-					# If successful, send them to the account.
-					
-					network_id = None
-					for i in range(len(other_user.reserve_network_ids)):
-						if other_user.reserve_labels[i] == ct[1]:
-							network_id = other_user.reserve_network_ids[i]
+		###################################
+		# long command
+		# 
+		# from any context
+		###################################
+		if  len(ct) == 3 and ct[0] == "settings":
+			# only admins can modify settings
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not lobj_master._modify_settings(ct[1],ctraw[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return	
+		###################################
+		# long command
+		# 
+		# from any context
+		###################################
+		if  len(ct) == 1 and ct[0] == "l":
+			r.redirect(self.url_path(new_vars="xcs=long"))
+			return		
+		###################################
+		# menu
+		# 
+		# from any context
+		###################################
+		if  len(ct) == 1 and ct[0] == "menu":
+			r.redirect(self.url_path(new_vars="view_menu=1",new_path="/"))
+			return
+		###################################
+		# user and account search
+		# 
+		# from any context
+		###################################
+		if  len(ct) == 2 and ct[0] == "user":
+			if not self.is_valid_name(ct[1]):
+				r.redirect(self.url_path(error_code="1101"))
+			else:
+				r.redirect(self.url_path(new_vars=("va=%s" % ct[1]),new_path="/profile"))
+			return
+		if  len(ct) == 2 and ct[0] == "account":
+			if not self.is_valid_name(ct[1]):
+				r.redirect(self.url_path(error_code="1101"))
+			else:
+				# get the network name before we redirect
+				name_entity_key = ndb.Key("ds_mr_unique_dummy_entity", ct[1])
+				name_entity = name_entity_key.get()
+				if name_entity is None:
+					# error Account name is invalid
+					r.redirect(self.url_path(error_code="1297"))
+					return None
+				other_user_key = ndb.Key("ds_mr_user", name_entity.user_id) 
+				other_user = other_user_key.get()
+				if other_user is None:
+					# error Can't load user entity
+					r.redirect(self.url_path(error_code="1298"))
+					return None
+				# We've got a valid user, now search the user to
+				# see if the name passed is a valid account.  If
+				# it's not, don't fail, just kick them to the profile.
+				# If successful, send them to the account.
+
+				network_id = None
+				for i in range(len(other_user.reserve_network_ids)):
+					if other_user.reserve_labels[i] == ct[1]:
+						network_id = other_user.reserve_network_ids[i]
+						break
+				if network_id is None:
+					for i in range(len(other_user.client_network_ids)):
+						if other_user.client_labels[i] == ct[1]:
+							network_id = other_user.client_network_ids[i]
+							break	
+
+				if network_id is None:
+					for i in range(len(other_user.joint_network_ids)):
+						if other_user.joint_labels[i] == ct[1]:
+							network_id = other_user.joint_network_ids[i]
+							break	
+
+				if network_id is None:
+					for i in range(len(other_user.clone_network_ids)):
+						if other_user.clone_labels[i] == ct[1]:
+							network_id = other_user.clone_network_ids[i]
 							break
-					if network_id is None:
-						for i in range(len(other_user.client_network_ids)):
-							if other_user.client_labels[i] == ct[1]:
-								network_id = other_user.client_network_ids[i]
-								break	
-						
-					if network_id is None:
-						for i in range(len(other_user.joint_network_ids)):
-							if other_user.joint_labels[i] == ct[1]:
-								network_id = other_user.joint_network_ids[i]
-								break	
-						
-					if network_id is None:
-						for i in range(len(other_user.clone_network_ids)):
-							if other_user.clone_labels[i] == ct[1]:
-								network_id = other_user.clone_network_ids[i]
-								break
-								
-					if network_id is None:
-						# can't find an account with that name, so send to user profile
-						r.redirect(self.url_path(new_vars=("va=%s" % other_user.username),new_path="/profile"))
-					else:
-						# found an account with that name, send to account view page after
-						# getting network label
-						network = lobj_master.metric._get_network(fint_network_id=network_id)
-						r.redirect(self.url_path(new_vars=("vn=%s&va=%s" % (network.network_name,ct[1])),new_path="/network"))
-				return				
-			###################################
-			# username change <USERNAME>
-			# 
-			# from any context
-			###################################
-			if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1101"))
-				elif not is_confirmed:
-					# need confirmation before changing a username
-					ltemp = {}
-					ltemp["xold_username"] = lobj_master.user.entity.username
-					ltemp["xnew_username"] = ct[2]
-					ltemp["xct"] = "username change %s" % ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
-				elif not lobj_master.user._change_username_transactional(ct[2]):
-					r.redirect(self.url_path(error_code="1102"))
+
+				if network_id is None:
+					# can't find an account with that name, so send to user profile
+					r.redirect(self.url_path(new_vars=("va=%s" % other_user.username),new_path="/profile"))
 				else:
-					ltemp = {}
-					ltemp["xold_username"] = lobj_master.user.entity.username
-					ltemp["xnew_username"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
-				return
-			###################################
-			# modify user settings
-			# 
-			# from any context
-			###################################
-			if len(ct) == 2 and ct[0] in ["gurl","gtype"]:
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user._modify_user(ct[0],ct[1]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return				
-			if len(ct) == 3 and ct[0] == "location":
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user._modify_user(ct[0],"%s %s" % (ct[1],ct[2])):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return		
-			if ct[0] == "bio" and len(ct) > 1:
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user._modify_user(ct[0],self.get_text_for("bio",ctraw[-1])):
-					r.redirect(self.url_path(new_path="/profile",error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(new_path="/profile",success_code=lobj_master.RETURN_CODE))
-				return			
-			###################################
-			# user message
-			# 
-			# from message context
-			###################################
-			if pqc[0] == 70 and len(ct) > 1 and ct[0] == "message":
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user._message(pqc[1],self.get_text_for("message",ctraw[-1])):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					time.sleep(2)
-					#lobj_master.dump([lobj_master.request.path_qs])
-					r.redirect(self.url_path(new_path=lobj_master.request.path_qs))
-				# no success code, just return, smoother
-				return		
-			###################################
-			# network add <NETWORK NAME> : add a new network [admin only]
-			# network <NETWORK NAME> : view a network
-			# network : view network summary for all networks
-			# 
-			# from any context
-			###################################
-			if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
-				# only admins can create a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1104"))
-				elif not lobj_master.metric._network_add(ct[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnew_network_name"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
-				return
-			if  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
+					# found an account with that name, send to account view page after
+					# getting network label
+					network = lobj_master.metric._get_network(fint_network_id=network_id)
+					r.redirect(self.url_path(new_vars=("vn=%s&va=%s" % (network.network_name,ct[1])),new_path="/network"))
+			return				
+		###################################
+		# username change <USERNAME>
+		# 
+		# from any context
+		###################################
+		if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "username change":
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not self.is_valid_name(ct[2]):
+				r.redirect(self.url_path(error_code="1101"))
+			elif not is_confirmed:
+				# need confirmation before changing a username
 				ltemp = {}
-				ltemp["vn"] = ct[1]
-				r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
-				return
-			if  len(ct) == 1 and ct[0] == "network":
-				r.redirect("/network")
-				return
-			###################################
-			# network delete : delete a network [admin only]
-			# network activate : change network status to ACTIVE [admin only]
-			# network type live : set network type to live [admin only]
-			# network type test : set network type to test [admin only]
-			# network name <valid name> : change the name of a network [admin only]
-			# network skintillionths <positive integer> : set conversion rate of network [admin only]
-			# 
-			# all only from network:network_id context
-			###################################
-			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
-				# only admins can delete a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],delete_network=True):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
-				return
-			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
-				# only admins can change the status of a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not is_confirmed:
-					# need confirmation before activating a network
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["xct"] = "network activate"
-					# Need to declare query vars necessary for 
-					# pqc[]/context on the confirm page or else
-					# we won't get back here on confirm.
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6002"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
-				return
-			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
-				# only admins can change the type of a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="LIVE"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
-				return
-			if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
-				# only admins can change the type of a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="TEST"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
-				return
-			if pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
-				# only admins can change the description of a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],fdescription=self.get_text_for("describe",lstr_command_text)):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7045"))
-				return
-			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
-				# only admins can change the type of a network
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not re.match(r'^[0-9]+$',ct[2]) or not (int(ct[2])) < 1000000000000000 or not (int(ct[2])) > 0:
-					r.redirect(self.url_path(error_code="1107"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],fskintillionths=int(ct[2])):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["xskintillionths"] = ct[2]
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
-				return
-			if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
-				# only admins can change a network name
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.user.IS_ADMIN:
-					r.redirect(self.url_path(error_code="1103"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1104"))
-				elif not is_confirmed:
-					# need confirmation before changing a network name
-					ltemp = {}
-					ltemp["xold_network_name"] = pqc[1]
-					ltemp["xnew_network_name"] = ct[2]
-					ltemp["xct"] = "network name %s" % ct[2]
-					# Need to declare query vars necessary for 
-					# pqc[]/context on the confirm page or else
-					# we won't get back here on confirm.
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6003"))
-				elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["xold_network_name"] = pqc[1]
-					ltemp["xnew_network_name"] = ct[2]
-					ltemp["vn"] = ct[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))		
-				return
-			###################################
-			# reserve add : 
-			# joint authorize :
-			# client authorize : 
-			# 
-			# These three functions are done from the single network
-			# view context.  All other account functions are done from
-			# the single account view context.
-			###################################
-			if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
-				# create a reserve account on this network for the user
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not is_confirmed:
-					# need confirmation before creating a reserve account
-					ltemp = {}
-					ltemp["xnetwork_name"] = pqc[1]
-					ltemp["xct"] = "reserve open"
-					# Need to declare query vars necessary for 
-					# pqc[]/context on the confirm page or else
-					# we won't get back here on confirm.
-					ltemp["vn"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
-				elif not lobj_master.metric._reserve_open(pqc[1]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["xnetwork_name"] = pqc[1]
-					r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
-				return
-			###################################
-			#modify up|down|destroy|create <amount>
-			#connect
-			#disconnect
-			#pay <amount>
-			#suggested request <amount>
-			#suggested authorize <amount>
-			#suggested cancel <amount>
-			#suggested deny <amount>
-			#transfer request <amount>
-			#transfer authorize <amount>
-			#transfer cancel <amount>
-			#transfer deny <amount>
-			###################################
-			if (pqc[0] == 80 or pqc[0] == 90) and len(ct) == 3 and ct[0] == "modify":
-				# modify reserve command
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not ct[1] in ["add","subtract","create","destroy"]:
-					# error Subcommand for modify command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
-					r.redirect(self.url_path(error_code="1291"))
-				elif not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# they must be viewing their own reserve account to make
-				# reserve modifications.
-				elif not account_name == pqc[2] or not network.network_name == pqc[1]:
-					# error Must be viewing your own reserve account to make reserve modifications.
-					r.redirect(self.url_path(error_code="1292"))
-				elif not lobj_master.metric._modify_reserve(pqc[1],account_name,ct[1],ct[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-				
-			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "connect":
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# now we have a user account label on the network
-				elif not lobj_master.metric._connect(pqc[1],account_name,pqc[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "disconnect":
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# now we have a user account label on the network
-				elif not lobj_master.metric._disconnect(pqc[1],account_name,pqc[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			if pqc[0] == 80 and len(ct) == 3 and ct[0] in ["transfer","suggested"]:
-				# modify reserve command
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not ct[1] in ["authorize","request","cancel","deny"]:
-					# error Subcommand for suggested/transfer command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
-					r.redirect(self.url_path(error_code="1294"))
-				elif not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# we have a user account referenced now
-				elif not lobj_master.metric._process_reserve_transfer(pqc[1],account_name,pqc[2],ct[2],"%s %s" % (ct[0],ct[1])):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			if pqc[0] == 80 and len(ct) == 2 and ct[0] == "pay":
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# now we have a user account label on the network
-				elif not lobj_master.metric._make_payment(pqc[1],account_name,pqc[2],ct[1]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "alias delete":
-				# delete alias associated with this account
-				# replace with username (error if username unavailable)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._alias_change_transactional(pqc[2],None,True):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) == "alias change":
-				# change alias associated with this account
-				# replace with username (error if username unavailable)
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._alias_change_transactional(pqc[2],ct[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 1 and ct[0] == "default":
-				# change default network account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._set_default(pqc[1],pqc[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "clone open":
-				# open clone account through this reserve account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._other_account(pqc[1],pqc[2],None,"clone open"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["clone close","reserve close","joint close","client close"]:
-				# close account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not lobj_master.metric._leave_network(pqc[1],pqc[2],("%s %s" % (ct[0],ct[1]))):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer deny":
-				# deny an existing joint/client offer
-				net_id = lobj_master.user.entity.parent_client_offer_network_id
-				source_name = lobj_master.user.entity.username
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				# make sure they actually have 
-				elif net_id == 0:
-					# error No client offer exists
-					r.redirect(self.url_path(error_code="1319"))
-				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer deny"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return
-			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer deny":
-				# deny an existing joint/client offer
-				net_id = lobj_master.user.entity.parent_joint_offer_network_id
-				source_name = lobj_master.user.entity.username
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				# make sure they actually have 
-				elif net_id == 0:
-					# error No joint offer exists
-					r.redirect(self.url_path(error_code="1320"))
-				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer deny"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return
-			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer cancel":
-				# cancel an existing joint/client offer
-				net_id = lobj_master.user.entity.child_client_offer_network_id
-				source_name = lobj_master.user.entity.username
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				# make sure they actually have 
-				elif net_id == 0:
-					# error No client offer exists
-					r.redirect(self.url_path(error_code="1321"))
-				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer cancel"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return
-			if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer cancel":
-				# cancel an existing joint/client offer
-				net_id = lobj_master.user.entity.child_joint_offer_network_id
-				source_name = lobj_master.user.entity.username
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				# make sure they actually have 
-				elif net_id == 0:
-					# error No joint offer exists
-					r.redirect(self.url_path(error_code="1322"))
-				elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer cancel"):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint offer","client offer"]:
-				# offer to be parent account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not self.is_valid_name(ct[2]):
-					r.redirect(self.url_path(error_code="1104"))
-				elif not lobj_master.metric._other_account(pqc[1],pqc[2],ct[2],("%s %s" % (ct[0],ct[1]))):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["joint authorize","client authorize"]:
-				# authorize to be child account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif lobj_master.user.entity is None:
-					# error User not registered
-					r.redirect(self.url_path(error_code="1323"))
-				elif not lobj_master.metric._other_account(pqc[1],lobj_master.user.entity.username,pqc[2],("%s %s" % (ct[0],ct[1]))):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-			if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint retrieve"]:
-				# retrieve funds from child joint account
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-					return
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				if not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-				# now we have a user account label on the network
-				elif not lobj_master.metric._joint_retrieve(pqc[1],account_name,pqc[2],ct[2]):
-					r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			"""
-			ticket functions parsed separately
-			
-			
-			TICKETS ALL [OWNER] CONTEXT: 
-
-			(#) *open <name>
-			(#) *open <name> <user>
-			(#) *open <name> <amount>
-			(#) *open <name> <amount> m <memo>
-			(#) *open <name> <amount> <user>
-			(#) *open <name> <amount> <user> m <memo>
-
-			(#) *close <name> : close an open ticket
-			(#) *remove <ticket> : remove user association with a ticket
-
-			TICKETS ALL [OTHER] CONTEXT:
-
-			(#) *ticket <name> : search/go to a specific ticket
-
-			TICKETS SPECIFIC [OWNER] CONTEXT: 
-
-			(#) *close : close the ticket
-			(#) *attach <user> : associate a specific user with a ticket
-			(#) *remove : removes any associated user
-			(#) *amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
-			(#) *amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
-
-			TICKETS SPECIFIC [OTHER] CONTEXT: 
-
-			(#) *pay <amount> : pay a ticket
-			(#) *pay <amount> <amount|percent> : pay a ticket plus add gratuity
-			(#) *remove : removes visiting users association from a ticket
-			"""
-			if ct[0] == "ticket" and len(ct) == 2 and (pqc[0] == 100 or pqc[0] == 110):
-				# ticket search
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-				elif not self.is_valid_name(ct[1]):
-					r.redirect(self.url_path(error_code="1104"))
-				else:
-					ltemp = {}
-					ltemp["vn"] = pqc[1]
-					ltemp["va"] = pqc[2]
-					ltemp["vt"] = ct[1]
-					r.redirect(self.url_path(new_vars=ltemp))
-				return
-				
-			ticket_1st_tokens = ["open","close","remove","attach","amount","pay"]
-			ticket_ct = ct
-			ticket_ct.append(lstr_command_text)
-			if pqc[0] == 110 and ct[0] in ticket_1st_tokens:
-				# specific ticket
+				ltemp["xold_username"] = lobj_master.user.entity.username
+				ltemp["xnew_username"] = ct[2]
+				ltemp["xct"] = "username change %s" % ct[2]
+				r.redirect(self.url_path(new_vars=ltemp,confirm_code="6001"))
+			elif not lobj_master.user._change_username_transactional(ct[2]):
+				r.redirect(self.url_path(error_code="1102"))
+			else:
 				ltemp = {}
-				ltemp["vn"] = pqc[1]
-				ltemp["va"] = pqc[2]
-				ltemp["vt"] = pqc[3]
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-					return
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				# We want to know if the default is the account we're viewing.
-				# That determines whether the user is the owner or a visitor
-				# in the ticket context.  Even if the user owns the account, if
-				# it's not set to default, they are a visitor.
-				if not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
-					return
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(new_vars=ltemp,error_code="1292"))
-					return
-				else:
-					# Determine whether visitor or owner.
-					if account_name == pqc[2]:
-						visitor = None
-					else:
-						visitor = account_name
-				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct,pqc[3]):
-					# error Pass up error
-					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-					
-			
-			if pqc[0] == 100 and ct[0] in ticket_1st_tokens:
-				# all tickets
-				ltemp = {}
-				ltemp["vn"] = pqc[1]
-				ltemp["va"] = pqc[2]
-				if not lobj_master.user.IS_LOGGED_IN:
-					r.redirect(self.url_path(error_code="1003"))
-					return
-				a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
-				# We want to know if the default is the account we're viewing.
-				# That determines whether the user is the owner or a visitor
-				# in the ticket context.  Even if the user owns the account, if
-				# it's not set to default, they are a visitor.
-				if not a:
-					# error Pass up error from get_default function.
-					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
-					return
-				elif not account_name:
-					# error No account found for user on this network.
-					r.redirect(self.url_path(error_code="1292"))
-					return
-				else:
-					# Determine whether visitor or owner.
-					if account_name == pqc[2]:
-						visitor = None
-					else:
-						visitor = account_name
-				if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct):
-					# error Pass up error
-					r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
-				else:
-					r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
-				return
-
-			###################################
-			# command not recognized
-			###################################
-			r.redirect(self.url_path(error_code="1278"))
+				ltemp["xold_username"] = lobj_master.user.entity.username
+				ltemp["xnew_username"] = ct[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7001"))
 			return
+		###################################
+		# modify user settings
+		# 
+		# from any context
+		###################################
+		if len(ct) == 2 and ct[0] in ["gurl","gtype"]:
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user._modify_user(ct[0],ct[1]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return				
+		if len(ct) == 3 and ct[0] == "location":
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user._modify_user(ct[0],"%s %s" % (ct[1],ct[2])):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return		
+		if ct[0] == "bio" and len(ct) > 1:
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user._modify_user(ct[0],self.get_text_for("bio",ctraw[-1])):
+				r.redirect(self.url_path(new_path="/profile",error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(new_path="/profile",success_code=lobj_master.RETURN_CODE))
+			return			
+		###################################
+		# user message
+		# 
+		# from message context
+		###################################
+		if pqc[0] == 70 and len(ct) > 1 and ct[0] == "message":
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user._message(pqc[1],self.get_text_for("message",ctraw[-1])):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				time.sleep(2)
+				#lobj_master.dump([lobj_master.request.path_qs])
+				r.redirect(self.url_path(new_path=lobj_master.request.path_qs))
+			# no success code, just return, smoother
+			return		
+		###################################
+		# network add <NETWORK NAME> : add a new network [admin only]
+		# network <NETWORK NAME> : view a network
+		# network : view network summary for all networks
+		# 
+		# from any context
+		###################################
+		if len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network add":
+			# only admins can create a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not self.is_valid_name(ct[2]):
+				r.redirect(self.url_path(error_code="1104"))
+			elif not lobj_master.metric._network_add(ct[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnew_network_name"] = ct[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7002"))
+			return
+		if  len(ct) == 2 and ct[0] == "network" and not ct[1] == "delete" and not ct[1] == "activate":
+			ltemp = {}
+			ltemp["vn"] = ct[1]
+			r.redirect(self.url_path(new_vars=ltemp,new_path="/network"))
+			return
+		if  len(ct) == 1 and ct[0] == "network":
+			r.redirect("/network")
+			return
+		###################################
+		# network delete : delete a network [admin only]
+		# network activate : change network status to ACTIVE [admin only]
+		# network type live : set network type to live [admin only]
+		# network type test : set network type to test [admin only]
+		# network name <valid name> : change the name of a network [admin only]
+		# network skintillionths <positive integer> : set conversion rate of network [admin only]
+		# 
+		# all only from network:network_id context
+		###################################
+		if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network delete":
+			# only admins can delete a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],delete_network=True):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7003"))
+			return
+		if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "network activate":
+			# only admins can change the status of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not is_confirmed:
+				# need confirmation before activating a network
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["xct"] = "network activate"
+				# Need to declare query vars necessary for 
+				# pqc[]/context on the confirm page or else
+				# we won't get back here on confirm.
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,confirm_code="6002"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],fstatus="ACTIVE"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7004"))
+			return
+		if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type live":
+			# only admins can change the type of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="LIVE"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7005"))
+			return
+		if pqc[0] == 10 and len(ct) == 3 and ("%s %s %s" % (ct[0],ct[1],ct[2])) == "network type test":
+			# only admins can change the type of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],ftype="TEST"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7006"))
+			return
+		if pqc[0] == 10 and len(ct) > 2 and ("%s %s" % (ct[0],ct[1])) == "network describe":
+			# only admins can change the description of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],fdescription=self.get_text_for("describe",lstr_command_text)):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7045"))
+			return
+		if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network skintillionths":
+			# only admins can change the type of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not re.match(r'^[0-9]+$',ct[2]) or not (int(ct[2])) < 1000000000000000 or not (int(ct[2])) > 0:
+				r.redirect(self.url_path(error_code="1107"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],fskintillionths=int(ct[2])):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["xskintillionths"] = ct[2]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
+			return
+		if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
+			# only admins can change a network name
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not self.is_valid_name(ct[2]):
+				r.redirect(self.url_path(error_code="1104"))
+			elif not is_confirmed:
+				# need confirmation before changing a network name
+				ltemp = {}
+				ltemp["xold_network_name"] = pqc[1]
+				ltemp["xnew_network_name"] = ct[2]
+				ltemp["xct"] = "network name %s" % ct[2]
+				# Need to declare query vars necessary for 
+				# pqc[]/context on the confirm page or else
+				# we won't get back here on confirm.
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,confirm_code="6003"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],fnewname=ct[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xold_network_name"] = pqc[1]
+				ltemp["xnew_network_name"] = ct[2]
+				ltemp["vn"] = ct[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7008"))		
+			return
+		###################################
+		# reserve add : 
+		# joint authorize :
+		# client authorize : 
+		# 
+		# These three functions are done from the single network
+		# view context.  All other account functions are done from
+		# the single account view context.
+		###################################
+		if pqc[0] == 10 and len(ct) == 2 and ("%s %s" % (ct[0],ct[1])) == "reserve open":
+			# create a reserve account on this network for the user
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not is_confirmed:
+				# need confirmation before creating a reserve account
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["xct"] = "reserve open"
+				# Need to declare query vars necessary for 
+				# pqc[]/context on the confirm page or else
+				# we won't get back here on confirm.
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,confirm_code="6004"))
+			elif not lobj_master.metric._reserve_open(pqc[1]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["xnetwork_name"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7011"))
+			return
+		###################################
+		#modify up|down|destroy|create <amount>
+		#connect
+		#disconnect
+		#pay <amount>
+		#suggested request <amount>
+		#suggested authorize <amount>
+		#suggested cancel <amount>
+		#suggested deny <amount>
+		#transfer request <amount>
+		#transfer authorize <amount>
+		#transfer cancel <amount>
+		#transfer deny <amount>
+		###################################
+		if (pqc[0] == 80 or pqc[0] == 90) and len(ct) == 3 and ct[0] == "modify":
+			# modify reserve command
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not ct[1] in ["add","subtract","create","destroy"]:
+				# error Subcommand for modify command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
+				r.redirect(self.url_path(error_code="1291"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# they must be viewing their own reserve account to make
+			# reserve modifications.
+			elif not account_name == pqc[2] or not network.network_name == pqc[1]:
+				# error Must be viewing your own reserve account to make reserve modifications.
+				r.redirect(self.url_path(error_code="1292"))
+			elif not lobj_master.metric._modify_reserve(pqc[1],account_name,ct[1],ct[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		if pqc[0] == 80 and len(ct) == 1 and ct[0] == "connect":
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# now we have a user account label on the network
+			elif not lobj_master.metric._connect(pqc[1],account_name,pqc[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		if pqc[0] == 80 and len(ct) == 1 and ct[0] == "disconnect":
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# now we have a user account label on the network
+			elif not lobj_master.metric._disconnect(pqc[1],account_name,pqc[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		if pqc[0] == 80 and len(ct) == 3 and ct[0] in ["transfer","suggested"]:
+			# modify reserve command
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not ct[1] in ["authorize","request","cancel","deny"]:
+				# error Subcommand for suggested/transfer command not recognized.  Must be 'add', 'subtract', 'create', or 'destroy'.
+				r.redirect(self.url_path(error_code="1294"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# we have a user account referenced now
+			elif not lobj_master.metric._process_reserve_transfer(pqc[1],account_name,pqc[2],ct[2],"%s %s" % (ct[0],ct[1])):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		if pqc[0] == 80 and len(ct) == 2 and ct[0] == "pay":
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# now we have a user account label on the network
+			elif not lobj_master.metric._make_payment(pqc[1],account_name,pqc[2],ct[1]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "alias delete":
+			# delete alias associated with this account
+			# replace with username (error if username unavailable)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.metric._alias_change_transactional(pqc[2],None,True):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) == "alias change":
+			# change alias associated with this account
+			# replace with username (error if username unavailable)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.metric._alias_change_transactional(pqc[2],ct[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 1 and ct[0] == "default":
+			# change default network account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.metric._set_default(pqc[1],pqc[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "clone open":
+			# open clone account through this reserve account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.metric._other_account(pqc[1],pqc[2],None,"clone open"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["clone close","reserve close","joint close","client close"]:
+			# close account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.metric._leave_network(pqc[1],pqc[2],("%s %s" % (ct[0],ct[1]))):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer deny":
+			# deny an existing joint/client offer
+			net_id = lobj_master.user.entity.parent_client_offer_network_id
+			source_name = lobj_master.user.entity.username
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			# make sure they actually have 
+			elif net_id == 0:
+				# error No client offer exists
+				r.redirect(self.url_path(error_code="1319"))
+			elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer deny"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return
+		if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer deny":
+			# deny an existing joint/client offer
+			net_id = lobj_master.user.entity.parent_joint_offer_network_id
+			source_name = lobj_master.user.entity.username
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			# make sure they actually have 
+			elif net_id == 0:
+				# error No joint offer exists
+				r.redirect(self.url_path(error_code="1320"))
+			elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer deny"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return
+		if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "client offer cancel":
+			# cancel an existing joint/client offer
+			net_id = lobj_master.user.entity.child_client_offer_network_id
+			source_name = lobj_master.user.entity.username
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			# make sure they actually have 
+			elif net_id == 0:
+				# error No client offer exists
+				r.redirect(self.url_path(error_code="1321"))
+			elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"client offer cancel"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return
+		if len(ct) == 3 and "%s %s %s" % (ct[0],ct[1],ct[2]) == "joint offer cancel":
+			# cancel an existing joint/client offer
+			net_id = lobj_master.user.entity.child_joint_offer_network_id
+			source_name = lobj_master.user.entity.username
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			# make sure they actually have 
+			elif net_id == 0:
+				# error No joint offer exists
+				r.redirect(self.url_path(error_code="1322"))
+			elif not lobj_master.metric._other_account_transactional(net_id,source_name,None,"joint offer cancel"):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint offer","client offer"]:
+			# offer to be parent account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not self.is_valid_name(ct[2]):
+				r.redirect(self.url_path(error_code="1104"))
+			elif not lobj_master.metric._other_account(pqc[1],pqc[2],ct[2],("%s %s" % (ct[0],ct[1]))):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) in ["joint authorize","client authorize"]:
+			# authorize to be child account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif lobj_master.user.entity is None:
+				# error User not registered
+				r.redirect(self.url_path(error_code="1323"))
+			elif not lobj_master.metric._other_account(pqc[1],lobj_master.user.entity.username,pqc[2],("%s %s" % (ct[0],ct[1]))):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+		if pqc[0] == 80 and len(ct) == 3 and "%s %s" % (ct[0],ct[1]) in ["joint retrieve"]:
+			# retrieve funds from child joint account
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+				return
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# now we have a user account label on the network
+			elif not lobj_master.metric._joint_retrieve(pqc[1],account_name,pqc[2],ct[2]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		"""
+		ticket functions parsed separately
+
+
+		TICKETS ALL [OWNER] CONTEXT: 
+
+		(#) *open <name>
+		(#) *open <name> <user>
+		(#) *open <name> <amount>
+		(#) *open <name> <amount> m <memo>
+		(#) *open <name> <amount> <user>
+		(#) *open <name> <amount> <user> m <memo>
+
+		(#) *close <name> : close an open ticket
+		(#) *remove <ticket> : remove user association with a ticket
+
+		TICKETS ALL [OTHER] CONTEXT:
+
+		(#) *ticket <name> : search/go to a specific ticket
+
+		TICKETS SPECIFIC [OWNER] CONTEXT: 
+
+		(#) *close : close the ticket
+		(#) *attach <user> : associate a specific user with a ticket
+		(#) *remove : removes any associated user
+		(#) *amount <amount> : directly assigns ticket amount value overwriting previous (blanking memo)
+		(#) *amount <amount> m <memo> : directly assigns ticket amount and memo values overwriting previous
+
+		TICKETS SPECIFIC [OTHER] CONTEXT: 
+
+		(#) *pay <amount> : pay a ticket
+		(#) *pay <amount> <amount|percent> : pay a ticket plus add gratuity
+		(#) *remove : removes visiting users association from a ticket
+		"""
+		if ct[0] == "ticket" and len(ct) == 2 and (pqc[0] == 100 or pqc[0] == 110):
+			# ticket search
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not self.is_valid_name(ct[1]):
+				r.redirect(self.url_path(error_code="1104"))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				ltemp["vt"] = ct[1]
+				r.redirect(self.url_path(new_vars=ltemp))
+			return
+
+		ticket_1st_tokens = ["open","close","remove","attach","amount","pay"]
+		ticket_ct = ct
+		ticket_ct.append(lstr_command_text)
+		if pqc[0] == 110 and ct[0] in ticket_1st_tokens:
+			# specific ticket
+			ltemp = {}
+			ltemp["vn"] = pqc[1]
+			ltemp["va"] = pqc[2]
+			ltemp["vt"] = pqc[3]
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+				return
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			# We want to know if the default is the account we're viewing.
+			# That determines whether the user is the owner or a visitor
+			# in the ticket context.  Even if the user owns the account, if
+			# it's not set to default, they are a visitor.
+			if not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
+				return
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(new_vars=ltemp,error_code="1292"))
+				return
+			else:
+				# Determine whether visitor or owner.
+				if account_name == pqc[2]:
+					visitor = None
+				else:
+					visitor = account_name
+			if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct,pqc[3]):
+				# error Pass up error
+				r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+
+		if pqc[0] == 100 and ct[0] in ticket_1st_tokens:
+			# all tickets
+			ltemp = {}
+			ltemp["vn"] = pqc[1]
+			ltemp["va"] = pqc[2]
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+				return
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			# We want to know if the default is the account we're viewing.
+			# That determines whether the user is the owner or a visitor
+			# in the ticket context.  Even if the user owns the account, if
+			# it's not set to default, they are a visitor.
+			if not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
+				return
+			elif not account_name:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+				return
+			else:
+				# Determine whether visitor or owner.
+				if account_name == pqc[2]:
+					visitor = None
+				else:
+					visitor = account_name
+			if not lobj_master.metric._process_ticket(pqc[1],pqc[2],visitor,ticket_ct):
+				# error Pass up error
+				r.redirect(self.url_path(new_vars=ltemp,error_code=lobj_master.RETURN_CODE))
+			else:
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+
+		###################################
+		# command not recognized
+		###################################
+		r.redirect(self.url_path(error_code="1278"))
+		return
 			
 ################################################################
 ###
