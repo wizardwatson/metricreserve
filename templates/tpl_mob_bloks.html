@@ -60,7 +60,7 @@
 					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 						<li data-role="list-divider">Accounts</li>
 						{% for account in blok.search_result.accounts %}
-						<li><a href="/network?vn={{ account.network_name }}">Network Name: {{ account.network_name }}
+						<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">Network Name: {{ account.network_name }}
 						<br/>Account Name: {{ account.account_name }}
 						<br/>Account Type: {{ account.account_type }}
 						<br/>Click to view</a></li>
@@ -97,7 +97,7 @@
 					</ul>
 					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 						<li data-role="list-divider">Alias Account</li>
-						<li><a href="/network?vn={{ blok.search_result.alias.network_name }}">Network Name: {{ blok.search_result.alias.network_name }}
+						<li><a href="/network?vn={{ blok.search_result.alias.network_name }}&va={{ blok.search_result.alias.account_name }}">Network Name: {{ blok.search_result.alias.network_name }}
 						<br/>Account Name: {{ blok.search_result.alias.account_name }}
 						<br/>Account Type: {{ blok.search_result.alias.account_type }}
 						<br/>Click to view</a></li>
@@ -105,7 +105,7 @@
 					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 						<li data-role="list-divider">Accounts</li>
 						{% for account in blok.search_result.accounts %}
-						<li><a href="/network?vn={{ account.network_name }}">Network Name: {{ account.network_name }}
+						<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">Network Name: {{ account.network_name }}
 						<br/>Account Name: {{ account.account_name }}
 						<br/>Account Type: {{ account.account_type }}
 						<br/>Click to view</a></li>
