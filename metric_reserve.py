@@ -10643,7 +10643,7 @@ class ph_command(webapp2.RequestHandler):
 			# now we have a user account label on the network
 			elif not re.match(r'^[0-9]+$',ct[1]) or not (int(ct[1])) < 11 or not (int(ct[1])) > -1:
 				r.redirect(self.url_path(error_code="1326"))
-			elif not lobj_master.metric._account_modify(network,c,fdecimals=ct[1]):
+			elif not lobj_master.metric._account_modify(network,c,"decimals",ct[1]):
 				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
 			else:
 				ltemp = {}
