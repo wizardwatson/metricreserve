@@ -933,6 +933,7 @@ class master(object):
 				list_of_networks = ndb.get_multi(list_of_network_keys)
 				net_names = {}
 				for network in list_of_networks:
+					pdb.set_trace()
 					net_names[network.network_id] = network.network_name
 					
 				# get all the accounts
@@ -952,6 +953,7 @@ class master(object):
 				
 				"""
 				for i in range(len(list_of_accounts)):
+					pdb.set_trace()
 					if name_entity.name_type == "alias" and fstr_search_term == list_of_account_labels[i]:
 						# this is our alias account
 						formatted_result["alias"]["network_name"] = net_names[list_of_accounts[i].network_id]
