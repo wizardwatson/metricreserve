@@ -9868,6 +9868,9 @@ class ph_command(webapp2.RequestHandler):
 		self.master = lobj_master
 		if lobj_master.IS_INTERRUPTED:return
 
+		# create a shorter reference to the request handler
+		r = lobj_master.request_handler
+		
 		if 'form_command_text' in lobj_master.request.POST:
 			# get the command text
 			lstr_command_text = lobj_master.request.POST['form_command_text']
@@ -9890,8 +9893,6 @@ class ph_command(webapp2.RequestHandler):
 				lobj_master.request_handler.redirect(self.url_path(new_vars=stripped_GET,new_path=lobj_master.request.path))
 				return
 			else:
-				# create a shorter reference to the request handler
-				r = lobj_master.request_handler
 				# parse the command and make sure all lowercase
 				ct = lstr_command_text.lower().split()
 				ctraw = lstr_command_text.split()
