@@ -20,13 +20,111 @@
 
 	{% if blok.type == "search_result" %}
 		{% if blok.has_search_result %}
+
+
+			{% if blok.search_result.type == "networkname" %}
 			<div class="text_bubble ui-body ui-body-c">
-			<p>{{ blok.search_result }}</p>
+				<p>Your search term matched a name for a metric network.  Click below to go to the network summary page.</p>
 			</div>
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Network</li>
+				<li><a href="/network?vn={{ blok.search_result.network_name }}">Go to <b>{{ blok.search_result.network_name }}</b> summary page.</a></li>
+			</ul>
+			{% endif %}
+
+
+			{% if blok.search_result.type == "username" %}
+				{% if blok.search_result.total_accounts == 0 %}
+					<div class="text_bubble ui-body ui-body-c">
+						<p>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+					</div>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Profile</li>
+						<li><a href="/profile?va={{ blok.search_result.username }}">
+							<img src="{{ blok.search_result.gravatar_url }}" />
+							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
+						</a></li>
+					</ul>
+				{% else %}
+					<div class="text_bubble ui-body ui-body-c">
+						<p>Your search term matched a name for a metric user/account.  Links to this user's metric account are
+						<br/>are listed below.  The first link is for the user's profile page.</p>
+					</div>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Profile</li>
+						<li><a href="/profile?va={{ blok.search_result.username }}">
+							<img src="{{ blok.search_result.gravatar_url }}" />
+							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
+						</a></li>
+					</ul>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Accounts</li>
+						{% for account in blok.search_result.accounts %}
+						<li><a href="/network?vn={{ account.network_name }}">Network Name: {{ account.network_name }}
+						<br/>Account Name: {{ account.account_name }}
+						<br/>Account Type: {{ account.account_type }}
+						<br/>Click to view</a></li>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			{% endif %}
+
+
+			{% if blok.search_result.type == "alias" %}
+				{% if blok.search_result.total_accounts == 0 %}
+					<div class="text_bubble ui-body ui-body-c">
+						<p>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+					</div>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Profile</li>
+						<li><a href="/profile?va={{ blok.search_result.username }}">
+							<img src="{{ blok.search_result.gravatar_url }}" />
+							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
+						</a></li>
+					</ul>
+				{% else %}
+					<div class="text_bubble ui-body ui-body-c">
+						<p>Your search term matched a name for a metric account alias.  The user who owns that alias account
+						is shown below, along with the alias account and any other accounts the user has as well.  Click the
+						user to go to their profile or one of the accounts to visit the account summary page.</p>
+					</div>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Profile</li>
+						<li><a href="/profile?va={{ blok.search_result.username }}">
+							<img src="{{ blok.search_result.gravatar_url }}" />
+							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
+						</a></li>
+					</ul>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Alias Account</li>
+						<li><a href="/network?vn={{ blok.search_result.alias.network_name }}">Network Name: {{ blok.search_result.alias.network_name }}
+						<br/>Account Name: {{ blok.search_result.alias.account_name }}
+						<br/>Account Type: {{ blok.search_result.alias.account_type }}
+						<br/>Click to view</a></li>
+					</ul>
+					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+						<li data-role="list-divider">Accounts</li>
+						{% for account in blok.search_result.accounts %}
+						<li><a href="/network?vn={{ account.network_name }}">Network Name: {{ account.network_name }}
+						<br/>Account Name: {{ account.account_name }}
+						<br/>Account Type: {{ account.account_type }}
+						<br/>Click to view</a></li>
+						{% endfor %}
+					</ul>
+				{% endif %}
+			{% endif %}
+
+
+			{% if blok.search_result.type == "error" %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>{{ blok.search_result.error_message }}</p>
+				</div>
+			{% endif %}
+
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
-			<p>Enter a search term.
-			<br/>Can be a username, account name, or a network name.</p>
+				<p>Enter a search term.
+				<br/>Can be a username, account name, or a network name.</p>
 			</div>
 		{% endif %}
 	{% endif %}
@@ -1610,56 +1708,23 @@
 		{% if blok.error_code == "1323" %}
 			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> User not registered.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+		{% if blok.error_code == "1324" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Network decimal places
+			entered must be between 0 and 10 only.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% endif %}
+		{% if blok.error_code == "1325" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Account name invalid.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
+		{% endif %}
+		{% if blok.error_code == "1326" %}
+			<p class="error ui-body ui-body-e"><font color="red"><strong>ERROR:</strong></font> Account decimal places
+			entered must be between 0 and 10 only.<br/>
+			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% endif %}
 		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
+					<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-		{% if blok.error_code == "9999" %}
-			<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
-		{% endif %}
-
-
 
 	{% endif %}
 
