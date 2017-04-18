@@ -1,5 +1,35 @@
 {% for blok in master.bloks %}
 
+	{% if blok.type == "search" %}
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li data-role="list-divider">Some Links</li>
+			<li><a href="/network">All Networks</a></li>
+			<li><a href="/all_users">All Users</a></li>
+		</ul>
+		<form action="/search" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
+		  <fieldset>
+			<div data-role="fieldcontain" class="ui-hide-label">
+				<label for="search">SEARCH:</label>
+				<input tabindex=1 class="myfonts" type="text" name="form_search_term" id="search" value="" placeholder="SEARCH TERM"/>
+			</div>
+			<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search">SEARCH</button>
+		  </fieldset>
+		</form>
+	{% endif %}
+
+
+	{% if blok.type == "search_result" %}
+		{% if blok.has_search_result %}
+			<div class="text_bubble ui-body ui-body-c">
+			<p>{{ blok.search_result }}</p>
+			</div>
+		{% else %}
+			<div class="text_bubble ui-body ui-body-c">
+			<p>Enter a search term.</p>
+			</div>
+		{% endif %}
+	{% endif %}
+
 	{% if blok.type == "messages" %}
 		{% if blok.messages %}
 			{% for message in blok.messages %}
