@@ -137,6 +137,11 @@
 				<a href="/messages?channel={{ blok.username }}"><h3>Show public messages</h3></a>
 			</li>
 		</ul>
+		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+			<li>
+				<a href="/search?term={{ blok.username }}">My metric accounts</a>
+			</li>
+		</ul>
 		{% if blok.has_client_offer %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li data-role="list-divider">Client Account Offer</li>
