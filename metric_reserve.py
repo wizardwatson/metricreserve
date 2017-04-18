@@ -321,6 +321,7 @@ class ds_mr_network_profile(ndb.Model):
 	network_type = ndb.StringProperty(indexed=False,default="LIVE")
 	description = ndb.StringProperty(indexed=False)
 	skintillionths = ndb.IntegerProperty(indexed=False,default=100000)
+	decimal_places = ndb.IntegerProperty(default=2,indexed=False)
 	orphan_count = ndb.IntegerProperty(indexed=False)
 	total_trees = ndb.IntegerProperty(indexed=False)
 	last_graph_process = ndb.StringProperty(default="EMPTY",indexed=False)
@@ -853,6 +854,117 @@ class master(object):
 		template = JINJA_ENVIRONMENT.get_template('templates/tpl_mob_command.html')
 		self.response.write(template.render(master=self))
 
+	def _search(self,fstr_search_term):
+	
+		formatted_result = {}
+		formatted_result["type"] = ""
+		
+		# get network by name
+		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_search_term)
+		name_entity = name_key.get()
+		if name_entity is None:
+			formatted_result["type"] = "error"
+			formatted_result["error_message"] = "Your search term did not match a valid name."
+		else:
+			# alias, username, networkname
+			if name_entity.name_type == "networkname":
+				formatted_result["type"] = "networkname"
+				formatted_result["network_name"] = fstr_search_term
+			else:
+				# Use same query for username and alias but 
+				# if name is specifically an alias we will
+				# mention that in the search result.
+				if name_entity.name_type == "username":
+					formatted_result["type"] = "username"
+				if name_entity.name_type == "alias":
+					formatted_result["type"] = "alias"
+				
+				user_key = ndb.Key("ds_mr_user", name_entity.user_id)
+				user_entity = user_key.get()
+				if user_entity is None:
+					self.RETURN_CODE = "STUB"
+					return False #error Couldn't load user object
+				
+				list_of_net_ids = []
+				list_of_account_keys = []
+				list_of_account_labels = []
+				# first loop through all this users accounts creating keys
+				for i in range(len(user_entity.reserve_network_ids)):
+					if not user_entity.reserve_network_ids[i] in list_of_net_ids:
+						list_of_net_ids.append(user_entity.reserve_network_ids[i])
+					list_of_account_labels.append(user_entity.reserve_labels[i])
+					a = user_entity.reserve_network_ids[i]
+					b = user_entity.reserve_account_ids[i]
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					list_of_account_keys.append(new_account_key)
+					
+				for i in range(len(user_entity.client_network_ids)):
+					if not user_entity.client_network_ids[i] in list_of_net_ids:
+						list_of_net_ids.append(user_entity.client_network_ids[i])
+					list_of_account_labels.append(user_entity.client_labels[i])
+					a = user_entity.client_network_ids[i]
+					b = user_entity.client_account_ids[i]
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					list_of_account_keys.append(new_account_key)
+					
+				for i in range(len(user_entity.joint_network_ids)):
+					if not user_entity.joint_network_ids[i] in list_of_net_ids:
+						list_of_net_ids.append(user_entity.joint_network_ids[i])
+					list_of_account_labels.append(user_entity.joint_labels[i])
+					a = user_entity.joint_network_ids[i]
+					b = user_entity.joint_account_ids[i]
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					list_of_account_keys.append(new_account_key)
+					
+				for i in range(len(user_entity.clone_network_ids)):
+					if not user_entity.clone_network_ids[i] in list_of_net_ids:
+						list_of_net_ids.append(user_entity.clone_network_ids[i])
+					list_of_account_labels.append(user_entity.clone_labels[i])
+					a = user_entity.clone_network_ids[i]
+					b = user_entity.clone_account_ids[i]
+					new_account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (a,b))
+					list_of_account_keys.append(new_account_key)
+
+				# create a dict where key/value is net_id/net_name
+				list_of_network_keys = []
+				for net_id in list_of_net_ids:
+					new_net_key = ndb.Key("ds_mr_network_profile", str(net_id).zfill(8))
+					list_of_network_keys.append(new_net_key)
+				list_of_networks = ndb.get_multi(list_of_network_keys)
+				net_names = {}
+				for network in list_of_networks:
+					net_names[network.network_id] = network.network_name
+					
+				# get all the accounts
+				list_of_accounts = ndb.get_multi(list_of_account_keys)
+				
+				# create the formatted query result
+				formatted_result["gravatar_url"] = lobj_master.user._get_gravatar_url(user_entity.gravatar_url,user_entity.gravatar_type)
+				formatted_result["username"] = user_entity.username
+				formatted_result["total_accounts"] = len(list_of_accounts)
+				formatted_result["alias"] = {}
+				formatted_result["accounts"] = []
+				
+				"""
+				avatar
+				username
+					-network:network_name, account:account_name, account type:
+				
+				"""
+				for i in range(len(list_of_accounts)):
+					if name_entity.name_type == "alias" and fstr_search_term == list_of_account_labels[i]:
+						# this is our alias account
+						formatted_result["alias"]["network_name"] = net_names[list_of_accounts[i].network_id]
+						formatted_result["alias"]["account_name"] = fstr_search_term
+						formatted_result["alias"]["account_type"] = list_of_accounts[i].account_type						
+					else:
+						formatted_account = {}
+						formatted_account["network_name"] = net_names[list_of_accounts[i].network_id]
+						formatted_account["account_name"] = list_of_account_labels[i]
+						formatted_account["account_type"] = list_of_accounts[i].account_type
+						formatted_result["accounts"].append(formatted_account)								
+		
+		return formatted_result
 		
 # this is the user class specifically designed for using google user authentication
 class user(object):
@@ -2800,26 +2912,32 @@ class metric(object):
 					# if this associated account is present in primary account...
 					this_id = list_of_associated_accounts[i].account_id
 					next_entity["transfer_request"] = "None" # default
-					next_entity["suggested_transfer_inactive"] = "None" # default
-					next_entity["suggested_transfer_active"] = "None" # default
+					next_entity["suggested_transfer_inactive"] = get_formatted_amount(a,b,0) # default
+					next_entity["suggested_transfer_active"] = get_formatted_amount(a,b,0) # default
 					if this_id in metric_account_entity.incoming_reserve_transfer_requests:
 						c = metric_account_entity.incoming_reserve_transfer_requests[this_id]
-						next_entity["transfer_request"] = "in + %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["transfer_request"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.outgoing_reserve_transfer_requests:
 						c = metric_account_entity.outgoing_reserve_transfer_requests[this_id]
-						next_entity["transfer_request"] = "out - %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["transfer_request"] = "out - %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_inactive"] = "in + %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["suggested_transfer_inactive"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_inactive"] = "out - %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["suggested_transfer_inactive"] = "out - %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_active_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_incoming_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_active"] = "in + %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["suggested_transfer_active"] = "in + %s" % get_formatted_amount(a,b,c)
 					if this_id in metric_account_entity.suggested_active_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_outgoing_reserve_transfer_requests[this_id]
-						next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
+						if c > 0:
+							next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
 					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["polyline"] = ""
@@ -3292,7 +3410,7 @@ class metric(object):
 		return True
 
 	@ndb.transactional(xg=True)
-	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,delete_network=False):
+	def _network_modify(self,fname,fnewname=None,fdescription=None,fskintillionths=None,ftype=None,fstatus=None,fdecimals=None,delete_network=False):
 	
 		# get network by name
 		network_name_key = ndb.Key("ds_mr_unique_dummy_entity", fname)
@@ -3310,6 +3428,7 @@ class metric(object):
 		if delete_network:
 			if network_profile.network_status == "INACTIVE":
 				network_profile.network_status = "DELETED"
+				network_name_key.delete()
 				network_profile.put()
 				tx_description = "Network deleted."
 			else:
@@ -3329,6 +3448,12 @@ class metric(object):
 					return False
 				network_profile.skintillionths = fskintillionths
 				tx_description = "Network skintillionth conversion updated."
+			if not fdecimals is None:
+				if not network_profile.network_status == "INACTIVE":
+					self.PARENT.RETURN_CODE = "1108"
+					return False
+				network_profile.decimal_places = fdecimals
+				tx_description = "Network decimal places updated."
 			if not ftype is None:
 				if not network_profile.network_status == "INACTIVE":
 					self.PARENT.RETURN_CODE = "1108"
@@ -3372,6 +3497,23 @@ class metric(object):
 		
 		return True
 
+	@ndb.transactional(xg=True)
+	def _account_modify(self,fnetwork,fint_account_id,ftype,fvalue):
+	
+		# get metric account
+		account_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(fnetwork.network_id).zfill(8),str(fint_account_id).zfill(12)))
+		account_entity = account_key.get()
+		if account_entity is None:
+			self.PARENT.RETURN_CODE = "1325"
+			return False # error Account name not valid
+
+		if ftype == "decimals":
+			account_entity.decimal_places = fvalue
+
+		account_entity.put()
+		
+		return True
+		
 	def _get_all_accounts(self,fstr_network_name):	
 		
 		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
@@ -4132,6 +4274,9 @@ class metric(object):
 				lds_new_metric_account.user_id = source_user.user_id
 				# creating the account is our first transaction
 				lds_new_metric_account.tx_index = 1
+				# grab decimal places from network
+				network = self._get_network(fint_network_id=network_id)
+				lds_new_metric_account.decimal_places = network.decimal_places
 				lds_new_metric_account.account_status = "ACTIVE"		
 				lds_new_metric_account.account_type = "JOINT"
 				lds_new_metric_account.account_parent = source_user.parent_joint_offer_account_id
@@ -4422,6 +4567,9 @@ class metric(object):
 				lds_new_metric_account.user_id = source_user.user_id
 				# creating the account is our first transaction
 				lds_new_metric_account.tx_index = 1
+				# grab decimal places from network
+				network = self._get_network(fint_network_id=network_id)
+				lds_new_metric_account.decimal_places = network.decimal_places
 				lds_new_metric_account.account_status = "ACTIVE"		
 				lds_new_metric_account.account_type = "CLIENT"
 				lds_new_metric_account.account_parent = source_user.parent_client_offer_account_id
@@ -4556,6 +4704,9 @@ class metric(object):
 			lds_new_metric_account.user_id = source_user.user_id
 			# creating the account is our first transaction
 			lds_new_metric_account.tx_index = 1
+			# grab decimal places from network
+			network = self._get_network(fint_network_id=network_id)
+			lds_new_metric_account.decimal_places = network.decimal_places
 			lds_new_metric_account.account_status = "ACTIVE"		
 			lds_new_metric_account.account_type = "CLONE"
 			lds_new_metric_account.account_parent = lds_source_metric.account_id
@@ -4732,6 +4883,9 @@ class metric(object):
 		lds_metric_account.user_id = lds_user.user_id
 		# creating the account is our first transaction
 		lds_metric_account.tx_index = 1
+		# grab decimal places from network
+		network = self._get_network(fint_network_id=network_id)
+		lds_metric_account.decimal_places = network.decimal_places
 		lds_metric_account.account_status = "ACTIVE"		
 		lds_metric_account.account_type = "RESERVE"
 		
@@ -9397,9 +9551,11 @@ class ph_command(webapp2.RequestHandler):
 				result_blok["type"] = "search_result"
 				result_blok["has_search_result"] = False 
 				if "term" in lobj_master.request.GET:
-					# STUB
 					search_term = urllib.unquote(lobj_master.request.GET["term"])
-					result_blok["search_result"] = search_term #lobj_master._search(search_term)
+					result_blok["search_result"] = lobj_master._search(search_term)
+					if not result_blok["search_result"]:
+						r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+						return
 					result_blok["has_search_result"] = True 
 
 				bloks.append(result_blok)	
@@ -10272,6 +10428,23 @@ class ph_command(webapp2.RequestHandler):
 				ltemp["vn"] = pqc[1]
 				r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
 			return
+		if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network decimals":
+			# only admins can change the type of a network
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not lobj_master.user.IS_ADMIN:
+				r.redirect(self.url_path(error_code="1103"))
+			elif not re.match(r'^[0-9]+$',ct[2]) or not (int(ct[2])) < 11 or not (int(ct[2])) > -1:
+				r.redirect(self.url_path(error_code="1324"))
+			elif not lobj_master.metric._network_modify(fname=pqc[1],fdecimals=int(ct[2])):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["xnetwork_name"] = pqc[1]
+				ltemp["xdecimals"] = ct[2]
+				ltemp["vn"] = pqc[1]
+				r.redirect(self.url_path(new_vars=ltemp,success_code="7007"))
+			return
 		if pqc[0] == 10 and len(ct) == 3 and ("%s %s" % (ct[0],ct[1])) == "network name":
 			# only admins can change a network name
 			if not lobj_master.user.IS_LOGGED_IN:
@@ -10457,6 +10630,28 @@ class ph_command(webapp2.RequestHandler):
 				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
 			return
 
+		if pqc[0] == 80 and len(ct) == 2 and ct[0] == "decimals":
+			a, network, c, account_name, e = lobj_master.metric._get_default(pqc[1],lobj_master.user.entity.user_id)
+			if not lobj_master.user.IS_LOGGED_IN:
+				r.redirect(self.url_path(error_code="1003"))
+			elif not a:
+				# error Pass up error from get_default function.
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			elif not account_name == pqc[2] or not network.network_name == pqc[1]:
+				# error No account found for user on this network.
+				r.redirect(self.url_path(error_code="1292"))
+			# now we have a user account label on the network
+			elif not re.match(r'^[0-9]+$',ct[1]) or not (int(ct[1])) < 11 or not (int(ct[1])) > -1:
+				r.redirect(self.url_path(error_code="1326"))
+			elif not lobj_master.metric._account_modify(network,c,fdecimals=ct[1]):
+				r.redirect(self.url_path(error_code=lobj_master.RETURN_CODE))
+			else:
+				ltemp = {}
+				ltemp["vn"] = pqc[1]
+				ltemp["va"] = pqc[2]
+				r.redirect(self.url_path(new_vars=ltemp,success_code=lobj_master.RETURN_CODE))
+			return
+			
 		if pqc[0] == 80 and len(ct) == 2 and "%s %s" % (ct[0],ct[1]) == "alias delete":
 			# delete alias associated with this account
 			# replace with username (error if username unavailable)
