@@ -3511,7 +3511,7 @@ class metric(object):
 			account_entity.decimal_places = fvalue
 
 		account_entity.put()
-		
+		self.PARENT.RETURN_CODE = "7058" # success Decimal places successfully updated.
 		return True
 		
 	def _get_all_accounts(self,fstr_network_name):	
