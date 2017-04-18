@@ -9412,6 +9412,7 @@ class ph_command(webapp2.RequestHandler):
 					result_blok["search_result"] = search_term #lobj_master._search(search_term)
 					result_blok["has_search_result"] = True 
 
+				bloks.append(result_blok)	
 				bloks.append(self.get_menu_blok())	
 				break
 				
