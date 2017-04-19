@@ -1371,7 +1371,6 @@ class user(object):
 			
 		
 		lds_user.put()
-		#pdb.set_trace()
 		self.PARENT.RETURN_CODE = "7055" # success Successfully modified user.
 		return True
 			
@@ -1670,6 +1669,7 @@ class metric(object):
 				c = account.account_parent
 			else:
 				c = account.account_id
+				
 			result_dict = self._fetch_user_graph_result(a,b,c)
 			if not result_dict:
 				# fail silently here
@@ -1751,6 +1751,8 @@ class metric(object):
 			if tree_index == 1:
 				if account_id in tree_chunk.stuff[tree_index]:
 					result["tree_number"] = 1
+					result["account"] = {}
+					result["account"][2] = []
 					break
 			else:
 				for level_index in tree_chunk.stuff[tree_index]:
@@ -1763,7 +1765,10 @@ class metric(object):
 			if not result["tree_number"] == 0:
 				break
 		if result["tree_number"] == 0:
-			return None
+			result["tree_number"] = 1
+			result["account"] = {}
+			result["account"][2] = []
+			return result
 		else:
 			return result
 
@@ -7981,21 +7986,10 @@ class metric(object):
 				if index_chunk_member is None:
 					index_chunk_member = ds_mrgp_index_chunk()
 					index_chunk_member.key = index_chunk_key
-					# Load our generic chunk or create so
-					# that we don't have to wait for a 100,000
-					# list loop to happen. If this is first time
-					# ever, create the generic index.
-					generic_index_key = ndb.Key("ds_mrgp_index_chunk","GENERIC_INDEX_CHUNK_500_THOUSAND_FALSES_LIST")
-					generic_index_chunk = generic_index_key.get()
-					if generic_index_chunk is None:
-						t_list = []
-						for i in range(1,500001):
-							t_list.append(False)
-						generic_index_chunk = ds_mrgp_index_chunk()
-						generic_index_chunk.stuff = t_list
-						generic_index_chunk.key = generic_index_key
-						generic_index_chunk.put()					
-					index_chunk_member.stuff = generic_index_chunk.stuff
+					t_list = []
+					for i in range(1,500001):
+						t_list.append(False)
+					index_chunk_member.stuff = t_list
 					# we had to create this index chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
@@ -8047,21 +8041,10 @@ class metric(object):
 				if map_chunk_member is None:
 					map_chunk_member = ds_mrgp_map_chunk()
 					map_chunk_member.key = map_chunk_key
-					# Load our generic chunk or create so
-					# that we don't have to wait for a 150,000
-					# list loop to happen. If this is first time
-					# ever, create the generic index.
-					generic_map_key = ndb.Key("ds_mrgp_map_chunk","GENERIC_MAP_CHUNK_150_THOUSAND_0_LIST")
-					generic_map_chunk = generic_map_key.get()
-					if generic_map_chunk is None:
-						t_list = []
-						for i in range(1,150001):
-							t_list.append(0)
-						generic_map_chunk = ds_mrgp_map_chunk()
-						generic_map_chunk.stuff = t_list
-						generic_map_chunk.key = generic_map_key
-						generic_map_chunk.put()					
-					map_chunk_member.stuff = generic_map_chunk.stuff
+					t_list = []
+					for i in range(1,150001):
+						t_list.append(0)
+					map_chunk_member.stuff = t_list
 					# we had to create this index chunk
 					# make sure juggler knows it needs to save it later
 					juggler_to_put[juggler_key] = True
