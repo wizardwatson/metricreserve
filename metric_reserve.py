@@ -7806,33 +7806,27 @@ class metric(object):
 		# if older delete
 		t_delete_cutoff = t_now - datetime.timedelta(seconds=(GRAPH_FREQUENCY_MINUTES * 60 * 4))
 		query1 = ds_multi_mrgp_profile.query(ds_multi_mrgp_profile.date_created < t_delete_cutoff)
-		query1.keys_only()
-		query1_keys = query1.fetch()
+		query1_keys = query1.fetch(keys_only=True)
 		ndb.delete_multi(query1_keys)
 		
 		query2 = ds_mrgp_profile.query(ds_mrgp_profile.date_created < t_delete_cutoff)
-		query2.keys_only()
-		query2_keys = query2.fetch()
+		query2_keys = query2.fetch(keys_only=True)
 		ndb.delete_multi(query2_keys)
 		
 		query3 = ds_mrgp_staging_chunk.query(ds_mrgp_staging_chunk.date_created < t_delete_cutoff)
-		query3.keys_only()
-		query3_keys = query3.fetch()
+		query3_keys = query3.fetch(keys_only=True)
 		ndb.delete_multi(query3_keys)
 		
 		query4 = ds_mrgp_index_chunk.query(ds_mrgp_index_chunk.date_created < t_delete_cutoff)
-		query4.keys_only()
-		query4_keys = query4.fetch()
+		query4_keys = query4.fetch(keys_only=True)
 		ndb.delete_multi(query4_keys)
 		
 		query5 = ds_mrgp_tree_chunk.query(ds_mrgp_tree_chunk.date_created < t_delete_cutoff)
-		query5.keys_only()
-		query5_keys = query5.fetch()
+		query5_keys = query5.fetch(keys_only=True)
 		ndb.delete_multi(query5_keys)
 		
 		query6 = ds_mrgp_map_chunk.query(ds_mrgp_map_chunk.date_created < t_delete_cutoff)
-		query6.keys_only()
-		query6_keys = query6.fetch()
+		query6_keys = query6.fetch(keys_only=True)
 		ndb.delete_multi(query6_keys)
 				
 		
