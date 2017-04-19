@@ -2099,7 +2099,7 @@ class metric(object):
 				else:
 					ft["visitor_is_tagged"] = False
 				# get the QR code url for the ticket
-				host_name = self.PARENT.request["host_url"]
+				host_name = self.PARENT.request.host_url
 				path_qs = "/tickets?vn=%s&va=%s&vt=%s" % (fstr_network_name,fstr_account_name,fstr_ticket_name)
 				qr_url = host_name + path_qs
 				ft["ticket_qr_code_url"] = self.PARENT._get_qr_url(qr_url)
