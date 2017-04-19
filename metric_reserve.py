@@ -469,6 +469,7 @@ class ds_mr_negative_reserve_shard(ndb.Model):
 # information about how many chunks there are for this process, etc.
 
 class ds_multi_mrgp_profile(ndb.Model):
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	current_time_key = ndb.StringProperty(indexed=False)
 	current_status = ndb.StringProperty(indexed=False)
 	network_index = ndb.IntegerProperty(indexed=False)
@@ -496,18 +497,19 @@ class ds_mrgp_profile(ndb.Model):
 
 # *** the staging chunk ***
 class ds_mrgp_staging_chunk(ndb.Model):
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	stuff = ndb.PickleProperty()
 # *** the index chunk ***
 class ds_mrgp_index_chunk(ndb.Model):
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	stuff = ndb.PickleProperty()
 # *** the tree chunk ***
 class ds_mrgp_tree_chunk(ndb.Model):
-	stuff = ndb.PickleProperty()
-# *** the report chunk ***
-class ds_mrgp_report_chunk(ndb.Model):
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	stuff = ndb.PickleProperty()
 # *** the map chunk ***
 class ds_mrgp_map_chunk(ndb.Model):
+	date_created = ndb.DateTimeProperty(auto_now_add=True)
 	stuff = ndb.PickleProperty()
 	
 ##############################################################################
@@ -7797,6 +7799,95 @@ class metric(object):
 			t_now = datetime.datetime.now()
 			
 		multi_gp_entity.put()
+		
+		# delete old entities
+		#
+		# time delta 4x graph frequency
+		# if older delete
+		t_delete_cutoff = t_now - datetime.timedelta(seconds=(GRAPH_FREQUENCY_MINUTES * 60 * 4))
+		query1 = ds_multi_mrgp_profile.query(ds_multi_mrgp_profile.date_created < t_delete_cutoff)
+		query1.keys_only()
+		query1_keys = query1.fetch()
+		ndb.delete_multi(query1_keys)
+		
+		query2 = ds_mrgp_profile.query(ds_mrgp_profile.date_created < t_delete_cutoff)
+		query2.keys_only()
+		query2_keys = query2.fetch()
+		ndb.delete_multi(query2_keys)
+		
+		query3 = ds_mrgp_staging_chunk.query(ds_mrgp_staging_chunk.date_created < t_delete_cutoff)
+		query3.keys_only()
+		query3_keys = query3.fetch()
+		ndb.delete_multi(query3_keys)
+		
+		query4 = ds_mrgp_index_chunk.query(ds_mrgp_index_chunk.date_created < t_delete_cutoff)
+		query4.keys_only()
+		query4_keys = query4.fetch()
+		ndb.delete_multi(query4_keys)
+		
+		query5 = ds_mrgp_tree_chunk.query(ds_mrgp_tree_chunk.date_created < t_delete_cutoff)
+		query5.keys_only()
+		query5_keys = query5.fetch()
+		ndb.delete_multi(query5_keys)
+		
+		query6 = ds_mrgp_map_chunk.query(ds_mrgp_map_chunk.date_created < t_delete_cutoff)
+		query6.keys_only()
+		query6_keys = query6.fetch()
+		ndb.delete_multi(query6_keys)
+				
+		
+		
+		"""
+		class ds_multi_mrgp_profile(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			current_time_key = ndb.StringProperty(indexed=False)
+			current_status = ndb.StringProperty(indexed=False)
+			network_index = ndb.IntegerProperty(indexed=False)
+			total_networks = ndb.IntegerProperty(indexed=False)
+
+		class ds_mrgp_profile(ndb.Model):
+
+			network_id = ndb.IntegerProperty()
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			status = ndb.StringProperty(indexed=False)
+			deadline = ndb.DateTimeProperty(indexed=False)
+			max_account = ndb.IntegerProperty(indexed=False)
+			phase_cursor = ndb.IntegerProperty(indexed=False)
+			tree_cursor = ndb.IntegerProperty(indexed=False)
+			count_cursor = ndb.IntegerProperty(indexed=False)
+			tree_chunks = ndb.IntegerProperty(indexed=False)
+			tree_in_process = ndb.BooleanProperty(indexed=False)
+			index_chunks = ndb.IntegerProperty(indexed=False)
+			parent_pointer = ndb.IntegerProperty(indexed=False)
+			child_pointer = ndb.IntegerProperty(indexed=False)
+			index_chunk_counter = ndb.IntegerProperty(indexed=False)
+			tree_chunk_counter = ndb.IntegerProperty(indexed=False)
+			map_chunk_counter = ndb.IntegerProperty(indexed=False)
+			report = ndb.PickleProperty(indexed=False)
+
+		# *** the staging chunk ***
+		class ds_mrgp_staging_chunk(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			stuff = ndb.PickleProperty()
+		# *** the index chunk ***
+		class ds_mrgp_index_chunk(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			stuff = ndb.PickleProperty()
+		# *** the tree chunk ***
+		class ds_mrgp_tree_chunk(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			stuff = ndb.PickleProperty()
+		# *** the report chunk ***
+		class ds_mrgp_report_chunk(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			stuff = ndb.PickleProperty()
+		# *** the map chunk ***
+		class ds_mrgp_map_chunk(ndb.Model):
+			date_created = ndb.DateTimeProperty(auto_now_add=True)
+			stuff = ndb.PickleProperty()
+		"""
+
+
 
 	def _process_graph(self, fint_network_id, fstr_current_time_key, fdate_deadline, fcutoff):
 	
@@ -7973,6 +8064,13 @@ class metric(object):
 		
 			if fstr_type == "index":
 			
+				lint_last_index = profile.index_chunks
+				lint_last_acc_id = profile.max_account
+				if fint_index == lint_last_index:
+					end_range = ((lint_last_acc_id - 1) % 500000) + 2
+				else:
+					end_range = 500001
+			
 				# first see if it's already in the juggler
 				juggler_key = ("%s_%s" % (fstr_type, str(fint_index)))
 				if juggler_key in juggler: return juggler[juggler_key]
@@ -7987,7 +8085,7 @@ class metric(object):
 					index_chunk_member = ds_mrgp_index_chunk()
 					index_chunk_member.key = index_chunk_key
 					t_list = []
-					for i in range(1,500001):
+					for i in range(1,end_range):
 						t_list.append(False)
 					index_chunk_member.stuff = t_list
 					# we had to create this index chunk
@@ -8027,7 +8125,14 @@ class metric(object):
 				return tree_chunk_member
 
 			if fstr_type == "map":
-			
+
+				lint_last_index = ((profile.max_account - (profile.max_account % 150000)) / 150000) + 1
+				lint_last_acc_id = profile.max_account
+				if fint_index == lint_last_index:
+					end_range = ((lint_last_acc_id - 1) % 150000) + 2
+				else:
+					end_range = 150001
+				
 				# first see if it's already in the juggler
 				juggler_key = ("%s_%s" % (fstr_type, str(fint_index)))
 				if juggler_key in juggler: return juggler[juggler_key]
@@ -8042,7 +8147,7 @@ class metric(object):
 					map_chunk_member = ds_mrgp_map_chunk()
 					map_chunk_member.key = map_chunk_key
 					t_list = []
-					for i in range(1,150001):
+					for i in range(1,end_range):
 						t_list.append(0)
 					map_chunk_member.stuff = t_list
 					# we had to create this index chunk
@@ -9083,8 +9188,9 @@ class metric(object):
 			# initialize map chunks if not already done
 
 			if not profile.map_chunk_counter == t_num:
+				map_chunk = {}
 				for i in range(profile.map_chunk_counter + 1,t_num + 1):
-					index_chunk[i] = get_chunk_from_juggler("map",i)
+					map_chunk[i] = get_chunk_from_juggler("map",i)
 					if deadline_reached(True): return process_stop()
 
 			def scan_tree_chunk_for_ids(fint_chunk_id, fint_start_marker):
