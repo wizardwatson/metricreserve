@@ -4849,6 +4849,10 @@ class metric(object):
 			return False
 		
 		network_id = validation_result[0]
+		network = self._get_network(fint_network_id=network_id)
+		if not network.network_status == "ACTIVE":
+			self.PARENT.RETURN_CODE = "1327"
+			return False # error Can only join active networks.		
 
 		# load user transactionally
 		user_key = ndb.Key("ds_mr_user",self.PARENT.user.entity.user_id)
@@ -4863,7 +4867,6 @@ class metric(object):
 			# maximum reserve accounts reached
 			self.PARENT.RETURN_CODE = "1111"
 			return False
-		
 		
 		# load cursor transactionally
 		cursor_key = ndb.Key("ds_mr_network_cursor", "%s" % str(network_id).zfill(8))		
