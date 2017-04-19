@@ -1723,6 +1723,9 @@
 			entered must be between 0 and 10 only.<br/>
 			<a href="{{ blok.last_view_link }}">{{ blok.last_view_link_text }}</a></p>
 		{% endif %}
+		{% if blok.error_code == "1327" %}
+					<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> Can only join active networks.</p>
+		{% endif %}
 		{% if blok.error_code == "9999" %}
 					<p class="error ui-body ui-body-e"><font color="green"><strong>ERROR:</strong></font> STUB.</p>
 		{% endif %}
@@ -2196,6 +2199,8 @@
 			<br/>delete alias account name if username is available</p>
 			<p><span class="command_reference">default</span>
 			<br/>make this account your default pay account on this network</p>
+			<p><span class="command_reference">decimals [number of decimal places]</span>
+			<br/>Change the number of decimal places shown for this account.</p>
 
 			<hr/>
 			<p>CONTEXT: (others any type account) AS: ([User])</p>
