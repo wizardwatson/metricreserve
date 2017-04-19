@@ -7766,7 +7766,8 @@ class metric(object):
 			# crossed the time window, need to restart
 			multi_gp_entity.current_time_key = current_time_key
 			multi_gp_entity.current_status = "UNFINISHED"
-			multi_gp_entity.network_index = 1	
+			multi_gp_entity.network_index = 1
+			multi_gp_entity.total_networks = total_networks
 		
 		deadline_seconds_away = (GRAPH_ITERATION_DURATION_SECONDS + 
 			GRAPH_ITERATION_WIGGLE_ROOM_SECONDS)
