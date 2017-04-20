@@ -11070,7 +11070,7 @@ class ph_le(webapp2.RequestHandler):
 
 	def get(self):
 		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.write('dqAOS_eFWlmVPLZndsQNNtO2-IbVPeesTCqsvcaxIYE.lSd644Dfv363_CjJ6OR4ugBW_SonvdfZDh6He4MYyBQ')
+		self.response.write('ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk.lSd644Dfv363_CjJ6OR4ugBW_SonvdfZDh6He4MYyBQ')
 		
 		# STUB check cron request header
 		# X-Appengine-Cron: true
@@ -11104,7 +11104,7 @@ application = webapp2.WSGIApplication([
 	('/messages', ph_command),
 	('/ledger', ph_command),
 	('/tickets', ph_command),
-	('/.well-known/acme-challenge/dqAOS_eFWlmVPLZndsQNNtO2-IbVPeesTCqsvcaxIYE',ph_le),
+	('/.well-known/acme-challenge/ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk',ph_le),
 	('/graph_process', ph_gp),
 	('/graph', ph_command)
 	],debug=True)
