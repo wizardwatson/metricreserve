@@ -2809,6 +2809,7 @@ class metric(object):
 			reserve_complete["has_parent"] = False
 			reserve_complete["has_connections"] = False
 			reserve_complete["connections"] = []
+			reserve_complete["has_connection_requests"] = False
 			reserve_complete["has_incoming_connection_requests"] = False
 			reserve_complete["incoming_connection_requests"] = []
 			reserve_complete["has_outgoing_connection_requests"] = False
@@ -2817,6 +2818,7 @@ class metric(object):
 			reserve_complete["child_client_accounts"] = []
 			reserve_complete["has_child_joint_accounts"] = False
 			reserve_complete["child_joint_accounts"] = []
+			reserve_complete["has_child_offer"] = False
 			reserve_complete["has_child_client_offer"] = False
 			reserve_complete["has_child_joint_offer"] = False
 			
@@ -2869,6 +2871,7 @@ class metric(object):
 			reserve_complete["child_client_offer_count"] = 0
 			reserve_complete["child_joint_offer_count"] = 0
 			if not t_user_object.child_client_offer_account_id == 0:
+				reserve_complete["has_child_offer"] = True
 				reserve_complete["has_child_client_offer"] = True
 				reserve_complete["child_client_offer_count"] += 1
 				list_of_associated_accounts.append("EMPTY")
@@ -2877,6 +2880,7 @@ class metric(object):
 			else:
 				reserve_complete["has_child_client_offer"] = False
 			if not t_user_object.child_joint_offer_account_id == 0:				
+				reserve_complete["has_child_offer"] = True
 				reserve_complete["has_child_joint_offer"] = True
 				reserve_complete["child_joint_offer_count"] += 1
 				list_of_associated_accounts.append("EMPTY")
@@ -2966,12 +2970,14 @@ class metric(object):
 
 				# process incoming connection requests
 				if i < last_incoming_connection_request_idx:
+					reserve_complete["has_connection_requests"] = True
 					reserve_complete["has_incoming_connection_requests"] = True
 					a = list_of_associated_users[i]
 					b = network_id
 					c = list_of_associated_accounts[i].account_id
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -2992,12 +2998,14 @@ class metric(object):
 
 				# process outgoing connection requests
 				if i < last_outgoing_connection_request_idx:
+					reserve_complete["has_connection_requests"] = True
 					reserve_complete["has_outgoing_connection_requests"] = True
 					a = list_of_associated_users[i]
 					b = network_id
 					c = list_of_associated_accounts[i].account_id
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -3024,6 +3032,7 @@ class metric(object):
 					c = list_of_associated_accounts[i].account_id
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -3048,6 +3057,7 @@ class metric(object):
 					c = list_of_associated_accounts[i].account_id
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -3068,6 +3078,9 @@ class metric(object):
 				if i < last_child_client_offer_idx:
 					reserve_complete["client_child_entity"] = {}
 					reserve_complete["client_child_entity"]["username"] = list_of_associated_users[i].username
+					a = list_of_associated_users[i]
+					b = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
+					reserve_complete["client_child_entity"]["gravatar_url"] = b
 					continue
 
 
@@ -3075,6 +3088,9 @@ class metric(object):
 				if i < last_child_joint_offer_idx:
 					reserve_complete["joint_child_entity"] = {}
 					reserve_complete["joint_child_entity"]["username"] = list_of_associated_users[i].username
+					a = list_of_associated_users[i]
+					b = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
+					reserve_complete["joint_child_entity"]["gravatar_url"] = b
 
 					# check for child account offers
 
@@ -11135,6 +11151,8 @@ application = webapp2.WSGIApplication([
 	('/search', ph_command),
 	('/messages', ph_command),
 	('/ledger', ph_command),
+	('/transfer', ph_command),
+	('/pay', ph_command),
 	('/tickets', ph_command),
 	('/.well-known/acme-challenge/ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk',ph_le),
 	('/graph_process', ph_gp),
