@@ -364,7 +364,7 @@
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
 			<p>Hello, <b>{{ master.page.username }}</b>.</p>
-			<p>If you're new here it is recommended you read the documentation.</p>
+			<p>If you're new here it is recommended you read the <a href="http://www.metricreserve.com/documentation?p=home">documentation</a>.</p>
 			<p>Actually, even if you aren't new here, might not be a bad idea to read it again.  Something probably changed.</p>
 			<p>DISCLAIMER:  Metric Reserve is banking software currently still in prototype and development stage.  It is not
 			production ready and should not be advertised as such.  You can sign in, test drive it, connect with friends
@@ -520,7 +520,12 @@
 			{% endif %}
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
-			<p>You currently have no accounts on this network.</p>
+				<p>You currently have no account on this network.</p>
+				<form action="#" method="post" data-ajax="false">
+					<fieldset>
+						<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_command">OPEN ACCOUNT</button>
+					</fieldset>
+				</form>
 			</div>
 		{% endif %}
 	{% endif %}
@@ -827,76 +832,49 @@
 	{% endif %}
 
 	{% if blok.type == "one account" %}
-			<div class="text_bubble ui-body ui-body-c">
-			{% if blok.account.is_my_account %}
-				{% if blok.account.is_my_default %}
-				<p><b>NETWORK DEFAULT</b></p>
-				{% else %}
-				<p><b>NOT DEFAULTED</b></p>
-				{% endif %}
+		<div class="text_bubble ui-body ui-body-c">
+		{% if blok.account.is_my_account %}
+			{% if blok.account.is_my_default %}
+			<p><b>NETWORK DEFAULT</b></p>
 			{% else %}
-				<p><b>NOT YOUR ACCOUNT</b></p>
+			<p><b>NOT DEFAULTED</b></p>
 			{% endif %}
+		{% else %}
+			<p><b>NOT YOUR ACCOUNT</b></p>
+		{% endif %}
 
-			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
-			<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
-			<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
-			<b>Account Status</b>:  {{ blok.account.status }}<br/>
-			<b>Account Type</b>:  {{ blok.account.type }}<br/>
-			<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
-			{% if blok.account.type == "RESERVE" %}
-			<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
-			{% endif %}
-			<b>Date Created</b>:  {{ blok.account.d_date_created }}
-			{% if blok.account.is_my_account %}
-				<br/><br/><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
-			{% endif %}
-			{% if blok.account.is_my_account %}
-				{% if blok.account.ticket_count > 0 %}
-					{% if blok.account.ticket_tag_count > 0 %}
-					<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}  (Tags:{{ blok.account.ticket_tag_count }})</a>
-					{% else %}
-					<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}</a>
-					{% endif %}
+		<p><b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
+		<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
+		<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
+		<b>Account Status</b>:  {{ blok.account.status }}<br/>
+		<b>Account Type</b>:  {{ blok.account.type }}<br/>
+		<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
+		{% if blok.account.type == "RESERVE" %}
+		<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
+		{% endif %}
+		<b>Date Created</b>:  {{ blok.account.d_date_created }}
+		{% if blok.account.is_my_account %}
+			<br/><br/><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
+		{% endif %}
+		{% if blok.account.is_my_account %}
+			{% if blok.account.ticket_count > 0 %}
+				{% if blok.account.ticket_tag_count > 0 %}
+				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}  (Tags:{{ blok.account.ticket_tag_count }})</a>
 				{% else %}
-				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
+				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}</a>
 				{% endif %}
 			{% else %}
-				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
+			<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
 			{% endif %}
-			{% if blok.account.has_graph_assignment %}
-				<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
-			{% endif %}</p>
-			</div>
-			{% if blok.account.has_child_client_offer %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Child Client Account Offer</li>
-				<li><a href="/profile?va={{ blok.account.client_child_entity.username }}">
-				<h3>{{ blok.account.client_child_entity.username }}</h3>
-				<p><b>Username</b>: {{ blok.account.client_child_entity.username }}</p>
-				</a></li>
-			</ul>
-			{% endif %}
-			{% if blok.account.has_child_joint_offer %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Child Joint Account Offer</li>
-				<li><a href="/profile?va={{ blok.account.joint_child_entity.username }}">
-				<h3>{{ blok.account.joint_child_entity.username }}</h3>
-				<p><b>Username</b>: {{ blok.account.joint_child_entity.username }}</p>
-				</a></li>
-			</ul>
-			{% endif %}
-			{% if blok.account.has_parent %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Parent Account</li>
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
-				<h3>{{ blok.account.parent_entity.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ blok.account.parent_entity.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ blok.account.parent_entity.reserve_balance }}</p>
-				</a></li>
-			</ul>
-			{% endif %}
+		{% else %}
+			<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
+		{% endif %}
+		{% if blok.account.has_graph_assignment %}
+			<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
+		{% endif %}</p>
+		</div>
+		{% if blok.account.type == "RESERVE" %}
+
 			{% if blok.account.has_connections %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Connections</li>
@@ -914,34 +892,104 @@
 				{% endfor %}
 			</ul>
 			{% endif %}
-			{% if blok.account.has_incoming_connection_requests %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Incoming Connection Requests</li>
+
+			{% if blok.account.has_connection_requests %}
+			<div data-role="collapsible" data-theme="e">
+				<h2>Connect Requests In:{{ blok.account.incoming_connection_requests_count }} Out:{{ blok.account.outgoing_connection_requests_count }}</h2>
+				{% if blok.account.has_incoming_connection_requests %}
 				{% for account in blok.account.incoming_connection_requests %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
-				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
-				</a></li>
+				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+					<img src="{{ account.gravatar_url }}" />
+					<p>Incoming Request:
+					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+					<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
+					<br/>Connection Count: {{ account.connection_count }}</p>
+				</li></ul>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="submit" data-theme="a">Deny Req.</button></div>
+					<div class="ui-block-b"><button type="submit" data-theme="b">Authorize</button></div>
+				</fieldset>
+				<hr/>
 				{% endfor %}
-			</ul>
-			{% endif %}
-			{% if blok.account.has_outgoing_connection_requests %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Outgoing Connection Requests</li>
+				{% endif %}
+				{% if blok.account.has_outgoing_connection_requests %}
 				{% for account in blok.account.outgoing_connection_requests %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
-				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
-				</a></li>
+				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+					<img src="{{ account.gravatar_url }}" />
+					<p>Outgoing Request:
+					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+					<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
+					<br/>Connection Count: {{ account.connection_count }}</p>
+				</li></ul>
+
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Req.</button></div>
+				</fieldset>
+				</form>
+				<hr/>
 				{% endfor %}
-			</ul>
+				{% endif %}
+			</div>
 			{% endif %}
+
+			<div data-role="collapsible" data-theme="a">
+				<h2>Modify Reserves</h2>
+				<p><a class="noul" href="#">What is this?</a></p>
+				<input type="radio" name="radio-choice" id="radio-choice-1" value="choice-1" />
+				<label for="radio-choice-1">+ Create (+RES)</label>
+
+				<input type="radio" name="radio-choice" id="radio-choice-2" value="choice-2"  />
+				<label for="radio-choice-2">- Destroy (-RES)</label>
+
+				<input type="radio" name="radio-choice" id="radio-choice-3" value="choice-3" checked="checked"  />
+				<label for="radio-choice-3">+ Add (+RES/+BAL)</label>
+
+				<input type="radio" name="radio-choice" id="radio-choice-4" value="choice-4"  />
+				<label for="radio-choice-4">- Subtract (-RES/-BAL)</label>
+				<div data-role="fieldcontain" class="ui-hide-label">
+					<label for="number">Number + pattern:</label>
+					<input type="text" name="number" id="number" value="" placeholder="Amount" />
+				</div>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="submit" data-theme="a">CLEAR</button></div>
+					<div class="ui-block-b"><button type="submit" data-theme="e">MODIFY</button></div>
+				</fieldset>
+				</form>
+			</div>
+
+			{% if blok.account.has_child_offer %}
+			<div data-role="collapsible" data-theme="e">
+				<h2>Child Account Offer(s)</h2>
+				{% if blok.account.has_child_joint_offer %}
+				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+					<img src="{{ blok.account.joint_child_entity.gravatar_url }}" />
+					<p>Child Joint Account Offer:
+					<br/><a href="/profile?va={{ blok.account.joint_child_entity.username }}">{{ blok.account.joint_child_entity.username }}</a></p>
+				</li></ul>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Offer</button></div>
+				</fieldset>
+				<hr/>
+				{% endif %}
+				{% if blok.account.has_child_client_offer %}
+				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+					<img src="{{ blok.account.client_child_entity.gravatar_url }}" />
+					<p>Child Client Account Offer:
+					<br/><a href="/profile?va={{ blok.account.client_child_entity.username }}">{{ blok.account.client_child_entity.username }}</a></p>
+				</li></ul>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Offer</button></div>
+				</fieldset>
+				{% endif %}
+			</div>
+			{% endif %}
+
+
 			{% if blok.account.has_child_client_accounts %}
 			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Child Client Accounts</li>
@@ -966,6 +1014,21 @@
 				{% endfor %}
 			</ul>
 			{% endif %}
+
+		{% endif %}
+
+		{% if blok.account.has_parent %}
+		<div data-role="collapsible" data-theme="e">
+			<h2>Parent Account</h2>
+			<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+				<img src="{{ account.gravatar_url }}" />
+				<p>Parent Reserve Account:
+				<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
+				{{ blok.account.parent_entity.username_alias }}</a>
+				<br/>Res: {{ blok.account.parent_entity.reserve_balance }} Net: {{ blok.account.parent_entity.network_balance }}</p>
+			</li></ul>
+		</div>
+		{% endif %}
 	{% endif %}
 
 
