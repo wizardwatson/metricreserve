@@ -1226,7 +1226,7 @@ class user(object):
 		reverse_query = ds_mr_user_message.query(ds_mr_user_message.target_user_id == name_entity.user_id)
 		reverse_query = reverse_query.order(ds_mr_user_message.date_created)
 		
-		messages_per_page = 3
+		messages_per_page = 10
 		
 		# if both are None then must be beginning.
 		# if forward exists user for previous link
