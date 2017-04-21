@@ -1267,7 +1267,9 @@ class user(object):
 			target_user_id = ndb.StringProperty()
 			message_content = ndb.PickleProperty()
 		"""
-		
+		if len(fstr_text) > 400:
+			self.PARENT.RETURN_CODE = "1328"
+			return False # error Message length too long.  Maximum 400 characters allowed.
 		# get target user_id
 		name_key = ndb.Key("ds_mr_unique_dummy_entity", fstr_target_name)
 		name_entity = name_key.get()
@@ -1519,6 +1521,9 @@ class metric(object):
 		fg["account_name"] = fstr_account_name
 		fg["key_name"] = fstr_key_name
 		
+		# counter
+		fg['TOTAL_USERS'] = 0
+		
 		fg['TOTAL_TREES'] = profile.report['TOTAL_TREES']
 		fg['RESERVE_AMT_TOTAL'] = get_f_amt(a,b,profile.report['RESERVE_AMT_TOTAL'])
 		fg['NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['NETWORK_AMT_TOTAL'])
@@ -1553,6 +1558,8 @@ class metric(object):
 		fg['ORPHAN_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['ORPHAN_NETWORK_AMT_TOTAL'])
 		fg['ORPHAN_MEMBER_TOTAL'] = profile.report['ORPHAN_MEMBER_TOTAL']
 		
+		fg['TOTAL_USERS'] += fg['ORPHAN_MEMBER_TOTAL']
+		
 		fg['TIME_BEGIN'] = profile.report['TIME_BEGIN']
 		fg['TIME_END'] = profile.report['TIME_END']
 		fg['TIME_TOTAL'] = profile.report['TIME_TOTAL']
@@ -1577,6 +1584,9 @@ class metric(object):
 			new_tree['TREE_RESERVE_AMT_AVERAGE'] = get_f_amt(a,b,profile.report['TREE_RESERVE_AMT_AVERAGE'][tree_key])
 			new_tree['TREE_NETWORK_AMT_TOTAL'] = get_f_amt(a,b,profile.report['TREE_NETWORK_AMT_TOTAL'][tree_key])
 			new_tree['TREE_MEMBER_TOTAL'] = profile.report['TREE_MEMBER_TOTAL'][tree_key]
+			
+			fg['TOTAL_USERS'] += new_tree['TREE_MEMBER_TOTAL']
+			
 			new_tree['HAS_SUGGESTED'] = False
 			
 			if tree_key in profile.report['SUGGESTED_TREE_COUNT_TOTAL']:
@@ -3159,7 +3169,10 @@ class metric(object):
 				"""
 			if not metric_account_entity.graph_sync == "EMPTY":
 				reserve_complete["has_graph_assignment"] = True
-				reserve_complete["tree_number"] = metric_account_entity.tree_number
+				if metric_account_entity.tree_number == 1:
+					reserve_complete["tree_number"] = "orphan"
+				else:
+					reserve_complete["tree_number"] = metric_account_entity.tree_number
 				reserve_complete["graph_sync"] = metric_account_entity.graph_sync				
 			else:
 				reserve_complete["has_graph_assignment"] = False
@@ -3220,7 +3233,10 @@ class metric(object):
 
 			if not metric_account_entity.graph_sync == "EMPTY":
 				client_complete["has_graph_assignment"] = True
-				client_complete["tree_number"] = metric_account_entity.tree_number
+				if metric_account_entity.tree_number == 1:
+					client_complete["tree_number"] = "orphan"
+				else:
+					client_complete["tree_number"] = metric_account_entity.tree_number
 				client_complete["graph_sync"] = metric_account_entity.graph_sync				
 			else:
 				client_complete["has_graph_assignment"] = False
@@ -3280,7 +3296,10 @@ class metric(object):
 			
 			if not metric_account_entity.graph_sync == "EMPTY":
 				joint_complete["has_graph_assignment"] = True
-				joint_complete["tree_number"] = metric_account_entity.tree_number
+				if metric_account_entity.tree_number == 1:
+					joint_complete["tree_number"] = "orphan"
+				else:
+					joint_complete["tree_number"] = metric_account_entity.tree_number
 				joint_complete["graph_sync"] = metric_account_entity.graph_sync				
 			else:
 				joint_complete["has_graph_assignment"] = False
@@ -3340,7 +3359,10 @@ class metric(object):
 			
 			if not metric_account_entity.graph_sync == "EMPTY":
 				clone_complete["has_graph_assignment"] = True
-				clone_complete["tree_number"] = metric_account_entity.tree_number
+				if metric_account_entity.tree_number == 1:
+					clone_complete["tree_number"] = "orphan"
+				else:
+					clone_complete["tree_number"] = metric_account_entity.tree_number
 				clone_complete["graph_sync"] = metric_account_entity.graph_sync				
 			else:
 				clone_complete["has_graph_assignment"] = False
@@ -7044,7 +7066,7 @@ class metric(object):
 			# so only a-z, 0-9, or an underscore
 			# additionally:
 			# 1. Can't end or begin with an underscore
-			# 2. Can't be less than three characters
+			# 2. Can't be less than three characters or more than 50
 			# 3. Must contain at least one letter.
 			# 4. If 10 or less in length, must contain at lease one
 			# number and at least one letternumber as keywords 
@@ -7053,6 +7075,8 @@ class metric(object):
 			if not re.match(r'^[a-z0-9_]+$',fstr_name):
 				return False
 			if not re.search('[a-z]',fstr_name):
+				return False
+			if not len(fstr_name) < 51:
 				return False
 			if not len(fstr_name) > 2:
 				return False
@@ -7087,6 +7111,8 @@ class metric(object):
 						m_count += command_seq[i].count("m")
 						new_command_seq.append(command_seq[i])
 			if found:
+				if len(memo) > 100:
+					return None
 				return (new_command_seq,memo)
 			else:
 				del command_seq[-1]
@@ -7150,6 +7176,9 @@ class metric(object):
 		# 2. pay <amount> <amount|percent> : pay a ticket plus add gratuity
 
 		result = parse_for_memo(fct,4)
+		if result is None:
+			self.PARENT.RETURN_CODE = "1329" # error Memo too long. Maximum ticket memo length is 100 characters.
+			return False
 		ct = result[0]
 		memo = result[1]
 		
@@ -9396,7 +9425,7 @@ class ph_command(webapp2.RequestHandler):
 		# so only a-z, 0-9, or an underscore
 		# additionally:
 		# 1. Can't end or begin with an underscore
-		# 2. Can't be less than three characters
+		# 2. Can't be less than three characters or more than 50
 		# 3. Must contain at least one letter.
 		# 4. If 10 or less in length, must contain at lease one
 		# number and at least one letternumber as keywords 
@@ -9405,6 +9434,8 @@ class ph_command(webapp2.RequestHandler):
 		if not re.match(r'^[a-z0-9_]+$',fstr_name):
 			return False
 		if not re.search('[a-z]',fstr_name):
+			return False
+		if not len(fstr_name) < 51:
 			return False
 		if not len(fstr_name) > 2:
 			return False
