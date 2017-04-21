@@ -9659,6 +9659,7 @@ class ph_command(webapp2.RequestHandler):
 				else:
 					# redirect home
 					r.redirect(self.url_path(new_path="/"))
+					return
 					
 				recognized = False
 				
