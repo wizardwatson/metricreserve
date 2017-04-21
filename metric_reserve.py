@@ -2059,7 +2059,7 @@ class metric(object):
 						# get the username/alias for visitor this ticket is referencing
 						a = self.PARENT.user.entity
 						b = network.network_id
-						c = ft["ticket_tag_account_id"]
+						c = new_ticket["ticket_tag_account_id"]
 						new_ticket["ticket_tag_user_account_name"] = get_label_for_account(a,b,c)						
 						ft["visitor_tags"].append(new_ticket)
 
