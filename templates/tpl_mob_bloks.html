@@ -834,9 +834,9 @@
 	{% if blok.type == "one account" %}
 		{% if blok.account.type == "RESERVE" %}
 			<div class="text_bubble ui-body ui-body-c">
-				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="https://chart.googleapis.com/chart?cht=qr&amp;chs=85&amp;chl=https%3A%2F%2F8080-dot-2189742-dot-devshell.appspot.com%2F%3Fauthuser%3D0" /></a>
+				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
 				<p>RESERVE ACCOUNT
-				<br/><a class="noul" href="#">{{ blok.account.username_alias }}</a>
+				<br/><a class="noul" href="/profile?va={{ blok.account.username_alias }}">{{ blok.account.username_alias }}</a>
 				<br/>Res: {{ blok.account.reserve_balance }} Net: {{ blok.account.network_balance }}
 				<br/><b>Network Name</b>:  <a class="noul" href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a></p>
 			</div>
@@ -1420,7 +1420,96 @@
 				</li></ul>
 			</div>
 			{% endif %}
+		{% else %}
+			<div class="text_bubble ui-body ui-body-c">
+				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
+				<p>{{ blok.account.type }} ACCOUNT
+				<br/><a class="noul" href="/profile?va={{ blok.account.username_alias }}">{{ blok.account.username_alias }}</a>
+				<br/>Balance: {{ blok.account.network_balance }}
+				<br/><b>Network Name</b>:  <a class="noul" href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a></p>
+			</div>
+			<script>
+			$(document).ready(function(){
+				$("#res_menu_2").hide();
+				$("#res_menu_3").hide();
+				res_hide_all_content();
+				$("#res_content_summary").show();
+				$("#res_menu_1_summary").click(function(){
+					res_hide_all_content();
+					$("#res_content_summary").show();
+				});
+				$("#res_menu_1_graph").click(function(){
+					res_hide_all_content();
+					$("#res_content_graph").show();
+				});
+				$("#res_menu_1_settings").click(function(){
+					res_hide_all_content();
+					$("#res_content_settings").show();
+				});
+
+			});
+
+			function res_hide_all_menu() {
+				$("#res_menu_1").hide();
+				$("#res_menu_2").hide();
+				$("#res_menu_3").hide();
+			}
+
+			function res_hide_all_content() {
+				$("#res_content_summary").hide();
+				$("#res_content_graph").hide();
+				$("#res_content_settings").hide();
+			}
+			</script>
+			<div class="ui-grid-a" style="margin-top: 7px;">
+				<div class="ui-block-a"><a id="res_menu_1_summary" href="#" data-role="button" data-mini="true" data-theme="b">Summary</a></div>
+				<div class="ui-block-b"><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Ledger</a></div>
+				<div class="ui-block-a"><a id="res_menu_1_graph" href="#" data-role="button" data-mini="true" data-theme="b">Graph</a></div>
+				<div class="ui-block-b"><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Tickets</a></div>
+				<div class="ui-block-a"><a id="res_menu_1_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
+				<div class="ui-block-b"><a id="#" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
+			</div>
+			<!--- ACCOUNT SUMMARY --->
+			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
+				<p><b>ACCOUNT SUMMARY</b></p>
+				{% if blok.account.is_my_account %}
+					{% if blok.account.is_my_default %}
+					<p><b>Network Default: YES</b><br>
+					{% else %}
+					<p><b>Network Default: NO</b><br>
+					{% endif %}
+				{% else %}
+					<p><b>This is not your account.</b><br>
+				{% endif %}
+
+				<b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
+				<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
+				<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
+				<b>Account Status</b>:  {{ blok.account.status }}<br/>
+				<b>Account Type</b>:  {{ blok.account.type }}<br/>
+				<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
+				<b>Date Created</b>:  {{ blok.account.d_date_created }}
+			</div>
+
+			<!--- GRAPH INFO --->
+			<div id="res_content_graph" class="text_bubble ui-body ui-body-c">
+				<p><b>GRAPH INFO</b>
+				{% if blok.account.has_graph_assignment %}
+					<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph Detail</a>
+				{% else %}
+					<br/><br/>Your account has not yet been processed by the graph process.
+				{% endif %}
+				</p>
+			</div>
+			<!--- res_content_settings --->
+			<div id="res_content_settings">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_settings</p>
+				</div>
+			</div>
 		{% endif %}
+
+
 	{% endif %}
 
 
