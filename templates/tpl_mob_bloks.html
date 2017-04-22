@@ -875,24 +875,6 @@
 		</div>
 		{% if blok.account.type == "RESERVE" %}
 
-			{% if blok.account.has_connections %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Connections</li>
-				{% for account in blok.account.connections %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
-				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
-				<p><b>Transfer Request</b>: {{ account.transfer_request }}</p>
-				<p><b>Sug. Transfer Active</b>: {{ account.suggested_transfer_active }}</p>
-				<p><b>Sug. Transfer Inactive</b>: {{ account.suggested_transfer_inactive }}</p>
-				</a></li>
-				{% endfor %}
-			</ul>
-			{% endif %}
-
 			{% if blok.account.has_connection_requests %}
 			<div data-role="collapsible" data-theme="e">
 				<h2>Connect Requests In:{{ blok.account.incoming_connection_requests_count }} Out:{{ blok.account.outgoing_connection_requests_count }}</h2>
@@ -932,6 +914,24 @@
 				{% endfor %}
 				{% endif %}
 			</div>
+			{% endif %}
+
+			{% if blok.account.has_connections %}
+			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<li data-role="list-divider">Connections</li>
+				{% for account in blok.account.connections %}
+				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
+				<h3>{{ account.username_alias }}</h3>
+				<p><strong></strong></p>
+				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
+				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
+				<p><b>Transfer Request</b>: {{ account.transfer_request }}</p>
+				<p><b>Sug. Transfer Active</b>: {{ account.suggested_transfer_active }}</p>
+				<p><b>Sug. Transfer Inactive</b>: {{ account.suggested_transfer_inactive }}</p>
+				</a></li>
+				{% endfor %}
+			</ul>
 			{% endif %}
 
 			<div data-role="collapsible" data-theme="a">
@@ -1015,6 +1015,62 @@
 			</ul>
 			{% endif %}
 
+			{% if blok.account.has_connections %}
+				<div class="mycontent ui-body ui-body-c">
+					<h3>Connection Map:</h3>
+					<div id="map"></div>
+					<script>
+						function initMap() {
+  							var map = new google.maps.Map(document.getElementById('map'), {
+    							zoom: 4,
+    							center: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}}
+  							});
+  							var markerImage = new google.maps.MarkerImage('{{ blok.account.gravatar_url_map }}',
+								new google.maps.Size(30, 30),
+								new google.maps.Point(0, 0),
+                				new google.maps.Point(15, 15));
+ 							var marker = new google.maps.Marker({
+								position: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
+								title: '{{ blok.account.username_alias }}',
+								map: map,
+								icon: markerImage
+							});
+							{% for marker in blok.account.map_data %}
+  							var markerImage = new google.maps.MarkerImage('{{ marker.gravatar_url_map }}',
+								new google.maps.Size(30, 30),
+								new google.maps.Point(0, 0),
+                				new google.maps.Point(15, 15));
+							var marker = new google.maps.Marker({
+								position: {lat: {{ marker.latitude }}, lng: {{ marker.longitude }}},
+								title: '{{ marker.username_alias }}',
+								map: map,
+								icon: markerImage
+							});
+
+
+							var a_to_b_coord = [
+								{lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
+								{lat: {{ marker.latitude }}, lng: {{ marker.longitude }}}
+							];
+
+							var a_to_b_path = new google.maps.Polyline({
+								path: a_to_b_coord,
+								geodesic: true,
+								strokeColor: '#0000FF',
+								strokeOpacity: 1.0,
+								strokeWeight: 2
+							});
+
+							a_to_b_path.setMap(map);
+							{% endfor %}
+
+						}
+					</script>
+					<script async defer
+					src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+					</script>
+				</div>
+			{% endif %}
 		{% endif %}
 
 		{% if blok.account.has_parent %}
