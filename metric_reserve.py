@@ -3326,6 +3326,7 @@ class metric(object):
 			clone_complete["network_name"] = fstr_network_name
 			clone_complete["network_id"] = network_id
 			clone_complete["username_alias"] = fstr_account_name
+			clone_complete["gravatar_url"] = self.PARENT.user._get_gravatar_url(t_user_object.gravatar_url,t_user_object.gravatar_type)
 			clone_complete["account_id"] = metric_account_entity.account_id
 			clone_complete["tx_index"] = metric_account_entity.tx_index
 			clone_complete["status"] = metric_account_entity.account_status
