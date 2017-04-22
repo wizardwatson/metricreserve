@@ -20,8 +20,24 @@
 	    $.mobile.ajaxEnabled = false;
 	});
 	</script>
+	<script>
+	$(document).ready(function(){
+		$("#com_display2").hide();
+		$("#hide1").click(function(){
+			$("#com_display1").hide();
+			$("#com_display2").show();
+		});
+		$("#show1").click(function(){
+			$("#com_display2").hide();
+			$("#com_display1").show();
+		});
+	});
+	</script>
 	<script src="https://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
 	<style>
+	.noul {
+		text-decoration: none;
+	}
 
 	* {
 		font-family: courier;
