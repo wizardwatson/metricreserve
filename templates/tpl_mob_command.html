@@ -13,6 +13,7 @@
 	</div>
 	<div data-role="content">
 		{% if master.SHOW_COMMAND %}
+		<div id="com_display1">
 		<form action="{{ master.request.path_qs }}" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
 		  <fieldset>
 			<div data-role="fieldcontain" class="ui-hide-label">
@@ -29,7 +30,9 @@
 			<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_command">ENTER</button>
 		  </fieldset>
 		</form>
-		<div class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font></div>
+		<div class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font><a style="float:right;"id="hide1" class="noul" href="#">COM:HIDE</a></div>
+		</div>
+		<div id="com_display2"  class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font><a style="float:right;"id="show1" class="noul" href="#">COM:SHOW</a></div>
 		{% endif %}
 		{% include 'templates/tpl_mob_bloks.html' %}
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
