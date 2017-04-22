@@ -773,7 +773,7 @@
 			<b>Reserve Balance</b>:  {{ blok.ledger.reserve_balance }}<br/>
 			{% endif %}
 			<b>Date Created</b>:  {{ blok.ledger.d_date_created }}<br/><br/>
-			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}" data-role="button">Back to account</a></p>
+			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}" data-role="button" data-theme="e">Back to Account Summary</a></p>
 			</div>
 			<table class="ledger" border=1>
 				<thead>
@@ -834,11 +834,16 @@
 	{% if blok.type == "one account" %}
 		{% if blok.account.type == "RESERVE" %}
 			<div class="text_bubble ui-body ui-body-c">
-				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
-				<p>RESERVE ACCOUNT
+				<table><tr><td style="padding:0px;">
+				<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
+				</td>
+				<td>
+				<p style="margin:0px;">RESERVE ACCOUNT
 				<br/><a class="noul" href="/profile?va={{ blok.account.username_alias }}">{{ blok.account.username_alias }}</a>
 				<br/>Res: {{ blok.account.reserve_balance }} Net: {{ blok.account.network_balance }}
 				<br/><b>Network Name</b>:  <a class="noul" href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a></p>
+				</td>
+				</table>
 			</div>
 			<script>
 			$(document).ready(function(){
@@ -1023,7 +1028,7 @@
 			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
 			</script>
 
-			<div id="res_menu_1">
+			<div id="res_menu_1" style="margin-top: 7px;">
 				<div class="ui-grid-b">
 					<div class="ui-block-a"><a id="res_menu_1_1_show" data-role="button" data-mini="true" data-theme="e">Menu1</a></div>
 					<div class="ui-block-b"><a id="res_menu_1_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
@@ -1045,7 +1050,7 @@
 				</div>
 			</div>
 
-			<div id="res_menu_2">
+			<div id="res_menu_2" style="margin-top: 7px;">
 			<div class="ui-grid-b">
 				<div class="ui-block-a"><a id="res_menu_2_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
 				<div class="ui-block-b"><a id="res_menu_2_2_show" data-role="button" data-mini="true" data-theme="e">Menu2</a></div>
@@ -1061,7 +1066,7 @@
 			</div>
 			</div>
 
-			<div id="res_menu_3">
+			<div id="res_menu_3" style="margin-top: 7px;">
 			<div class="ui-grid-b">
 				<div class="ui-block-a"><a id="res_menu_3_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
 				<div class="ui-block-b"><a id="res_menu_3_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
@@ -1422,11 +1427,16 @@
 			{% endif %}
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
-				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
-				<p>{{ blok.account.type }} ACCOUNT
+				<table><tr><td style="padding:0px;">
+				<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.account.gravatar_url }}" /></a>
+				</td>
+				<td>
+				<p style="margin:0px;">{{ blok.account.type }} ACCOUNT
 				<br/><a class="noul" href="/profile?va={{ blok.account.username_alias }}">{{ blok.account.username_alias }}</a>
 				<br/>Balance: {{ blok.account.network_balance }}
 				<br/><b>Network Name</b>:  <a class="noul" href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a></p>
+				</td>
+				</table>
 			</div>
 			<script>
 			$(document).ready(function(){
@@ -1437,10 +1447,6 @@
 				$("#res_menu_1_summary").click(function(){
 					res_hide_all_content();
 					$("#res_content_summary").show();
-				});
-				$("#res_menu_1_graph").click(function(){
-					res_hide_all_content();
-					$("#res_content_graph").show();
 				});
 				$("#res_menu_1_settings").click(function(){
 					res_hide_all_content();
@@ -1457,17 +1463,15 @@
 
 			function res_hide_all_content() {
 				$("#res_content_summary").hide();
-				$("#res_content_graph").hide();
 				$("#res_content_settings").hide();
 			}
 			</script>
 			<div class="ui-grid-a" style="margin-top: 7px;">
 				<div class="ui-block-a"><a id="res_menu_1_summary" href="#" data-role="button" data-mini="true" data-theme="b">Summary</a></div>
-				<div class="ui-block-b"><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Ledger</a></div>
-				<div class="ui-block-a"><a id="res_menu_1_graph" href="#" data-role="button" data-mini="true" data-theme="b">Graph</a></div>
 				<div class="ui-block-b"><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Tickets</a></div>
-				<div class="ui-block-a"><a id="res_menu_1_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
+				<div class="ui-block-a"><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Ledger</a></div>
 				<div class="ui-block-b"><a id="#" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
+				<div class="ui-block-a"><a id="res_menu_1_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
 			</div>
 			<!--- ACCOUNT SUMMARY --->
 			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
@@ -1491,16 +1495,6 @@
 				<b>Date Created</b>:  {{ blok.account.d_date_created }}
 			</div>
 
-			<!--- GRAPH INFO --->
-			<div id="res_content_graph" class="text_bubble ui-body ui-body-c">
-				<p><b>GRAPH INFO</b>
-				{% if blok.account.has_graph_assignment %}
-					<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph Detail</a>
-				{% else %}
-					<br/><br/>Your account has not yet been processed by the graph process.
-				{% endif %}
-				</p>
-			</div>
 			<!--- res_content_settings --->
 			<div id="res_content_settings">
 				<div class="text_bubble ui-body ui-body-c">
