@@ -773,7 +773,7 @@
 			<b>Reserve Balance</b>:  {{ blok.ledger.reserve_balance }}<br/>
 			{% endif %}
 			<b>Date Created</b>:  {{ blok.ledger.d_date_created }}<br/><br/>
-			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}">Back to account</a></p>
+			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}" data-role="button">Back to account</a></p>
 			</div>
 			<table class="ledger" border=1>
 				<thead>
@@ -832,111 +832,405 @@
 	{% endif %}
 
 	{% if blok.type == "one account" %}
-		<div class="text_bubble ui-body ui-body-c">
-		{% if blok.account.is_my_account %}
-			{% if blok.account.is_my_default %}
-			<p><b>NETWORK DEFAULT</b></p>
-			{% else %}
-			<p><b>NOT DEFAULTED</b></p>
-			{% endif %}
-		{% else %}
-			<p><b>NOT YOUR ACCOUNT</b></p>
-		{% endif %}
-
-		<p><b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
-		<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
-		<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
-		<b>Account Status</b>:  {{ blok.account.status }}<br/>
-		<b>Account Type</b>:  {{ blok.account.type }}<br/>
-		<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
 		{% if blok.account.type == "RESERVE" %}
-		<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
-		{% endif %}
-		<b>Date Created</b>:  {{ blok.account.d_date_created }}
-		{% if blok.account.is_my_account %}
-			<br/><br/><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Ledger</a>
-		{% endif %}
-		{% if blok.account.is_my_account %}
-			{% if blok.account.ticket_count > 0 %}
-				{% if blok.account.ticket_tag_count > 0 %}
-				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}  (Tags:{{ blok.account.ticket_tag_count }})</a>
+			<div class="text_bubble ui-body ui-body-c">
+				<a href="#"><img style="float:left;margin-right:10px;margin-top:10px;padding:0px;" src="https://chart.googleapis.com/chart?cht=qr&amp;chs=85&amp;chl=https%3A%2F%2F8080-dot-2189742-dot-devshell.appspot.com%2F%3Fauthuser%3D0" /></a>
+				<p>RESERVE ACCOUNT
+				<br/><a class="noul" href="#">{{ blok.account.username_alias }}</a>
+				<br/>Res: {{ blok.account.reserve_balance }} Net: {{ blok.account.network_balance }}
+				<br/><b>Network Name</b>:  <a class="noul" href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a></p>
+			</div>
+			<script>
+			$(document).ready(function(){
+				$("#res_menu_2").hide();
+				$("#res_menu_3").hide();
+				res_hide_all_content();
+				$("#res_content_summary").show();
+				$("#res_menu_1_1_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_1").show();
+				});
+				$("#res_menu_1_2_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_2").show();
+				});
+				$("#res_menu_1_3_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_3").show();
+				});
+				$("#res_menu_2_1_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_1").show();
+				});
+				$("#res_menu_2_2_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_2").show();
+				});
+				$("#res_menu_2_3_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_3").show();
+				});
+				$("#res_menu_3_1_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_1").show();
+				});
+				$("#res_menu_3_2_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_2").show();
+				});
+				$("#res_menu_3_3_show").click(function(){
+					res_hide_all_menu();
+					$("#res_menu_3").show();
+				});
+
+
+
+				$("#res_menu_1_summary").click(function(){
+					res_hide_all_content();
+					$("#res_content_summary").show();
+				});
+				$("#res_menu_1_connections").click(function(){
+					res_hide_all_content();
+					$("#res_content_connections").show();
+				});
+				$("#res_menu_1_modify_reserves").click(function(){
+					res_hide_all_content();
+					$("#res_content_modify_reserves").show();
+				});
+				$("#res_menu_1_map").click(function(){
+					res_hide_all_content();
+					$("#res_content_map").show();
+					initMap();
+				});
+				$("#res_menu_2_graph").click(function(){
+					res_hide_all_content();
+					$("#res_content_graph").show();
+				});
+				$("#res_menu_2_child_joint_account").click(function(){
+					res_hide_all_content();
+					$("#res_content_child_joint_account").show();
+				});
+				$("#res_menu_2_child_client_account").click(function(){
+					res_hide_all_content();
+					$("#res_content_child_client_account").show();
+				});
+				$("#res_menu_2_clone_account").click(function(){
+					res_hide_all_content();
+					$("#res_content_clone_account").show();
+				});
+				$("#res_menu_2_settings").click(function(){
+					res_hide_all_content();
+					$("#res_content_settings").show();
+				});
+				$("#res_menu_3_con_req_out").click(function(){
+					res_hide_all_content();
+					$("#res_content_con_req_out").show();
+				});
+				$("#res_menu_3_con_req_in").click(function(){
+					res_hide_all_content();
+					$("#res_content_con_req_in").show();
+				});
+				$("#res_menu_3_utr_req_out").click(function(){
+					res_hide_all_content();
+					$("#res_content_utr_req_out").show();
+				});
+				$("#res_menu_3_utr_req_in").click(function(){
+					res_hide_all_content();
+					$("#res_content_utr_req_in").show();
+				});
+				$("#res_menu_3_str_req_out").click(function(){
+					res_hide_all_content();
+					$("#res_content_str_req_out").show();
+				});
+				$("#res_menu_3_str_req_in").click(function(){
+					res_hide_all_content();
+					$("#res_content_str_req_in").show();
+				});
+
+			});
+
+			function res_hide_all_menu() {
+				$("#res_menu_1").hide();
+				$("#res_menu_2").hide();
+				$("#res_menu_3").hide();
+			}
+
+			function res_hide_all_content() {
+				$("#res_content_summary").hide();
+				$("#res_content_graph").hide();
+				$("#res_content_map").hide();
+				$("#res_content_con_req_out").hide();
+				$("#res_content_con_req_in").hide();
+				$("#res_content_modify_reserves").hide();
+				$("#res_content_child_joint_account").hide();
+				$("#res_content_child_client_account").hide();
+				$("#res_content_clone_account").hide();
+				$("#res_content_connections").hide();
+				$("#res_content_utr_req_out").hide();
+				$("#res_content_utr_req_in").hide();
+				$("#res_content_str_req_out").hide();
+				$("#res_content_str_req_in").hide();
+				$("#res_content_settings").hide();
+			}
+			</script>
+			<script>
+				function initMap() {
+					var map = new google.maps.Map(document.getElementById('map'), {
+						zoom: 4,
+						center: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}}
+					});
+					var markerImage = new google.maps.MarkerImage('{{ blok.account.gravatar_url_map }}',
+						new google.maps.Size(30, 30),
+						new google.maps.Point(0, 0),
+						new google.maps.Point(15, 15));
+					var marker = new google.maps.Marker({
+						position: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
+						title: '{{ blok.account.username_alias }}',
+						map: map,
+						icon: markerImage
+					});
+					{% for marker in blok.account.map_data %}
+					var markerImage = new google.maps.MarkerImage('{{ marker.gravatar_url_map }}',
+						new google.maps.Size(30, 30),
+						new google.maps.Point(0, 0),
+						new google.maps.Point(15, 15));
+					var marker = new google.maps.Marker({
+						position: {lat: {{ marker.latitude }}, lng: {{ marker.longitude }}},
+						title: '{{ marker.username_alias }}',
+						map: map,
+						icon: markerImage
+					});
+
+
+					var a_to_b_coord = [
+						{lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
+						{lat: {{ marker.latitude }}, lng: {{ marker.longitude }}}
+					];
+
+					var a_to_b_path = new google.maps.Polyline({
+						path: a_to_b_coord,
+						geodesic: true,
+						strokeColor: '#0000FF',
+						strokeOpacity: 1.0,
+						strokeWeight: 2
+					});
+
+					a_to_b_path.setMap(map);
+					{% endfor %}
+				}
+			</script>
+			<script async defer
+			src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+			</script>
+
+			<div id="res_menu_1">
+				<div class="ui-grid-b">
+					<div class="ui-block-a"><a id="res_menu_1_1_show" data-role="button" data-mini="true" data-theme="e">Menu1</a></div>
+					<div class="ui-block-b"><a id="res_menu_1_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
+					<div class="ui-block-c"><a id="res_menu_1_3_show" data-role="button" data-mini="true" data-theme="a">Menu3</a></div>
+				</div>
+				<div class="ui-grid-a">
+					<div class="ui-block-a"><a id="res_menu_1_summary" href="#" data-role="button" data-mini="true" data-theme="b">Summary</a></div>
+					<div class="ui-block-b">
+						{% if blok.account.is_my_account %}
+						<a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Ledger</a>
+						{% else %}
+						<a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Ledger</a>
+						{% endif %}
+					</div>
+					<div class="ui-block-a"><a id="res_menu_1_connections" href="#" data-role="button" data-mini="true" data-theme="b">Connections</a></div>
+					<div class="ui-block-b"><a id="res_menu_1_modify_reserves" href="#" data-role="button" data-mini="true" data-theme="b">Modify Reserves</a></div>
+					<div class="ui-block-a"><a id="res_menu_1_map" href="#" data-role="button" data-mini="true" data-theme="b">Map</a></div>
+					<div class="ui-block-b"><a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
+				</div>
+			</div>
+
+			<div id="res_menu_2">
+			<div class="ui-grid-b">
+				<div class="ui-block-a"><a id="res_menu_2_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
+				<div class="ui-block-b"><a id="res_menu_2_2_show" data-role="button" data-mini="true" data-theme="e">Menu2</a></div>
+				<div class="ui-block-c"><a id="res_menu_2_3_show" data-role="button" data-mini="true" data-theme="a">Menu3</a></div>
+			</div>
+			<div class="ui-grid-a">
+				<div class="ui-block-a"><a id="res_menu_2_graph" href="#" data-role="button" data-mini="true" data-theme="b">Graph</a></div>
+				<div class="ui-block-b"><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Tickets</a></div>
+				<div class="ui-block-a"><a id="res_menu_2_child_joint_account" href="#" data-role="button" data-mini="true" data-theme="b">Child Joint Acc.</a></div>
+				<div class="ui-block-b"><a id="res_menu_2_child_client_account" href="#" data-role="button" data-mini="true" data-theme="b">Child Client Acc.</a></div>
+				<div class="ui-block-a"><a id="res_menu_2_clone_account" href="#" data-role="button" data-mini="true" data-theme="b">Clone Accts.</a></div>
+				<div class="ui-block-b"><a id="res_menu_2_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
+			</div>
+			</div>
+
+			<div id="res_menu_3">
+			<div class="ui-grid-b">
+				<div class="ui-block-a"><a id="res_menu_3_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
+				<div class="ui-block-c"><a id="res_menu_3_3_show" data-role="button" data-mini="true" data-theme="e">Menu3</a></div>
+			</div>
+			<div class="ui-grid-a">
+				<div class="ui-block-a"><a id="res_menu_3_con_req_out" href="#" data-role="button" data-mini="true" data-theme="b">Con Req OUT(0)</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_con_req_in" href="#" data-role="button" data-mini="true" data-theme="b">Con Req IN(0)</a></div>
+				<div class="ui-block-a"><a id="res_menu_3_utr_req_out" href="#" data-role="button" data-mini="true" data-theme="b">UT Req OUT(0)</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_utr_req_in" href="#" data-role="button" data-mini="true" data-theme="b">UT Req IN(0)</a></div>
+				<div class="ui-block-a"><a id="res_menu_3_str_req_out" href="#" data-role="button" data-mini="true" data-theme="b">ST Req OUT(0)</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_str_req_in" href="#" data-role="button" data-mini="true" data-theme="b">ST Req IN(0)</a></div>
+			</div>
+			</div>
+
+			<!--- ACCOUNT SUMMARY --->
+			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
+				<p><b>ACCOUNT SUMMARY</b></p>
+				{% if blok.account.is_my_account %}
+					{% if blok.account.is_my_default %}
+					<p><b>Network Default: YES</b><br>
+					{% else %}
+					<p><b>Network Default: NO</b><br>
+					{% endif %}
 				{% else %}
-				<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets:{{ blok.account.ticket_count }}</a>
+					<p><b>This is not your account.</b><br>
 				{% endif %}
-			{% else %}
-			<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
-			{% endif %}
-		{% else %}
-			<br/><br/><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}">View Tickets</a>
-		{% endif %}
-		{% if blok.account.has_graph_assignment %}
-			<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph</a>
-		{% endif %}</p>
-		</div>
-		{% if blok.account.type == "RESERVE" %}
 
-			{% if blok.account.has_connection_requests %}
-			<div data-role="collapsible" data-theme="e">
-				<h2>Connect Requests In:{{ blok.account.incoming_connection_requests_count }} Out:{{ blok.account.outgoing_connection_requests_count }}</h2>
-				{% if blok.account.has_incoming_connection_requests %}
-				{% for account in blok.account.incoming_connection_requests %}
-				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-					<img src="{{ account.gravatar_url }}" />
-					<p>Incoming Request:
-					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-					<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
-					<br/>Connection Count: {{ account.connection_count }}</p>
-				</li></ul>
-				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
-				<fieldset class="ui-grid-a">
-					<div class="ui-block-a"><button type="submit" data-theme="a">Deny Req.</button></div>
-					<div class="ui-block-b"><button type="submit" data-theme="b">Authorize</button></div>
-				</fieldset>
-				<hr/>
-				{% endfor %}
+				<b>Network Name</b>:  <a href="/network?vn={{ blok.account.network_name }}">{{ blok.account.network_name }}</a><br/>
+				<b>Username/Alias</b>:  {{ blok.account.username_alias }}<br/>
+				<b>Total Transactions</b>:  {{ blok.account.tx_index }}<br/>
+				<b>Account Status</b>:  {{ blok.account.status }}<br/>
+				<b>Account Type</b>:  {{ blok.account.type }}<br/>
+				<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
+				{% if blok.account.type == "RESERVE" %}
+				<b>Reserve Balance</b>:  {{ blok.account.reserve_balance }}<br/>
 				{% endif %}
+				<b>Date Created</b>:  {{ blok.account.d_date_created }}
+			</div>
+
+			<!--- GRAPH INFO --->
+			<div id="res_content_graph" class="text_bubble ui-body ui-body-c">
+				<p><b>GRAPH INFO</b>
+				{% if blok.account.has_graph_assignment %}
+					<br/><br/><b>Tree Number</b>:  {{ blok.account.tree_number }}<br/><a href="/graph?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}&vk={{ blok.account.graph_sync }}">View Graph Detail</a>
+				{% else %}
+					<br/><br/>Your account has not yet been processed by the graph process.
+				{% endif %}
+				</p>
+			</div>
+
+			<!--- CONNECTION REQUESTS OUT --->
+			<div id="res_content_con_req_out">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>OUTGOING CONNECTION REQUESTS</b>
+					<br/><br/>Below is a list of connection requests that you
+					initiated.  You can cancel your connection request by clicking
+					the cancel button underneath the account description for that
+					connection.  To make a new connection request with another
+					account, you can click on the connect button on their account
+					or type their account name into the field below and click
+					connect.<br/><br/>
+					<form action="#" method="post" data-ajax="false">
+
+					<label for="basic">Text Input:</label>
+    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CONNECT REQUEST</button>
+					</form>
+					</p>
+				</div>
 				{% if blok.account.has_outgoing_connection_requests %}
 				{% for account in blok.account.outgoing_connection_requests %}
-				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-					<img src="{{ account.gravatar_url }}" />
-					<p>Outgoing Request:
-					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-					<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
-					<br/>Connection Count: {{ account.connection_count }}</p>
-				</li></ul>
-
-				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
-				<fieldset class="ui-grid-a">
-					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Req.</button></div>
-				</fieldset>
-				</form>
-				<hr/>
+				<div class="myclass2 ui-body ui-body-c">
+					<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
+						<img src="{{ account.gravatar_url }}"/>
+					</div>
+					<div style="margin:0px;padding:0px;float: right; width: 75%;">
+						<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+						<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
+						<br/>Connection Count: {{ account.connection_count }}</p>
+						<form action="#" method="post" data-ajax="false">
+						<fieldset class="ui-grid-a">
+							<div class="ui-block-a"><button style="margin:0px;padding:0px;" type="submit" data-theme="e" data-mini="true">Cancel</button></div>
+						</fieldset>
+						</form>
+					</div>
+				</div>
 				{% endfor %}
+				{% else %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>You currently have no outgoing connection requests.</p>
+				</div>
 				{% endif %}
 			</div>
-			{% endif %}
 
-			{% if blok.account.has_connections %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Connections</li>
-				{% for account in blok.account.connections %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
-				<p><b>Connection Count</b>: {{ account.connection_count }}</p>
-				<p><b>Transfer Request</b>: {{ account.transfer_request }}</p>
-				<p><b>Sug. Transfer Active</b>: {{ account.suggested_transfer_active }}</p>
-				<p><b>Sug. Transfer Inactive</b>: {{ account.suggested_transfer_inactive }}</p>
-				</a></li>
+
+
+			<!--- CONNECTION REQUESTS IN --->
+			<div id="res_content_con_req_in">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>INCOMING CONNECTION REQUESTS</b>
+					<br/><br/>Below is a list of connection requests that other
+					users have initiated.  You can deny or authorize a connection
+					to the account using the corresponding buttons below.  If you
+					wish to disconnect in the future you can do so from their
+					account page, or from the "connections" link on menu1.</p>
+				</div>
+				{% if blok.account.has_incoming_connection_requests %}
+				{% for account in blok.account.incoming_connection_requests %}
+				<div class="myclass2 ui-body ui-body-c">
+					<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
+						<img src="{{ account.gravatar_url }}"/>
+					</div>
+					<div style="margin:0px;padding:0px;float: right; width: 75%;">
+						<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+						<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
+						<br/>Connection Count: {{ account.connection_count }}</p>
+						<form action="#" method="post" data-ajax="false">
+						<fieldset class="ui-grid-a">
+							<div class="ui-block-a"><button type="submit" data-theme="a" data-mini="true">Deny</button></div>
+							<div class="ui-block-b"><button type="submit" data-theme="b" data-mini="true">Authorize</button></div></fieldset>
+						</form>
+					</div>
+				</div>
 				{% endfor %}
-			</ul>
-			{% endif %}
+				{% else %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>You currently have no incoming connection requests.</p>
+				</div>
+				{% endif %}
+			</div>
 
-			<div data-role="collapsible" data-theme="a">
-				<h2>Modify Reserves</h2>
-				<p><a class="noul" href="#">What is this?</a></p>
+			<!--- CONNECTIONS --->
+			<div id="res_content_connections">
+				{% if blok.account.has_connections %}
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+					<li data-role="list-divider">Connections</li>
+					{% for account in blok.account.connections %}
+					<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
+					<h3>{{ account.username_alias }}</h3>
+					<p><strong></strong></p>
+					<p><b>Network Balance</b>: {{ account.network_balance }}</p>
+					<p><b>Reserve Balance</b>: {{ account.reserve_balance }}</p>
+					<p><b>Connection Count</b>: {{ account.connection_count }}</p>
+					<p><b>Transfer Request</b>: {{ account.transfer_request }}</p>
+					<p><b>Sug. Transfer Active</b>: {{ account.suggested_transfer_active }}</p>
+					<p><b>Sug. Transfer Inactive</b>: {{ account.suggested_transfer_inactive }}</p>
+					</a></li>
+					{% endfor %}
+				</ul>
+				{% else %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>You currently have no connections.</p>
+				</div>
+				{% endif %}
+			</div>
+
+			<!--- MODIFY RESERVES --->
+			<div id="res_content_modify_reserves">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>MODIFY RESERVES</b>
+					<br/><br/>Modifying your reserve amount is how "money" for
+					each network comes into and goes out of the system.  It is
+					similar to depositing and withdrawing in a traditional bank.
+					Adding/Subtracting will increase/decrease both your reserve
+					balance and your spendable network balance.  For detailed
+					information refer to the documentation.</p>
+				</div>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
 				<input type="radio" name="radio-choice" id="radio-choice-1" value="choice-1" />
 				<label for="radio-choice-1">+ Create (+RES)</label>
 
@@ -952,138 +1246,180 @@
 					<label for="number">Number + pattern:</label>
 					<input type="text" name="number" id="number" value="" placeholder="Amount" />
 				</div>
-				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+
 				<fieldset class="ui-grid-a">
-					<div class="ui-block-a"><button type="submit" data-theme="a">CLEAR</button></div>
+					<div class="ui-block-a"><button type="reset" data-theme="a">CLEAR</button></div>
 					<div class="ui-block-b"><button type="submit" data-theme="e">MODIFY</button></div>
 				</fieldset>
 				</form>
 			</div>
 
-			{% if blok.account.has_child_offer %}
-			<div data-role="collapsible" data-theme="e">
-				<h2>Child Account Offer(s)</h2>
-				{% if blok.account.has_child_joint_offer %}
-				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-					<img src="{{ blok.account.joint_child_entity.gravatar_url }}" />
-					<p>Child Joint Account Offer:
-					<br/><a href="/profile?va={{ blok.account.joint_child_entity.username }}">{{ blok.account.joint_child_entity.username }}</a></p>
-				</li></ul>
-				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
-				<fieldset class="ui-grid-a">
-					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Offer</button></div>
-				</fieldset>
-				<hr/>
-				{% endif %}
-				{% if blok.account.has_child_client_offer %}
-				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-					<img src="{{ blok.account.client_child_entity.gravatar_url }}" />
-					<p>Child Client Account Offer:
-					<br/><a href="/profile?va={{ blok.account.client_child_entity.username }}">{{ blok.account.client_child_entity.username }}</a></p>
-				</li></ul>
-				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
-				<fieldset class="ui-grid-a">
-					<div class="ui-block-a"><button type="submit" data-theme="e">Cancel Offer</button></div>
-				</fieldset>
+			<!--- CHILD JOINT ACCOUNT --->
+			<div id="res_content_child_joint_account">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>SPONSORED JOINT ACCOUNTS</b>
+					<br/><br/>Below are joint accounts for which this account
+					is the sponsor.  As the sponsor of a joint account you can
+					retrieve existing funds from the joint account at any
+					time.  To offer another user sponsorship of a joint account
+					enter their username in the field below and click the offer
+					button.  You can only have one active offer at a time.  If
+					you wish to offer someone else, you must wait for the first
+					offer to be authorized/denied, or cancel it yourself.<br/><br/>
+					{% if blok.account.has_child_joint_offer %}
+					<b>ACTIVE JOINT OFFER</b>
+					<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+						<img src="{{ blok.account.joint_child_entity.gravatar_url }}" />
+						<p><a href="/profile?va={{ blok.account.joint_child_entity.username }}">{{ blok.account.joint_child_entity.username }}</a></p>
+					</li></ul>
+					<form action="#" method="post" data-ajax="false">
+					<button type="submit" data-theme="a" data-mini="true">Cancel Offer</button>
+					</form>
+					{% else %}
+						<form action="#" method="post" data-ajax="false">
+						<label for="basic">Text Input:</label>
+	    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+	    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">JOINT OFFER</button>
+						</form>
+					{% endif %}
+					</p>
+				</div>
+				{% if blok.account.has_child_joint_accounts %}
+					{% for account in blok.account.child_joint_accounts %}
+						<div class="myclass2 ui-body ui-body-c">
+							<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
+								<img src="{{ account.gravatar_url }}"/>
+							</div>
+							<div style="margin:0px;padding:0px;float: right; width: 75%;">
+								<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+								<br/>Net: {{ account.network_balance }}</p>
+							</div>
+						</div>
+					{% endfor %}
+				{% else %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>You currently have no sponsored joint accounts.</p>
+				</div>
 				{% endif %}
 			</div>
-			{% endif %}
 
 
-			{% if blok.account.has_child_client_accounts %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Child Client Accounts</li>
-				{% for account in blok.account.child_client_accounts %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				</a></li>
-				{% endfor %}
-			</ul>
-			{% endif %}
-			{% if blok.account.has_child_joint_accounts %}
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-				<li data-role="list-divider">Child Joint Accounts</li>
-				{% for account in blok.account.child_joint_accounts %}
-				<li><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
-				<h3>{{ account.username_alias }}</h3>
-				<p><strong></strong></p>
-				<p><b>Network Balance</b>: {{ account.network_balance }}</p>
-				</a></li>
-				{% endfor %}
-			</ul>
-			{% endif %}
-
-			{% if blok.account.has_connections %}
-				<div class="mycontent ui-body ui-body-c">
-					<h3>Connection Map:</h3>
-					<div id="map"></div>
-					<script>
-						function initMap() {
-  							var map = new google.maps.Map(document.getElementById('map'), {
-    							zoom: 4,
-    							center: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}}
-  							});
-  							var markerImage = new google.maps.MarkerImage('{{ blok.account.gravatar_url_map }}',
-								new google.maps.Size(30, 30),
-								new google.maps.Point(0, 0),
-                				new google.maps.Point(15, 15));
- 							var marker = new google.maps.Marker({
-								position: {lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
-								title: '{{ blok.account.username_alias }}',
-								map: map,
-								icon: markerImage
-							});
-							{% for marker in blok.account.map_data %}
-  							var markerImage = new google.maps.MarkerImage('{{ marker.gravatar_url_map }}',
-								new google.maps.Size(30, 30),
-								new google.maps.Point(0, 0),
-                				new google.maps.Point(15, 15));
-							var marker = new google.maps.Marker({
-								position: {lat: {{ marker.latitude }}, lng: {{ marker.longitude }}},
-								title: '{{ marker.username_alias }}',
-								map: map,
-								icon: markerImage
-							});
-
-
-							var a_to_b_coord = [
-								{lat: {{ blok.account.latitude }}, lng: {{ blok.account.longitude }}},
-								{lat: {{ marker.latitude }}, lng: {{ marker.longitude }}}
-							];
-
-							var a_to_b_path = new google.maps.Polyline({
-								path: a_to_b_coord,
-								geodesic: true,
-								strokeColor: '#0000FF',
-								strokeOpacity: 1.0,
-								strokeWeight: 2
-							});
-
-							a_to_b_path.setMap(map);
-							{% endfor %}
-
-						}
-					</script>
-					<script async defer
-					src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
-					</script>
+			<!--- CHILD CLIENT ACCOUNT --->
+			<div id="res_content_child_client_account">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>SPONSORED CLIENT ACCOUNTS</b>
+					<br/><br/>Below are client accounts for which this account
+					is the sponsor.  To offer another user sponsorship of a client account
+					enter their username in the field below and click the offer
+					button.  You can only have one active offer at a time.  If
+					you wish to offer someone else, you must wait for the first
+					offer to be authorized/denied, or cancel it yourself.<br/><br/>
+					{% if blok.account.has_child_client_offer %}
+					<b>ACTIVE CLIENT OFFER</b>
+					<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+						<img src="{{ blok.account.client_child_entity.gravatar_url }}" />
+						<p><a href="/profile?va={{ blok.account.client_child_entity.username }}">{{ blok.account.client_child_entity.username }}</a></p>
+					</li></ul>
+					<form action="#" method="post" data-ajax="false">
+					<button type="submit" data-theme="a" data-mini="true">Cancel Offer</button>
+					</form>
+					{% else %}
+					<form action="#" method="post" data-ajax="false">
+					<label for="basic">Text Input:</label>
+    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CLIENT OFFER</button>
+					</form>
+					{% endif %}
+					</p>
 				</div>
-			{% endif %}
-		{% endif %}
+				{% if blok.account.has_child_client_accounts %}
+					{% for account in blok.account.child_client_accounts %}
+						<div class="myclass2 ui-body ui-body-c">
+							<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
+								<img src="{{ account.gravatar_url }}"/>
+							</div>
+							<div style="margin:0px;padding:0px;float: right; width: 75%;">
+								<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+								<br/>Net: {{ account.network_balance }}</p>
+							</div>
+						</div>
+					{% endfor %}
+				{% else %}
+				<div class="text_bubble ui-body ui-body-c">
+					<p>You currently have no sponsored client accounts.</p>
+				</div>
+				{% endif %}
+			</div>
 
-		{% if blok.account.has_parent %}
-		<div data-role="collapsible" data-theme="e">
-			<h2>Parent Account</h2>
-			<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-				<img src="{{ account.gravatar_url }}" />
-				<p>Parent Reserve Account:
-				<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
-				{{ blok.account.parent_entity.username_alias }}</a>
-				<br/>Res: {{ blok.account.parent_entity.reserve_balance }} Net: {{ blok.account.parent_entity.network_balance }}</p>
-			</li></ul>
-		</div>
+			<!--- MAP --->
+			<div id="res_content_map">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>CONNECTIONS MAP</b>
+					<br/><br/>The map below shows icons of your connections with
+					lines drawn between you and each of them.</p>
+				</div>
+				{% if blok.account.has_connections %}
+					<div class="text_bubble ui-body ui-body-c">
+						<h3>Connection Map:</h3>
+						<div id="map"></div>
+					</div>
+				{% else %}
+					<div class="text_bubble ui-body ui-body-c">
+						<p>No connections to map.</p>
+					</div>
+				{% endif %}
+			</div>
+
+			<!--- res_content_clone_account --->
+			<div id="res_content_clone_account">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_clone_account</p>
+				</div>
+			</div>
+
+			<!--- res_content_utr_req_out --->
+			<div id="res_content_utr_req_out">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_utr_req_out</p>
+				</div>
+			</div>
+			<!--- res_content_utr_req_in --->
+			<div id="res_content_utr_req_in">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_utr_req_in</p>
+				</div>
+			</div>
+			<!--- res_content_str_req_out --->
+			<div id="res_content_str_req_out">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_str_req_out</p>
+				</div>
+			</div>
+			<!--- res_content_str_req_in --->
+			<div id="res_content_str_req_in">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_str_req_in</p>
+				</div>
+			</div>
+			<!--- res_content_settings --->
+			<div id="res_content_settings">
+				<div class="text_bubble ui-body ui-body-c">
+					<p>res_content_settings</p>
+				</div>
+			</div>
+
+			{% if blok.account.has_parent %}
+			<div data-role="collapsible" data-theme="e">
+				<h2>Parent Account</h2>
+				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
+					<img src="{{ account.gravatar_url }}" />
+					<p>Parent Reserve Account:
+					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
+					{{ blok.account.parent_entity.username_alias }}</a>
+					<br/>Res: {{ blok.account.parent_entity.reserve_balance }} Net: {{ blok.account.parent_entity.network_balance }}</p>
+				</li></ul>
+			</div>
+			{% endif %}
 		{% endif %}
 	{% endif %}
 
