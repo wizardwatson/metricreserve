@@ -2793,18 +2793,12 @@ class metric(object):
 			d = str(reserve_complete["date_created"].day)
 			y = str(reserve_complete["date_created"].year)
 			reserve_complete["d_date_created"] = "%s/%s/%s" % (m,d,y)
-			reserve_complete["latitude"] = t_user_object.location_latitude
-			reserve_complete["longitude"] = t_user_object.location_longitude
-			reserve_complete["map_marker_count"] = 1
+			reserve_complete["latitude"] = float(t_user_object.location_latitude) / 100000000
+			reserve_complete["longitude"] = float(t_user_object.location_longitude) / 100000000
+			reserve_complete["gravatar_url"] = self.PARENT.user._get_gravatar_url(t_user_object.gravatar_url,t_user_object.gravatar_type)
+			reserve_complete["gravatar_url_map"] = self.PARENT.user._get_gravatar_url(t_user_object.gravatar_url,t_user_object.gravatar_type,"30")
+			reserve_complete["map_marker_count"] = 0
 			reserve_complete["map_data"] = []
-			# create marker data for target account
-			marker = {}
-			marker["link"] = ""
-			marker["polyline"] = ""
-			marker["username_alias"] = fstr_account_name
-			marker["latitude"] = reserve_complete["latitude"]
-			marker["longitude"] = reserve_complete["longitude"]
-			reserve_complete["map_data"].append(marker)		
 			# reserve accounts don't have parents
 			reserve_complete["has_parent"] = False
 			reserve_complete["has_connections"] = False
@@ -2919,6 +2913,7 @@ class metric(object):
 					c = list_of_associated_accounts[i].account_id
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url_map"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type,"30")
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -2961,10 +2956,10 @@ class metric(object):
 							next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
 					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
-					next_marker["polyline"] = ""
+					next_marker["latitude"] = float(next_entity["latitude"]) / 100000000
+					next_marker["longitude"] = float(next_entity["longitude"]) / 100000000
+					next_marker["gravatar_url_map"] = next_entity["gravatar_url_map"]
 					next_marker["username_alias"] = next_entity["username_alias"]
-					next_marker["latitude"] = next_entity["latitude"]
-					next_marker["longitude"] = next_entity["longitude"]
 					reserve_complete["map_data"].append(next_marker)
 					continue
 
@@ -2993,7 +2988,7 @@ class metric(object):
 					next_marker["username_alias"] = next_entity["username_alias"]
 					next_marker["latitude"] = next_entity["latitude"]
 					next_marker["longitude"] = next_entity["longitude"]
-					reserve_complete["map_data"].append(next_marker)
+					#reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process outgoing connection requests
@@ -3021,7 +3016,7 @@ class metric(object):
 					next_marker["username_alias"] = next_entity["username_alias"]
 					next_marker["latitude"] = next_entity["latitude"]
 					next_marker["longitude"] = next_entity["longitude"]
-					reserve_complete["map_data"].append(next_marker)
+					#reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process child client accounts
@@ -3046,7 +3041,7 @@ class metric(object):
 					next_marker["username_alias"] = next_entity["username_alias"]
 					next_marker["latitude"] = next_entity["latitude"]
 					next_marker["longitude"] = next_entity["longitude"]
-					reserve_complete["map_data"].append(next_marker)
+					#reserve_complete["map_data"].append(next_marker)
 					continue
 
 				# process child joint accounts
@@ -3071,7 +3066,7 @@ class metric(object):
 					next_marker["username_alias"] = next_entity["username_alias"]
 					next_marker["latitude"] = next_entity["latitude"]
 					next_marker["longitude"] = next_entity["longitude"]
-					reserve_complete["map_data"].append(next_marker)
+					#reserve_complete["map_data"].append(next_marker)
 					continue
 					
 				# process client account offer
@@ -9608,7 +9603,7 @@ class ph_command(webapp2.RequestHandler):
 			else:
 				page["username"] = lobj_master.request.remote_addr
 				
-		page["context"] = "CONTEXT: (<b>%s</b>) AS: (<b>%s</b>)" % (context,page["username"])
+		page["context"] = "<b>%s</b> AS: <b>%s</b>" % (context,page["username"])
 
 		# use while loop as case statement
 		# break out when we select a case
