@@ -638,13 +638,13 @@
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.ticket.network_name }}">{{ blok.ticket.network_name }}</a><br/>
 			<b>Ticket Owner Name:</b>:  {{ blok.ticket.account_name }}</p>
-			<p><a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}">Back to Account</a></p>
-			<p><a href="/tickets?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}">Back to All Tickets</a></p>
+			<p><a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}" data-role="button" data-theme="e" data-mini="true">Back to Account</a></p>
+			<p><a href="/tickets?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.account_name }}" data-role="button" data-theme="e" data-mini="true">Back to All Tickets</a></p>
 		</div>
 		<div class="text_bubble ui-body ui-body-c">
 			{% if blok.ticket.is_owner %}
 				{% if blok.ticket.ticket_has_tag %}
-					<p>Tagged Account:  <a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.ticket_tag_user_account_name }}">{{ blok.ticket.ticket_tag_user_account_name }}</a></p>
+					<p>Tagged Account:  <a href="/network?vn={{ blok.ticket.network_name }}&va={{ blok.ticket.ticket_tag_user_account_name }}">>{{ blok.ticket.ticket_tag_user_account_name }}</a></p>
 				{% else %}
 					<p>Ticket is not tagged to an account.</p>
 				{% endif %}
@@ -671,7 +671,7 @@
 		<div class="text_bubble ui-body ui-body-c">
 			<p><b>Network Name</b>:  <a href="/network?vn={{ blok.tickets.network_name }}">{{ blok.tickets.network_name }}</a><br/>
 			<b>Tickets Owner Name</b>:  {{ blok.tickets.account_name }}<br/></p>
-			<p><a href="/network?vn={{ blok.tickets.network_name }}&va={{ blok.tickets.account_name }}">Back to Account</a></p>
+			<p><a href="/network?vn={{ blok.tickets.network_name }}&va={{ blok.tickets.account_name }}" data-role="button" data-theme="e" data-mini="true">Back to Account</a></p>
 		</div>
 		{% if blok.tickets.is_owner %}
 			{% if blok.tickets.has_owner_tags %}
@@ -773,7 +773,7 @@
 			<b>Reserve Balance</b>:  {{ blok.ledger.reserve_balance }}<br/>
 			{% endif %}
 			<b>Date Created</b>:  {{ blok.ledger.d_date_created }}<br/><br/>
-			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}" data-role="button" data-theme="e">Back to Account Summary</a></p>
+			<a href="/network?vn={{ blok.ledger.network_name }}&va={{ blok.ledger.username_alias }}" data-role="button" data-theme="e" data-mini="true">Back to Account Summary</a></p>
 			</div>
 			<table class="ledger" border=1>
 				<thead>
@@ -1475,7 +1475,7 @@
 			</div>
 			<!--- ACCOUNT SUMMARY --->
 			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
-				<p><b>ACCOUNT SUMMARY</b></p>
+				<p><b>{{ blok.account.type }} ACCOUNT SUMMARY</b></p>
 				{% if blok.account.is_my_account %}
 					{% if blok.account.is_my_default %}
 					<p><b>Network Default: YES</b><br>
@@ -1497,8 +1497,22 @@
 
 			<!--- res_content_settings --->
 			<div id="res_content_settings">
-				<div class="text_bubble ui-body ui-body-c">
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p><b>{{ blok.account.type }} ACCOUNT SETTINGS</b></p>
 					<p>res_content_settings</p>
+					<form action="#" method="post" data-ajax="false">
+					<button type="submit" data-theme="a" data-mini="true" data-icon="check" data-inline="true">MAKE DEFAULT</button>
+					</form>
+					<p>res_content_settings</p>
+					<form action="#" method="post" data-ajax="false">
+					<label for="basic">Text Input:</label>
+    				<input type="text" name="name" id="basic" value="" placeholder="NEW NAME" />
+    				<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
+					</form>
+					<p>res_content_settings</p>
+					<form action="#" method="post" data-ajax="false">
+					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="check" data-inline="true">CLOSE ACCOUNT</button>
+					</form>
 				</div>
 			</div>
 		{% endif %}
