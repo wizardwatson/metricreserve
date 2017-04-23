@@ -2812,6 +2812,8 @@ class metric(object):
 			reserve_complete["child_client_accounts"] = []
 			reserve_complete["has_child_joint_accounts"] = False
 			reserve_complete["child_joint_accounts"] = []
+			reserve_complete["has_clone_accounts"] = False
+			reserve_complete["clone_accounts"] = []
 			reserve_complete["has_child_offer"] = False
 			reserve_complete["has_child_client_offer"] = False
 			reserve_complete["has_child_joint_offer"] = False
@@ -2823,6 +2825,20 @@ class metric(object):
 			reserve_complete["outgoing_connection_requests_count"] = len(metric_account_entity.outgoing_connection_requests)
 			reserve_complete["child_client_account_count"] = 0
 			reserve_complete["child_joint_account_count"] = 0
+			reserve_complete["clone_account_count"] = 0
+			
+			# request counters
+			reserve_complete["total_out_requests"] = reserve_complete["outgoing_connection_requests_count"]
+			reserve_complete["total_in_requests"] = reserve_complete["incoming_connection_requests_count"]
+			reserve_complete["ut_out_requests_count"] = 0
+			reserve_complete["ut_in_requests_count"] = 0
+			reserve_complete["st_out_requests_count"] = 0
+			reserve_complete["st_in_requests_count"] = 0
+			
+			
+			
+			
+			
 			
 			all_account_id_list = []
 			
@@ -2847,7 +2863,22 @@ class metric(object):
 						#match
 						reserve_complete["child_joint_account_count"] += 1
 						all_account_id_list.append(t_user_object.child_joint_account_ids[i])
-						
+			
+			# get clone accounts
+			for i in range(len(t_user_object.clone_network_ids)):
+				if t_user_object.clone_network_ids[i] == network_id:
+					if t_user_object.clone_parent_ids[i] == metric_account_entity.account_id:
+						# found clone account
+						reserve_complete["clone_account_count"] += 1
+						all_account_id_list.append(t_user_object.clone_account_ids[i])
+			
+			"""
+			clone_network_ids = ndb.PickleProperty()
+			clone_account_ids = ndb.PickleProperty()
+			clone_parent_ids = ndb.PickleProperty()
+			clone_labels = ndb.PickleProperty()
+			clone_default = ndb.PickleProperty()
+			"""
 			# now make a list of keys from our account/network ids
 			all_accounts_key_list = []
 			for i in range(len(all_account_id_list)):
@@ -2898,7 +2929,8 @@ class metric(object):
 			last_outgoing_connection_request_idx = last_incoming_connection_request_idx + reserve_complete["outgoing_connection_requests_count"] 
 			last_child_client_account_idx = last_outgoing_connection_request_idx + reserve_complete["child_client_account_count"]  
 			last_child_joint_account_idx = last_child_client_account_idx + reserve_complete["child_joint_account_count"]
-			last_child_client_offer_idx = last_child_joint_account_idx + reserve_complete["child_client_offer_count"]
+			last_clone_account_idx = last_child_joint_account_idx + reserve_complete["clone_account_count"]
+			last_child_client_offer_idx = last_clone_account_idx + reserve_complete["child_client_offer_count"]
 			last_child_joint_offer_idx = last_child_client_offer_idx + reserve_complete["child_joint_offer_count"]
 			for i in range(len(list_of_associated_accounts)):
 				
@@ -2934,26 +2966,48 @@ class metric(object):
 						c = metric_account_entity.incoming_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["transfer_request"] = "in + %s" % get_formatted_amount(a,b,c)
+							reserve_complete["ut_in_requests_count"] += 1
 					if this_id in metric_account_entity.outgoing_reserve_transfer_requests:
 						c = metric_account_entity.outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["transfer_request"] = "out - %s" % get_formatted_amount(a,b,c)
+							reserve_complete["ut_out_requests_count"] += 1
 					if this_id in metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_inactive"] = "in + %s" % get_formatted_amount(a,b,c)
+							reserve_complete["st_in_requests_count"] += 1
 					if this_id in metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_inactive"] = "out - %s" % get_formatted_amount(a,b,c)
+							reserve_complete["st_out_requests_count"] += 1
 					if this_id in metric_account_entity.suggested_active_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_incoming_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_active"] = "in + %s" % get_formatted_amount(a,b,c)
+							reserve_complete["st_in_requests_count"] += 1
 					if this_id in metric_account_entity.suggested_active_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
+							reserve_complete["st_out_requests_count"] += 1
+					
+					reserve_complete["total_out_requests"] += reserve_complete["st_out_requests_count"]
+					reserve_complete["total_out_requests"] += reserve_complete["ut_out_requests_count"]
+					reserve_complete["total_in_requests"] += reserve_complete["st_in_requests_count"]
+					reserve_complete["total_in_requests"] += reserve_complete["ut_in_requests_count"]
+					
+					"""	
+					# request counters
+					reserve_complete["total_out_requests"] = reserve_complete["outgoing_connection_requests_count"]
+					reserve_complete["total_in_requests"] = reserve_complete["incoming_connection_requests_count"]
+					reserve_complete["ut_out_requests_count"] += 1
+					reserve_complete["ut_in_requests_count"] += 1
+					reserve_complete["st_out_requests_count"] += 1
+					reserve_complete["st_in_requests_count"] += 1
+					"""
+				
 					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["latitude"] = float(next_entity["latitude"]) / 100000000
@@ -3068,7 +3122,32 @@ class metric(object):
 					next_marker["longitude"] = next_entity["longitude"]
 					#reserve_complete["map_data"].append(next_marker)
 					continue
-					
+
+				# process clone accounts
+				if i < last_clone_account_idx:
+					reserve_complete["has_clone_accounts"] = True
+					a = list_of_associated_users[i]
+					b = network_id
+					c = list_of_associated_accounts[i].account_id
+					d = list_of_associated_accounts[i].account_type
+					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
+					a = network
+					b = metric_account_entity
+					c = list_of_associated_accounts[i].current_network_balance
+					d = list_of_associated_accounts[i].current_reserve_balance
+					next_entity["network_balance"] = get_formatted_amount(a,b,c)
+					next_entity["latitude"] = list_of_associated_users[i].location_latitude
+					next_entity["longitude"] = list_of_associated_users[i].location_longitude
+					reserve_complete["clone_accounts"].append(next_entity)
+					next_marker["link"] = ""
+					next_marker["polyline"] = ""
+					next_marker["username_alias"] = next_entity["username_alias"]
+					next_marker["latitude"] = next_entity["latitude"]
+					next_marker["longitude"] = next_entity["longitude"]
+					#reserve_complete["map_data"].append(next_marker)
+					continue
+
 				# process client account offer
 				if i < last_child_client_offer_idx:
 					reserve_complete["client_child_entity"] = {}
@@ -3199,6 +3278,7 @@ class metric(object):
 			client_complete["network_name"] = fstr_network_name
 			client_complete["network_id"] = network_id
 			client_complete["username_alias"] = fstr_account_name
+			client_complete["gravatar_url"] = self.PARENT.user._get_gravatar_url(t_user_object.gravatar_url,t_user_object.gravatar_type)
 			client_complete["account_id"] = metric_account_entity.account_id
 			client_complete["tx_index"] = metric_account_entity.tx_index
 			client_complete["status"] = metric_account_entity.account_status
@@ -3264,6 +3344,7 @@ class metric(object):
 			joint_complete["network_name"] = fstr_network_name
 			joint_complete["network_id"] = network_id
 			joint_complete["username_alias"] = fstr_account_name
+			joint_complete["gravatar_url"] = self.PARENT.user._get_gravatar_url(t_user_object.gravatar_url,t_user_object.gravatar_type)
 			joint_complete["account_id"] = metric_account_entity.account_id
 			joint_complete["tx_index"] = metric_account_entity.tx_index
 			joint_complete["status"] = metric_account_entity.account_status
@@ -3682,19 +3763,35 @@ class metric(object):
 		for i in range(len(list_of_accounts)):
 			if list_of_group_ids[i] == 1:
 				groups["has_reserve_account"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
+				a = list_of_labels[i]
+				b = fstr_network_name
+				c = self.PARENT.user.entity
+				d = self.PARENT.user._get_gravatar_url(c.gravatar_url,c.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':a,'network':b,'gravatar_url':d}
 				groups["reserve_account"] = list_of_accounts[i]
 			if list_of_group_ids[i] == 2:
 				groups["has_client_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
+				a = list_of_labels[i]
+				b = fstr_network_name
+				c = self.PARENT.user.entity
+				d = self.PARENT.user._get_gravatar_url(c.gravatar_url,c.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':a,'network':b,'gravatar_url':d}
 				groups["client_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 3:
 				groups["has_joint_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
+				a = list_of_labels[i]
+				b = fstr_network_name
+				c = self.PARENT.user.entity
+				d = self.PARENT.user._get_gravatar_url(c.gravatar_url,c.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':a,'network':b,'gravatar_url':d}
 				groups["joint_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 4:
 				groups["has_clone_accounts"] = True
-				list_of_accounts[i].extra_pickle = {'account':list_of_labels[i],'network':fstr_network_name}
+				a = list_of_labels[i]
+				b = fstr_network_name
+				c = self.PARENT.user.entity
+				d = self.PARENT.user._get_gravatar_url(c.gravatar_url,c.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':a,'network':b,'gravatar_url':d}
 				groups["clone_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 5:
 				groups["has_child_client_accounts"] = True
@@ -3705,7 +3802,8 @@ class metric(object):
 				c = list_of_accounts[i].account_id
 				d = "CLIENT"
 				extra_pickle_label = get_label_for_account(a,b,c,d)
-				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name}
+				extra_pickle_gu = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name,'gravatar_url':extra_pickle_gu}
 				groups["child_client_accounts"].append(list_of_accounts[i])				
 			if list_of_group_ids[i] == 6:
 				groups["has_child_joint_accounts"] = True
@@ -3716,20 +3814,25 @@ class metric(object):
 				c = list_of_accounts[i].account_id
 				d = "JOINT"
 				extra_pickle_label = get_label_for_account(a,b,c,d)
-				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name}
+				extra_pickle_gu = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
+				list_of_accounts[i].extra_pickle = {'account':extra_pickle_label,'network':fstr_network_name,'gravatar_url':extra_pickle_gu}
 				groups["child_joint_accounts"].append(list_of_accounts[i])
 			if list_of_group_ids[i] == 7:
 				groups["has_parent_client_offer"] = True
 				groups["parent_client_offer"]["network_name"] = fstr_network_name
 				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
 				user_entity = a_key.get()
+				a = self.PARENT.user._get_gravatar_url(user_entity.gravatar_url,user_entity.gravatar_type)
 				groups["parent_client_offer"]["username"] = user_entity.username
+				groups["parent_client_offer"]["gravatar_url"] = user_entity.username
 			if list_of_group_ids[i] == 8:
 				groups["has_parent_joint_offer"] = True
 				groups["parent_joint_offer"]["network_name"] = fstr_network_name
 				a_key = ndb.Key("ds_mr_user","%s" % list_of_accounts[i].user_id)
 				user_entity = a_key.get()
+				a = self.PARENT.user._get_gravatar_url(user_entity.gravatar_url,user_entity.gravatar_type)
 				groups["parent_joint_offer"]["username"] = user_entity.username
+				groups["parent_joint_offer"]["gravatar_url"] = a
 				
 		return groups
 		
@@ -9420,7 +9523,10 @@ class ph_command(webapp2.RequestHandler):
 		if self.master.PATH_CONTEXT == "root/profile" and "va" in self.master.request.GET:
 			# viewing someone else's profile
 			self.master.PATH_CONTEXT = "profile"
-			result.append(50)
+			if self.master.request.GET["va"] == self.master.user.entity.username:
+				result.append(60)
+			else:
+				result.append(50)
 			result.append(self.master.request.GET["va"])
 		if self.master.PATH_CONTEXT == "root/profile":
 			# viewing users own profile
@@ -9547,19 +9653,13 @@ class ph_command(webapp2.RequestHandler):
 		blok["menuitems"] = []
 
 		menuitem = {}
-		menuitem["href"] = "/"
-		menuitem["label"] = "Home"
+		menuitem["href"] = "/network"
+		menuitem["label"] = "Browse Networks"
 		blok["menuitems"].append(menuitem)
 
-		if self.master.user.IS_LOGGED_IN:
-			menuitem = {}
-			menuitem["href"] = "/profile"
-			menuitem["label"] = "My Profile"
-			blok["menuitems"].append(menuitem)
-
 		menuitem = {}
-		menuitem["href"] = "/search"
-		menuitem["label"] = "Search"
+		menuitem["href"] = "/all_users"
+		menuitem["label"] = "Browse Users"
 		blok["menuitems"].append(menuitem)
 		
 		menuitem = {}
@@ -9607,7 +9707,7 @@ class ph_command(webapp2.RequestHandler):
 			else:
 				page["username"] = lobj_master.request.remote_addr
 				
-		page["context"] = "<b>%s</b> AS: <b>%s</b>" % (context,page["username"])
+		page["context"] = "Signed In as: <b>%s</b>" % (page["username"])
 
 		# use while loop as case statement
 		# break out when we select a case
@@ -9675,7 +9775,6 @@ class ph_command(webapp2.RequestHandler):
 				# search
 				if not lobj_master.user.IS_LOGGED_IN:
 					r.redirect(self.url_path(new_path="/",error_code="1003"))
-				lobj_master.SHOW_COMMAND = False
 				page["title"] = "SEARCH"
 				blok = {}
 				blok["type"] = "search"
@@ -9866,6 +9965,7 @@ class ph_command(webapp2.RequestHandler):
 					marker["lat"] = float(fuser.location_latitude) / 100000000
 					marker["long"] = float(fuser.location_longitude) / 100000000
 					marker["username"] = fuser.username
+					marker["gravatar_url_map"] = lobj_master.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type,30)
 					map_blok["markers"].append(marker)
 					formatted_user["avatar_url"] = lobj_master.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type)
 					mo = str(fuser.date_created.month)
@@ -9877,8 +9977,8 @@ class ph_command(webapp2.RequestHandler):
 					formatted_user["username"] = fuser.username
 					blok["users"].append(formatted_user)
 				bloks.append(blok)
-				bloks.append(self.get_menu_blok())	
 				bloks.append(map_blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 			if pqc[0] == 70:
 				if not lobj_master.user.IS_LOGGED_IN:
@@ -9970,13 +10070,11 @@ class ph_command(webapp2.RequestHandler):
 				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(other_user.gravatar_url,other_user.gravatar_type)
 				blok["bio"] = other_user.bio
 				blok["username"] = other_user.username
-				bloks.append(blok)	
-				bloks.append(self.get_menu_blok())	
-				blok = {}
-				blok["type"] = "map"
 				blok["lat"] = float(other_user.location_latitude) / 100000000
 				blok["long"] = float(other_user.location_longitude) / 100000000
+				blok["gravatar_url_map"] = lobj_master.user._get_gravatar_url(other_user.gravatar_url,other_user.gravatar_type,30)
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 				
 			if pqc[0] == 60:
@@ -10002,12 +10100,12 @@ class ph_command(webapp2.RequestHandler):
 					client_parent_user_key = ndb.Key("ds_mr_user", self_user.parent_client_offer_user_id) 
 					client_parent_user = client_parent_user_key.get()
 					client_parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(self_user.parent_client_offer_account_id).zfill(12))) 
-					client_parent_metric = client_parent_user_key.get()
+					client_parent_metric = client_parent_metric_key.get()
 					a = client_parent_user
 					b = network.network_id
 					c = self_user.parent_client_offer_account_id
 					d = client_parent_metric.account_type
-					blok["client_parent_entity"]["username_alias"] = self.get_label_for_account()
+					blok["client_parent_entity"]["username_alias"] = self.get_label_for_account(a,b,c,d)
 					blok["client_parent_entity"]["network_name"] = network.network_name
 					a = network
 					b = client_parent_metric
@@ -10025,12 +10123,12 @@ class ph_command(webapp2.RequestHandler):
 					joint_parent_user_key = ndb.Key("ds_mr_user", self_user.parent_joint_offer_user_id) 
 					joint_parent_user = joint_parent_user_key.get()
 					joint_parent_metric_key = ndb.Key("ds_mr_metric_account", "%s%s" % (str(network.network_id).zfill(8),str(self_user.parent_joint_offer_account_id).zfill(12))) 
-					joint_parent_metric = joint_parent_user_key.get()
+					joint_parent_metric = joint_parent_metric_key.get()
 					a = joint_parent_user
 					b = network.network_id
 					c = self_user.parent_joint_offer_account_id
 					d = joint_parent_metric.account_type
-					blok["joint_parent_entity"]["username_alias"] = self.get_label_for_account()
+					blok["joint_parent_entity"]["username_alias"] = self.get_label_for_account(a,b,c,d)
 					blok["joint_parent_entity"]["network_name"] = network.network_name
 					a = network
 					b = joint_parent_metric
@@ -10039,13 +10137,11 @@ class ph_command(webapp2.RequestHandler):
 					blok["joint_parent_entity"]["network_balance"] = self.get_formatted_amount(a,b,c)
 					blok["joint_parent_entity"]["reserve_balance"] = self.get_formatted_amount(a,b,d)
 				
-				bloks.append(blok)	
-				bloks.append(self.get_menu_blok())	
-				blok = {}
-				blok["type"] = "map"
 				blok["lat"] = float(self_user.location_latitude) / 100000000
 				blok["long"] = float(self_user.location_longitude) / 100000000
+				blok["gravatar_url_map"] = lobj_master.user._get_gravatar_url(self_user.gravatar_url,self_user.gravatar_type,30)
 				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
 				break
 
 			if pqc[0] == 40:
