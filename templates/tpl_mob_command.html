@@ -34,6 +34,11 @@
 		</div>
 		<div id="com_display2"  class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font><a style="float:right;"id="show1" class="noul" href="#">COM:SHOW</a></div>
 		{% endif %}
+		<div class="ui-grid-b">
+		<div class="ui-block-a"><a href="#" data-role="button" data-theme="a">Dash</a></div>
+		<div class="ui-block-b"><a href="/search" data-role="button" data-theme="a">Search</a></div>
+		<div class="ui-block-c"><a href="/" data-role="button" data-theme="a">Home</a></div>
+		</div>
 		{% include 'templates/tpl_mob_bloks.html' %}
 		{% if master.IS_DEBUG %}{% include 'templates/tpl_z_debug.html' %}{% endif %}
 	</div>
