@@ -3234,6 +3234,7 @@ class metric(object):
 			c = parent_metric.account_id
 			d = parent_metric.account_type
 			client_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			client_complete["parent_entity"]["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 			a = network
 			b = parent_metric
 			c = parent_metric.current_network_balance
@@ -3298,6 +3299,7 @@ class metric(object):
 			c = parent_metric.account_id
 			d = parent_metric.account_type
 			joint_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			joint_complete["parent_entity"]["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 			a = network
 			b = parent_metric
 			c = parent_metric.current_network_balance
@@ -3362,6 +3364,7 @@ class metric(object):
 			c = parent_metric.account_id
 			d = parent_metric.account_type
 			clone_complete["parent_entity"]["username_alias"] = get_label_for_account(a,b,c,d)
+			clone_complete["parent_entity"]["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 			a = network
 			b = parent_metric
 			c = parent_metric.current_network_balance
