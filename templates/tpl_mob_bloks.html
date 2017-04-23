@@ -1475,7 +1475,7 @@
 			</div>
 			<!--- ACCOUNT SUMMARY --->
 			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
-				<p><b>{{ blok.account.type }} ACCOUNT SUMMARY</b></p>
+				<h3>{{ blok.account.type }} ACCOUNT SUMMARY</h3>
 				{% if blok.account.is_my_account %}
 					{% if blok.account.is_my_default %}
 					<p><b>Network Default: YES</b><br>
@@ -1492,27 +1492,93 @@
 				<b>Account Status</b>:  {{ blok.account.status }}<br/>
 				<b>Account Type</b>:  {{ blok.account.type }}<br/>
 				<b>Network Balance</b>:  {{ blok.account.network_balance }}<br/>
-				<b>Date Created</b>:  {{ blok.account.d_date_created }}
+				<b>Date Created</b>:  {{ blok.account.d_date_created }}<br/>
+				<br/>
+				<b>PARENT ACCOUNT</b>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.account.parent_entity.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">RESERVE ACCOUNT
+					<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">{{ blok.account.parent_entity.username_alias }}</a>
+					<br/>Network Balance: {{ blok.account.parent_entity.network_balance }}
+					<br/>Reserve Balance: {{ blok.account.parent_entity.reserve_balance }}</p>
+					</td>
+					</table>
+				</div>
+				</p>
 			</div>
 
 			<!--- res_content_settings --->
 			<div id="res_content_settings">
 				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>{{ blok.account.type }} ACCOUNT SETTINGS</b></p>
-					<p>res_content_settings</p>
+					<h3>{{ blok.account.type }} ACCOUNT SETTINGS</h3>
+					<p><b>Decimal Places</b>
+					<br/><br/>When a network is created, it is created with a default number of
+					decimal places.  You can override that value for your specific account on that
+					network and change it at any time.  You are allowed to view between 0 and 10
+					decimal places, however, depending on conversion rate for the network, too
+					many decimals might not show anything but extra zeros.</p>
 					<form action="#" method="post" data-ajax="false">
-					<button type="submit" data-theme="a" data-mini="true" data-icon="check" data-inline="true">MAKE DEFAULT</button>
+					<label for="basic">Text Input:</label>
+    				<input type="number" name="name" id="basic" value="" placeholder="DECIMAL PLACES" />
+    				<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE DECIMALS</button>
 					</form>
-					<p>res_content_settings</p>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Account Alias</b>
+					<br/><br/>You can use a different name than your username for this account.  If this
+					account isn't your only account on this network, it may already have an "alias".  Here,
+					you can change the alias for this account.  Or, if it's not already in use, you can
+					change it to be referenced using your username.</p>
 					<form action="#" method="post" data-ajax="false">
 					<label for="basic">Text Input:</label>
     				<input type="text" name="name" id="basic" value="" placeholder="NEW NAME" />
-    				<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
+    				<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
 					</form>
-					<p>res_content_settings</p>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Default Account</b>
+					{% if blok.account.is_my_default %}
+					<br/><br/>Currently this account <u>IS</u> your default account for this network. When
+					making payments to other accounts, it is this one that will be assumed to be the one you
+					wish to pay from.  To make another account default, go to that accounts settings and
+					click the "MAKE DEFAULT" button.  If you only have one account on a network, it is always
+					the default.  Only one account on a network can be the default account.
+					{% else %}
+					<br/><br/>Currently this account is <u>NOT</u> your default account for this network. When
+					making payments to other accounts, the default account is this one that will be assumed to be the one you
+					wish to pay from.  To make this account default, click the "MAKE DEFAULT" button.  If you
+					only have one account on a network, it is always the default.  Only one account on a network
+					can be the default account.
+					{% endif %}
+					</p>
+					<div class="ui-grid-a">
+					<div class="ui-block-a">
 					<form action="#" method="post" data-ajax="false">
-					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="check" data-inline="true">CLOSE ACCOUNT</button>
+					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
 					</form>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Account Closing</b>
+					<br/><br/>Non-reserve accounts can be closed as long as the network balance is zero.
+					You can either spend the balance, or contact the parent reserve account and arrange
+					for them to allow you to withdraw the reserves from the system.</p>
+					<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<form action="#" method="post" data-ajax="false">
+					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
+					</form>
+					</div>
+					</div>
 				</div>
 			</div>
 		{% endif %}
