@@ -1,11 +1,6 @@
 {% for blok in master.bloks %}
 
 	{% if blok.type == "search" %}
-		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li data-role="list-divider">Browse</li>
-			<li><a href="/network">All Networks</a></li>
-			<li><a href="/all_users">All Users</a></li>
-		</ul>
 		<form action="/search" method="post" data-ajax="false" class="ui-body ui-body-a ui-corner-all">
 		  <fieldset>
 			<div data-role="fieldcontain" class="ui-hide-label">
@@ -24,48 +19,76 @@
 
 			{% if blok.search_result.type == "networkname" %}
 			<div class="text_bubble ui-body ui-body-c">
-				<p>Your search term matched a name for a metric network.  Click below to go to the network summary page.</p>
-			</div>
-			<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+				<p><b>SEARCH RESULTS:<b/>
+				<br/><br/>Your search term matched a name for a metric network.  Click below to go to the network summary page.</p>
+				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 				<li data-role="list-divider">Network</li>
-				<li><a href="/network?vn={{ blok.search_result.network_name }}">Go to <b>{{ blok.search_result.network_name }}</b> summary page.</a></li>
-			</ul>
+				<li><a href="/network?vn={{ blok.search_result.network_name }}">
+				<table><tr><td style="padding:0px;">
+				<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+				</td>
+				<td>
+				<p style="margin:0px;">{{ blok.search_result.network_name }}</p>
+				</td>
+				</table>
+				</a></li>
+				</ul>
+			</div>
 			{% endif %}
 
 
 			{% if blok.search_result.type == "username" %}
 				{% if blok.search_result.total_accounts == 0 %}
 					<div class="text_bubble ui-body ui-body-c">
-						<p>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+						<p><b>SEARCH RESULTS:<b/>
+						<br/><br/>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Profile</li>
+							<li><a href="/profile?va={{ blok.search_result.username }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ blok.search_result.username }}</p>
+							</td>
+							</table>
+							</a></li>
+						</ul>
 					</div>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Profile</li>
-						<li><a href="/profile?va={{ blok.search_result.username }}">
-							<img src="{{ blok.search_result.gravatar_url }}" />
-							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
-						</a></li>
-					</ul>
 				{% else %}
 					<div class="text_bubble ui-body ui-body-c">
-						<p>Your search term matched a name for a metric user/account.  Links to this user's metric account are
+						<p><b>SEARCH RESULTS:<b/>
+						<br/><br/>Your search term matched a name for a metric user/account.  Links to this user's metric account are
 						<br/>are listed below.  The first link is for the user's profile page.</p>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Profile</li>
+							<li><a href="/profile?va={{ blok.search_result.username }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ blok.search_result.username }}</p>
+							</td>
+							</table>
+							</a></li>
+						</ul>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Accounts</li>
+							{% for account in blok.search_result.accounts %}
+							<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">Net. Name: {{ account.network_name }}
+							<br/>Acc. Name: {{ account.account_name }}
+							<br/>Acc. Type: {{ account.account_type }}</p>
+							</td>
+							</table>
+							</a></li>
+							{% endfor %}
+						</ul>
 					</div>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Profile</li>
-						<li><a href="/profile?va={{ blok.search_result.username }}">
-							<img src="{{ blok.search_result.gravatar_url }}" />
-							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
-						</a></li>
-					</ul>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Accounts</li>
-						{% for account in blok.search_result.accounts %}
-						<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">Network Name: {{ account.network_name }}
-						<br/>Account Name: {{ account.account_name }}
-						<br/>Account Type: {{ account.account_type }}
-						<br/>Click to view</a></li>
-						{% endfor %}
-					</ul>
 				{% endif %}
 			{% endif %}
 
@@ -73,74 +96,105 @@
 			{% if blok.search_result.type == "alias" %}
 				{% if blok.search_result.total_accounts == 0 %}
 					<div class="text_bubble ui-body ui-body-c">
-						<p>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+						<p><b>SEARCH RESULTS:<b/>
+						<br/><br/>Your search term matched a name for a user.  Click below to go to that users profile page.</p>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Profile</li>
+							<li><a href="/profile?va={{ blok.search_result.username }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ blok.search_result.username }}</p>
+							</td>
+							</table>
+							</a></li>
+						</ul>
 					</div>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Profile</li>
-						<li><a href="/profile?va={{ blok.search_result.username }}">
-							<img src="{{ blok.search_result.gravatar_url }}" />
-							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
-						</a></li>
-					</ul>
 				{% else %}
 					<div class="text_bubble ui-body ui-body-c">
-						<p>Your search term matched a name for a metric account alias.  The user who owns that alias account
+						<p><b>SEARCH RESULTS:<b/>
+						<br/><br/>Your search term matched a name for a metric account alias.  The user who owns that alias account
 						is shown below, along with the alias account and any other accounts the user has as well.  Click the
 						user to go to their profile or one of the accounts to visit the account summary page.</p>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Profile</li>
+							<li><a href="/profile?va={{ blok.search_result.username }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ blok.search_result.username }}</p>
+							</td>
+							</table>
+							</a></li>
+						</ul>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Alias Account</li>
+							<li><a href="/network?vn={{ blok.search_result.alias.network_name }}&va={{ blok.search_result.alias.account_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">Net. Name: {{ blok.search_result.alias.network_name }}
+							<br/>Acc. Name: {{ blok.search_result.alias.account_name }}
+							<br/>Acc. Type: {{ blok.search_result.alias.account_type }}</p>
+							</td>
+							</table>
+							</a></li>
+						</ul>
+						<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
+							<li data-role="list-divider">Other Accounts</li>
+							{% for account in blok.search_result.accounts %}
+							<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.search_result.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">Net. Name: {{ account.network_name }}
+							<br/>Acc. Name: {{ account.account_name }}
+							<br/>Acc. Type: {{ account.account_type }}</p>
+							</td>
+							</table>
+							</a></li>
+							{% endfor %}
+						</ul>
 					</div>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Profile</li>
-						<li><a href="/profile?va={{ blok.search_result.username }}">
-							<img src="{{ blok.search_result.gravatar_url }}" />
-							<p>Visit profile of <b>{{ blok.search_result.username }}</b>.</p>
-						</a></li>
-					</ul>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Alias Account</li>
-						<li><a href="/network?vn={{ blok.search_result.alias.network_name }}&va={{ blok.search_result.alias.account_name }}">Network Name: {{ blok.search_result.alias.network_name }}
-						<br/>Account Name: {{ blok.search_result.alias.account_name }}
-						<br/>Account Type: {{ blok.search_result.alias.account_type }}
-						<br/>Click to view</a></li>
-					</ul>
-					<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-						<li data-role="list-divider">Accounts</li>
-						{% for account in blok.search_result.accounts %}
-						<li><a href="/network?vn={{ account.network_name }}&va={{ account.account_name }}">Network Name: {{ account.network_name }}
-						<br/>Account Name: {{ account.account_name }}
-						<br/>Account Type: {{ account.account_type }}
-						<br/>Click to view</a></li>
-						{% endfor %}
-					</ul>
 				{% endif %}
 			{% endif %}
 
 
 			{% if blok.search_result.type == "error" %}
 				<div class="text_bubble ui-body ui-body-c">
-					<p>{{ blok.search_result.error_message }}</p>
+					<p><b>SEARCH RESULTS:<b/>
+						<br/><br/>{{ blok.search_result.error_message }}</p>
 				</div>
 			{% endif %}
 
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
-				<p>Enter a search term.
-				<br/>Can be a username, account name, or a network name.</p>
+				<p><b>Enter a search term above.<b/>
+				<br/><br/>Can be a username, account name, or a network name.</p>
 			</div>
 		{% endif %}
 	{% endif %}
 
 	{% if blok.type == "messages" %}
 		{% if blok.messages %}
+			<div class="text_bubble ui-body ui-body-c">
+				<p><b>MESSAGES</b></p>
+			</div>
 			{% for message in blok.messages %}
 				<div class="myclass2 ui-body ui-body-c">
-					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
-						<img class="qr_code" src="{{ message.avatar_url }}"/>
-					</div>
-					<div style="margin:0px;padding:0px;float: left; width: 70%;">
-						<p style="margin:5px;padding:0px;" ><b>{{ message.username }}</b><br/>
-						<b>{{ message.date }}</b><br/>
-						{{ message.text }}</p>
-					</div>
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin:5px;padding:0px;" src="{{ message.avatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:5px;padding:0px;" ><b>{{ message.username }}</b><br/>
+					<b>{{ message.date }}</b><br/>
+					{{ message.text }}</p>
+					</td>
+					</table>
 				</div>
 			{% endfor %}
 			{% if blok.next_more %}
@@ -171,6 +225,7 @@
 			{% endif %}
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
+				<p><b>MESSAGES</b></p>
 				<p>No messages for this user.</p>
 			</div>
 		{% endif %}
@@ -179,16 +234,19 @@
 
 	{% if blok.type == "all users" %}
 		{% if blok.users %}
+			<div class="text_bubble ui-body ui-body-c">
+				<p><b>ALL USERS</b></p>
 			{% for fuser in blok.users %}
-				<div class="myclass2 ui-body ui-body-c">
-					<div style="margin:0px;padding:0px;float: left; width: 18%;padding: 1px;">
-						<img class="qr_code" src="{{ fuser.avatar_url }}"/>
-					</div>
-					<div style="margin:0px;padding:0px;float: left; width: 70%;">
-						<p style="margin:5px;padding:0px;" ><b><a href="/profile?va={{ fuser.username }}">{{ fuser.username }}</b></a><br/>
-						<b>Created Date</b>: {{ fuser.d_created_date }}<br/>
-						{{ fuser.bio }}</p>
-					</div>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ fuser.avatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;"><a class="noul" href="/profile?va={{ fuser.username }}">{{ fuser.username }}</a>
+					<br/><b>Created Date</b>: {{ fuser.d_created_date }}<br/>
+					{{ fuser.bio }}</p>
+					</td>
+					</table>
 				</div>
 			{% endfor %}
 			{% if blok.next_more %}
@@ -217,8 +275,11 @@
 					</ul>
 				{% endif %}
 			{% endif %}
+			<br/>
+			</div>
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
+				<p><b>All Users</b></p>
 				<p>No users.</p>
 			</div>
 		{% endif %}
@@ -226,20 +287,18 @@
 
 
 	{% if blok.type == "my_profile" %}
-		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li>
-				<img src="{{ blok.gravatar_url }}" />
-				<h3>{{ blok.username }}</h3>
-			</li>
-			<li>
-				<a href="/messages?channel={{ blok.username }}"><h3>Show public messages</h3></a>
-			</li>
-		</ul>
-		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li>
-				<a href="/search?term={{ blok.username }}">My metric accounts</a>
-			</li>
-		</ul>
+		<div class="text_bubble ui-body ui-body-c">
+			<p><b>PROFILE</b></p>
+			<table><tr><td style="padding:0px;">
+			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.gravatar_url }}" /></a>
+			</td>
+			<td>
+			<p style="margin:0px;"><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a></p>
+			</td>
+			</table>
+			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Show Public Messages</a>
+			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">My Metric Accounts</a>
+		</div>
 		{% if blok.has_client_offer %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 			<li data-role="list-divider">Client Account Offer</li>
@@ -253,7 +312,7 @@
 		{% endif %}
 		{% if blok.has_joint_offer %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li data-role="list-divider">Client Account Offer</li>
+			<li data-role="list-divider">Joint Account Offer</li>
 			<li><a href="/network?vn={{ blok.joint_parent_entity.network_name }}&va={{ blok.joint_parent_entity.username_alias }}">
 			<h3>{{ blok.joint_parent_entity.username_alias }}</h3>
 			<p><b>Network Name</b>: {{ blok.joint_parent_entity.network_name }}</p>
@@ -263,30 +322,83 @@
 		</ul>
 		{% endif %}
 		<div class="text_bubble ui-body ui-body-c">
-		<h3>Bio:</h3>
-		<p>{{ blok.bio }}</p>
+		<p><b>USER INFORMATION</b>
+		<br/><br/>
+		<b>Bio:</b>
+		<br/><br/>{{ blok.bio }}
+		<br/><br/>
+		<b>Location: {{ blok.lat }}, {{ blok.long }}</b>
+		<div id="map"></div>
+		<script>
+		  function initMap() {
+			var mylocation = {lat: {{ blok.lat }}, lng: {{ blok.long }}};
+			var map = new google.maps.Map(document.getElementById('map'), {
+			  zoom: 4,
+			  center: mylocation
+			});
+			var markerImage = new google.maps.MarkerImage('{{ blok.gravatar_url_map }}',
+				new google.maps.Size(30, 30),
+				new google.maps.Point(0, 0),
+				new google.maps.Point(15, 15));
+			var marker = new google.maps.Marker({
+				position: {lat: {{ blok.lat }}, lng: {{ blok.long }}},
+				title: '{{ blok.username }}',
+				map: map,
+				icon: markerImage
+			});
+		  }
+		</script>
+		<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+		</script>
+		</p>
 		</div>
 	{% endif %}
 
-
 	{% if blok.type == "other_profile" %}
-		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li>
-				<img src="{{ blok.gravatar_url }}" />
-				<h3>{{ blok.username }}</h3>
-			</li>
-			<li>
-				<a href="/messages?channel={{ blok.username }}">Send public message</a>
-			</li>
-		</ul>
-		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
-			<li>
-				<a href="/search?term={{ blok.username }}">Metric accounts for {{ blok.username }}</a>
-			</li>
-		</ul>
 		<div class="text_bubble ui-body ui-body-c">
-		<h3>Bio:</h3>
-		<p>{{ blok.bio }}</p>
+			<p><b>PROFILE</b></p>
+			<table><tr><td style="padding:0px;">
+			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.gravatar_url }}" /></a>
+			</td>
+			<td>
+			<p style="margin:0px;"><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a></p>
+			</td>
+			</table>
+			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Show Public Messages</a>
+			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">User's Metric Accounts</a>
+		</div>
+		<div class="text_bubble ui-body ui-body-c">
+		<p><b>USER INFORMATION</b>
+		<br/><br/>
+		<b>Bio:</b>
+		<br/><br/>{{ blok.bio }}
+		<br/><br/>
+		<b>Location: {{ blok.lat }}, {{ blok.long }}</b>
+		<div id="map"></div>
+		<script>
+		  function initMap() {
+			var mylocation = {lat: {{ blok.lat }}, lng: {{ blok.long }}};
+			var map = new google.maps.Map(document.getElementById('map'), {
+			  zoom: 4,
+			  center: mylocation
+			});
+			var markerImage = new google.maps.MarkerImage('{{ blok.gravatar_url_map }}',
+				new google.maps.Size(30, 30),
+				new google.maps.Point(0, 0),
+				new google.maps.Point(15, 15));
+			var marker = new google.maps.Marker({
+				position: {lat: {{ blok.lat }}, lng: {{ blok.long }}},
+				title: '{{ blok.username }}',
+				map: map,
+				icon: markerImage
+			});
+		  }
+		</script>
+		<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key={{ master.SETTINGS.data.google_maps_api_key }}&callback=initMap">
+		</script>
+		</p>
 		</div>
 	{% endif %}
 
@@ -302,10 +414,15 @@
 				  center: mylocation
 				});
 				{% for marker in blok.markers %}
+				var markerImage = new google.maps.MarkerImage('{{ marker.gravatar_url_map }}',
+					new google.maps.Size(30, 30),
+					new google.maps.Point(0, 0),
+					new google.maps.Point(15, 15));
 				var marker = new google.maps.Marker({
-				  position: {lat: {{ marker.lat }}, lng: {{ marker.long }}},
-				  title: '{{ marker.username }}',
-				  map: map
+					position: {lat: {{ marker.lat }}, lng: {{ marker.long }}},
+					title: '{{ marker.username }}',
+					map: map,
+					icon: markerImage
 				});
 				{% endfor %}
 			  }
@@ -384,7 +501,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">My Live Networks</li>
 					{% for network in blok.groups.my_live_networks %}
-					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ network.network_name }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -392,7 +517,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">My Test Networks</li>
 					{% for network in blok.groups.my_test_networks %}
-					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ network.network_name }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -400,7 +533,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Available Live Networks</li>
 					{% for network in blok.groups.live_networks %}
-					<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+					<li><a href="/network?vn={{ network.network_name }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ network.network_name }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -411,7 +552,15 @@
 						<h2>Test Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.test_networks %}
-							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ network.network_name }}</p>
+							</td>
+							</table>
+							</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -421,7 +570,15 @@
 						<h2>Inactive Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.inactive_networks %}
-							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ network.network_name }}</p>
+							</td>
+							</table>
+							</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -431,7 +588,15 @@
 						<h2>Deleted Networks</h2>
 						<ul class="myclass" data-role="listview" data-divider-theme="a">
 							{% for network in blok.groups.deleted_networks %}
-							<li><a href="/network?vn={{ network.network_name }}">{{ network.network_name }}</a></li>
+							<li><a href="/network?vn={{ network.network_name }}">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">{{ network.network_name }}</p>
+							</td>
+							</table>
+							</a></li>
 							{% endfor %}
 						</ul>
 					</div>
@@ -463,26 +628,58 @@
 			{% if blok.groups.has_parent_client_offer %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Client Account Offer from:</li>
-					<li><a href="/network?va={{ blok.groups.parent_client_offer.username }}&vn={{ blok.groups.parent_client_offer.network_name }}">{{ blok.groups.parent_client_offer.username }}</a></li>
+					<li><a href="/network?va={{ blok.groups.parent_client_offer.username }}&vn={{ blok.groups.parent_client_offer.network_name }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.groups.parent_client_offer.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ blok.groups.parent_client_offer.username }}</p>
+					</td>
+					</table>
+					</a></li>
 				</ul>
 			{% endif %}
 			{% if blok.groups.has_parent_joint_offer %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Joint Account Offer from:</li>
-					<li><a href="/network?va={{ blok.groups.parent_joint_offer.username }}&vn={{ blok.groups.parent_joint_offer.network_name }}">{{ blok.groups.parent_joint_offer.username }}</a></li>
+					<li><a href="/network?va={{ blok.groups.parent_joint_offer.username }}&vn={{ blok.groups.parent_joint_offer.network_name }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.groups.parent_joint_offer.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ blok.groups.parent_joint_offer.username }}</p>
+					</td>
+					</table>
+					</a></li>
 				</ul>
 			{% endif %}
 			{% if blok.groups.has_reserve_account %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Reserve Account</li>
-					<li><a href="/network?va={{ blok.groups.reserve_account.extra_pickle.account }}&vn={{ blok.groups.reserve_account.extra_pickle.network }}">{{ blok.groups.reserve_account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ blok.groups.reserve_account.extra_pickle.account }}&vn={{ blok.groups.reserve_account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.groups.reserve_account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ blok.groups.reserve_account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 				</ul>
 			{% endif %}
 			{% if blok.groups.has_client_accounts %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Client Accounts</li>
 					{% for account in blok.groups.client_accounts %}
-					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -490,7 +687,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Joint Accounts</li>
 					{% for account in blok.groups.joint_accounts %}
-					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -498,7 +703,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Clone Accounts</li>
 					{% for account in blok.groups.clone_accounts %}
-					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -506,7 +719,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Sponsored Client Accounts</li>
 					{% for account in blok.groups.child_client_accounts %}
-					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -514,7 +735,15 @@
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
 					<li data-role="list-divider">Your Sponsored Joint Accounts</li>
 					{% for account in blok.groups.child_joint_accounts %}
-					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">{{ account.extra_pickle.account }}</a></li>
+					<li><a href="/network?va={{ account.extra_pickle.account }}&vn={{ account.extra_pickle.network }}">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.extra_pickle.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;">{{ account.extra_pickle.account }}</p>
+					</td>
+					</table>
+					</a></li>
 					{% endfor %}
 				</ul>
 			{% endif %}
@@ -1032,7 +1261,7 @@
 				<div class="ui-grid-b">
 					<div class="ui-block-a"><a id="res_menu_1_1_show" data-role="button" data-mini="true" data-theme="e">Menu1</a></div>
 					<div class="ui-block-b"><a id="res_menu_1_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
-					<div class="ui-block-c"><a id="res_menu_1_3_show" data-role="button" data-mini="true" data-theme="a">Menu3</a></div>
+					<div class="ui-block-c"><a id="res_menu_1_3_show" data-role="button" data-mini="true" data-theme="a">Req({{ blok.account.total_out_requests }}:{{ blok.account.total_in_requests }})</a></div>
 				</div>
 				<div class="ui-grid-a">
 					<div class="ui-block-a"><a id="res_menu_1_summary" href="#" data-role="button" data-mini="true" data-theme="b">Summary</a></div>
@@ -1043,7 +1272,7 @@
 						<a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Ledger</a>
 						{% endif %}
 					</div>
-					<div class="ui-block-a"><a id="res_menu_1_connections" href="#" data-role="button" data-mini="true" data-theme="b">Connections</a></div>
+					<div class="ui-block-a"><a id="res_menu_1_connections" href="#" data-role="button" data-mini="true" data-theme="b">Connections({{ blok.account.connection_count }})</a></div>
 					<div class="ui-block-b"><a id="res_menu_1_modify_reserves" href="#" data-role="button" data-mini="true" data-theme="b">Modify Reserves</a></div>
 					<div class="ui-block-a"><a id="res_menu_1_map" href="#" data-role="button" data-mini="true" data-theme="b">Map</a></div>
 					<div class="ui-block-b"><a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
@@ -1054,14 +1283,14 @@
 			<div class="ui-grid-b">
 				<div class="ui-block-a"><a id="res_menu_2_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
 				<div class="ui-block-b"><a id="res_menu_2_2_show" data-role="button" data-mini="true" data-theme="e">Menu2</a></div>
-				<div class="ui-block-c"><a id="res_menu_2_3_show" data-role="button" data-mini="true" data-theme="a">Menu3</a></div>
+				<div class="ui-block-c"><a id="res_menu_2_3_show" data-role="button" data-mini="true" data-theme="a">Req({{ blok.account.total_out_requests }}:{{ blok.account.total_in_requests }})</a></div>
 			</div>
 			<div class="ui-grid-a">
 				<div class="ui-block-a"><a id="res_menu_2_graph" href="#" data-role="button" data-mini="true" data-theme="b">Graph</a></div>
 				<div class="ui-block-b"><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Tickets</a></div>
-				<div class="ui-block-a"><a id="res_menu_2_child_joint_account" href="#" data-role="button" data-mini="true" data-theme="b">Child Joint Acc.</a></div>
-				<div class="ui-block-b"><a id="res_menu_2_child_client_account" href="#" data-role="button" data-mini="true" data-theme="b">Child Client Acc.</a></div>
-				<div class="ui-block-a"><a id="res_menu_2_clone_account" href="#" data-role="button" data-mini="true" data-theme="b">Clone Accts.</a></div>
+				<div class="ui-block-a"><a id="res_menu_2_child_joint_account" href="#" data-role="button" data-mini="true" data-theme="b">Sp. Joint({{ blok.account.child_joint_account_count }})</a></div>
+				<div class="ui-block-b"><a id="res_menu_2_child_client_account" href="#" data-role="button" data-mini="true" data-theme="b">Sp. Client({{ blok.account.child_client_account_count }})</a></div>
+				<div class="ui-block-a"><a id="res_menu_2_clone_account" href="#" data-role="button" data-mini="true" data-theme="b">Clone Accts({{ blok.account.clone_account_count }})</a></div>
 				<div class="ui-block-b"><a id="res_menu_2_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
 			</div>
 			</div>
@@ -1070,15 +1299,15 @@
 			<div class="ui-grid-b">
 				<div class="ui-block-a"><a id="res_menu_3_1_show" data-role="button" data-mini="true" data-theme="a">Menu1</a></div>
 				<div class="ui-block-b"><a id="res_menu_3_2_show" data-role="button" data-mini="true" data-theme="a">Menu2</a></div>
-				<div class="ui-block-c"><a id="res_menu_3_3_show" data-role="button" data-mini="true" data-theme="e">Menu3</a></div>
+				<div class="ui-block-c"><a id="res_menu_3_3_show" data-role="button" data-mini="true" data-theme="e">Req({{ blok.account.total_out_requests }}:{{ blok.account.total_in_requests }})</a></div>
 			</div>
 			<div class="ui-grid-a">
-				<div class="ui-block-a"><a id="res_menu_3_con_req_out" href="#" data-role="button" data-mini="true" data-theme="b">Con Req OUT(0)</a></div>
-				<div class="ui-block-b"><a id="res_menu_3_con_req_in" href="#" data-role="button" data-mini="true" data-theme="b">Con Req IN(0)</a></div>
-				<div class="ui-block-a"><a id="res_menu_3_utr_req_out" href="#" data-role="button" data-mini="true" data-theme="b">UT Req OUT(0)</a></div>
-				<div class="ui-block-b"><a id="res_menu_3_utr_req_in" href="#" data-role="button" data-mini="true" data-theme="b">UT Req IN(0)</a></div>
-				<div class="ui-block-a"><a id="res_menu_3_str_req_out" href="#" data-role="button" data-mini="true" data-theme="b">ST Req OUT(0)</a></div>
-				<div class="ui-block-b"><a id="res_menu_3_str_req_in" href="#" data-role="button" data-mini="true" data-theme="b">ST Req IN(0)</a></div>
+				<div class="ui-block-a"><a id="res_menu_3_con_req_out" href="#" data-role="button" data-mini="true" data-theme="b">Con Req OUT({{ blok.account.outgoing_connection_requests_count }})</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_con_req_in" href="#" data-role="button" data-mini="true" data-theme="b">Con Req IN({{ blok.account.incoming_connection_requests_count }})</a></div>
+				<div class="ui-block-a"><a id="res_menu_3_utr_req_out" href="#" data-role="button" data-mini="true" data-theme="b">UT Req OUT({{ blok.account.ut_out_requests_count }})</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_utr_req_in" href="#" data-role="button" data-mini="true" data-theme="b">UT Req IN({{ blok.account.ut_in_requests_count }})</a></div>
+				<div class="ui-block-a"><a id="res_menu_3_str_req_out" href="#" data-role="button" data-mini="true" data-theme="b">ST Req OUT({{ blok.account.st_out_requests_count }})</a></div>
+				<div class="ui-block-b"><a id="res_menu_3_str_req_in" href="#" data-role="button" data-mini="true" data-theme="b">ST Req IN({{ blok.account.st_in_requests_count }})</a></div>
 			</div>
 			</div>
 
@@ -1119,83 +1348,90 @@
 			</div>
 
 			<!--- CONNECTION REQUESTS OUT --->
-			<div id="res_content_con_req_out">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>OUTGOING CONNECTION REQUESTS</b>
-					<br/><br/>Below is a list of connection requests that you
-					initiated.  You can cancel your connection request by clicking
-					the cancel button underneath the account description for that
-					connection.  To make a new connection request with another
-					account, you can click on the connect button on their account
-					or type their account name into the field below and click
-					connect.<br/><br/>
-					<form action="#" method="post" data-ajax="false">
+			<div id="res_content_con_req_out" class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p><b>OUTGOING CONNECTION REQUESTS</b>
+				<br/><br/>Below is a list of connection requests that you
+				initiated.  You can cancel your connection request by clicking
+				the cancel button underneath the account description for that
+				connection.  To make a new connection request with another
+				account, you can click on the connect button on their account
+				or type their account name into the field below and click
+				connect.<br/><br/>
+				<form action="#" method="post" data-ajax="false">
 
-					<label for="basic">Text Input:</label>
-    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
-    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CONNECT REQUEST</button>
-					</form>
-					</p>
+				<label for="basic">Text Input:</label>
+				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+				<div class="ui-grid-a">
+				<div class="ui-block-a">
+				<button data-icon="add" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CONNECT REQUEST</button>
 				</div>
+				</div>
+				</form>
+				<hr/>
+				<b>Account Connections Requested</b>
 				{% if blok.account.has_outgoing_connection_requests %}
 				{% for account in blok.account.outgoing_connection_requests %}
-				<div class="myclass2 ui-body ui-body-c">
-					<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
-						<img src="{{ account.gravatar_url }}"/>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;"><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+					<br/>Res. Balance: {{ account.reserve_balance }}
+					<br/>Net. Balance: {{ account.network_balance }}
+					<br/>Connection Count: {{ account.connection_count }}</p>
+					</td>
+					</table>
+					<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<form action="#" method="post" data-ajax="false">
+					<button data-icon="delete" style="margin:0px;padding:0px;" type="submit" data-theme="e" data-mini="true">Cancel</button>
+					</form>
 					</div>
-					<div style="margin:0px;padding:0px;float: right; width: 75%;">
-						<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-						<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
-						<br/>Connection Count: {{ account.connection_count }}</p>
-						<form action="#" method="post" data-ajax="false">
-						<fieldset class="ui-grid-a">
-							<div class="ui-block-a"><button style="margin:0px;padding:0px;" type="submit" data-theme="e" data-mini="true">Cancel</button></div>
-						</fieldset>
-						</form>
 					</div>
 				</div>
 				{% endfor %}
 				{% else %}
-				<div class="text_bubble ui-body ui-body-c">
-					<p>You currently have no outgoing connection requests.</p>
-				</div>
+				<br/><br/>You currently have no outgoing connection requests.
 				{% endif %}
+				</p>
 			</div>
 
 
 
+
+
 			<!--- CONNECTION REQUESTS IN --->
-			<div id="res_content_con_req_in">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>INCOMING CONNECTION REQUESTS</b>
-					<br/><br/>Below is a list of connection requests that other
-					users have initiated.  You can deny or authorize a connection
-					to the account using the corresponding buttons below.  If you
-					wish to disconnect in the future you can do so from their
-					account page, or from the "connections" link on menu1.</p>
-				</div>
+			<div id="res_content_con_req_in" class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p><b>INCOMING CONNECTION REQUESTS</b>
+				<br/><br/>Below is a list of connection requests that other
+				users have initiated.  You can deny or authorize a connection
+				to the account using the corresponding buttons below.  If you
+				wish to disconnect in the future you can do so from their
+				account page, or from the "connections" link on menu1.
+				<hr/>
+				<b>Accounts Requesting Connection</b>
 				{% if blok.account.has_incoming_connection_requests %}
 				{% for account in blok.account.incoming_connection_requests %}
-				<div class="myclass2 ui-body ui-body-c">
-					<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
-						<img src="{{ account.gravatar_url }}"/>
-					</div>
-					<div style="margin:0px;padding:0px;float: right; width: 75%;">
-						<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-						<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
-						<br/>Connection Count: {{ account.connection_count }}</p>
-						<form action="#" method="post" data-ajax="false">
-						<fieldset class="ui-grid-a">
-							<div class="ui-block-a"><button type="submit" data-theme="a" data-mini="true">Deny</button></div>
-							<div class="ui-block-b"><button type="submit" data-theme="b" data-mini="true">Authorize</button></div></fieldset>
-						</form>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;"><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+					<br/>Res. Balance: {{ account.reserve_balance }}
+					<br/>Net. Balance: {{ account.network_balance }}
+					<br/>Connection Count: {{ account.connection_count }}</p>
+					</td>
+					</table>
+					<div class="ui-grid-a">
+						<div class="ui-block-a"><form action="#" method="post" data-ajax="false"><button type="submit" data-icon="delete" data-theme="a" data-mini="true">Deny</button></form></div>
+						<div class="ui-block-b"><form action="#" method="post" data-ajax="false"><button type="submit" data-icon="check" data-theme="b" data-mini="true">Authorize</button></form></div>
 					</div>
 				</div>
 				{% endfor %}
 				{% else %}
-				<div class="text_bubble ui-body ui-body-c">
-					<p>You currently have no incoming connection requests.</p>
-				</div>
+				<br/><br/>You currently have no incoming connection requests.</p>
 				{% endif %}
 			</div>
 
@@ -1225,16 +1461,15 @@
 			</div>
 
 			<!--- MODIFY RESERVES --->
-			<div id="res_content_modify_reserves">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>MODIFY RESERVES</b>
-					<br/><br/>Modifying your reserve amount is how "money" for
-					each network comes into and goes out of the system.  It is
-					similar to depositing and withdrawing in a traditional bank.
-					Adding/Subtracting will increase/decrease both your reserve
-					balance and your spendable network balance.  For detailed
-					information refer to the documentation.</p>
-				</div>
+			<div id="res_content_modify_reserves" class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p><b>MODIFY RESERVES</b>
+				<br/><br/>Modifying your reserve amount is how "money" for
+				each network comes into and goes out of the system.  It is
+				similar to depositing and withdrawing in a traditional bank.
+				Adding or Subtracting will increase or decrease both your reserve
+				balance and your spendable network balance.  For detailed
+				information refer to the documentation.</p>
+
 				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
 				<input type="radio" name="radio-choice" id="radio-choice-1" value="choice-1" />
 				<label for="radio-choice-1">+ Create (+RES)</label>
@@ -1260,125 +1495,168 @@
 			</div>
 
 			<!--- CHILD JOINT ACCOUNT --->
-			<div id="res_content_child_joint_account">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>SPONSORED JOINT ACCOUNTS</b>
-					<br/><br/>Below are joint accounts for which this account
-					is the sponsor.  As the sponsor of a joint account you can
-					retrieve existing funds from the joint account at any
-					time.  To offer another user sponsorship of a joint account
-					enter their username in the field below and click the offer
-					button.  You can only have one active offer at a time.  If
-					you wish to offer someone else, you must wait for the first
-					offer to be authorized/denied, or cancel it yourself.<br/><br/>
-					{% if blok.account.has_child_joint_offer %}
-					<b>ACTIVE JOINT OFFER</b>
-					<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-						<img src="{{ blok.account.joint_child_entity.gravatar_url }}" />
-						<p><a href="/profile?va={{ blok.account.joint_child_entity.username }}">{{ blok.account.joint_child_entity.username }}</a></p>
-					</li></ul>
-					<form action="#" method="post" data-ajax="false">
-					<button type="submit" data-theme="a" data-mini="true">Cancel Offer</button>
-					</form>
-					{% else %}
-						<form action="#" method="post" data-ajax="false">
-						<label for="basic">Text Input:</label>
-	    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
-	    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">JOINT OFFER</button>
-						</form>
-					{% endif %}
-					</p>
+			<div id="res_content_child_joint_account" class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p><b>SPONSORED JOINT ACCOUNTS</b>
+				<br/><br/>Below are joint accounts for which this account
+				is the sponsor.  As the sponsor of a joint account you can
+				retrieve existing funds from the joint account at any
+				time.  To offer another user sponsorship of a joint account
+				enter their username in the field below and click the offer
+				button.  You can only have one active offer at a time.  If
+				you wish to offer someone else, you must wait for the first
+				offer to be authorized/denied, or cancel it yourself.<br/><br/>
+				{% if blok.account.has_child_joint_offer %}
+				<b>Active Joint Offer</b>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.account.joint_child_entity.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;"><a href="/profile?va={{ blok.account.joint_child_entity.username }}">{{ blok.account.joint_child_entity.username }}</a>
+					</td>
+					</table>
+					<div class="ui-grid-a">
+						<div class="ui-block-a">
+							<form action="#" method="post" data-ajax="false">
+								<button type="submit" data-icon="delete" data-theme="a" data-mini="true">Cancel Offer</button>
+							</form>
+						</div>
+					</div>
 				</div>
+				<hr/>
+				{% else %}
+				<form action="#" method="post" data-ajax="false">
+				<label for="basic">Text Input:</label>
+				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">JOINT OFFER</button>
+				</form>
+				<hr/>
+				{% endif %}
+				<b>Sponsored Joint Accounts</b>
 				{% if blok.account.has_child_joint_accounts %}
 					{% for account in blok.account.child_joint_accounts %}
-						<div class="myclass2 ui-body ui-body-c">
-							<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
-								<img src="{{ account.gravatar_url }}"/>
-							</div>
-							<div style="margin:0px;padding:0px;float: right; width: 75%;">
-								<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-								<br/>Net: {{ account.network_balance }}</p>
-							</div>
-						</div>
+						<div class="text_bubble ui-body ui-body-c">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">CLONE ACCOUNT
+							<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+							<br/>Net. Balance: {{ account.network_balance }}
+							</td>
+							</table>
+						</div></p>
 					{% endfor %}
 				{% else %}
-				<div class="text_bubble ui-body ui-body-c">
-					<p>You currently have no sponsored joint accounts.</p>
-				</div>
+				<br/><br/>You currently have no sponsored joint accounts.</p>
 				{% endif %}
 			</div>
 
 
 			<!--- CHILD CLIENT ACCOUNT --->
-			<div id="res_content_child_client_account">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>SPONSORED CLIENT ACCOUNTS</b>
-					<br/><br/>Below are client accounts for which this account
-					is the sponsor.  To offer another user sponsorship of a client account
-					enter their username in the field below and click the offer
-					button.  You can only have one active offer at a time.  If
-					you wish to offer someone else, you must wait for the first
-					offer to be authorized/denied, or cancel it yourself.<br/><br/>
-					{% if blok.account.has_child_client_offer %}
-					<b>ACTIVE CLIENT OFFER</b>
-					<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-						<img src="{{ blok.account.client_child_entity.gravatar_url }}" />
-						<p><a href="/profile?va={{ blok.account.client_child_entity.username }}">{{ blok.account.client_child_entity.username }}</a></p>
-					</li></ul>
-					<form action="#" method="post" data-ajax="false">
-					<button type="submit" data-theme="a" data-mini="true">Cancel Offer</button>
-					</form>
-					{% else %}
-					<form action="#" method="post" data-ajax="false">
-					<label for="basic">Text Input:</label>
-    				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
-    				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CLIENT OFFER</button>
-					</form>
-					{% endif %}
-					</p>
+			<div id="res_content_child_client_account" class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p><b>SPONSORED CLIENT ACCOUNTS</b>
+				<br/><br/>Below are client accounts for which this account
+				is the sponsor.  To offer another user sponsorship of a client account
+				enter their username in the field below and click the offer
+				button.  You can only have one active offer at a time.  If
+				you wish to offer someone else, you must wait for the first
+				offer to be authorized/denied, or cancel it yourself.<br/><br/>
+				{% if blok.account.has_child_client_offer %}
+				<b>Active Client Offer</b>
+				<div class="text_bubble ui-body ui-body-c">
+					<table><tr><td style="padding:0px;">
+					<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.account.client_child_entity.gravatar_url }}" /></a>
+					</td>
+					<td>
+					<p style="margin:0px;"><a href="/profile?va={{ blok.account.client_child_entity.username }}">{{ blok.account.client_child_entity.username }}</a>
+					</td>
+					</table>
+					<div class="ui-grid-a">
+						<div class="ui-block-a">
+							<form action="#" method="post" data-ajax="false">
+								<button type="submit" data-icon="delete" data-theme="a" data-mini="true">Cancel Offer</button>
+							</form>
+						</div>
+					</div>
 				</div>
+				<hr/>
+				{% else %}
+				<form action="#" method="post" data-ajax="false">
+				<label for="basic">Text Input:</label>
+				<input type="text" name="name" id="basic" value="" placeholder="ACCOUNT NAME" />
+				<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CLIENT OFFER</button>
+				</form>
+				<hr/>
+				{% endif %}
+				<b>Sponsored Client Accounts</b>
 				{% if blok.account.has_child_client_accounts %}
 					{% for account in blok.account.child_client_accounts %}
-						<div class="myclass2 ui-body ui-body-c">
-							<div style="margin:0px;padding:0px;float: left; width: 20%;padding: 5px;">
-								<img src="{{ account.gravatar_url }}"/>
-							</div>
-							<div style="margin:0px;padding:0px;float: right; width: 75%;">
-								<p style="margin-top:5px;margin-bottom:5px;"><a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
-								<br/>Net: {{ account.network_balance }}</p>
-							</div>
-						</div>
+						<div class="text_bubble ui-body ui-body-c">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">CLONE ACCOUNT
+							<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+							<br/>Net. Balance: {{ account.network_balance }}
+							</td>
+							</table>
+						</div></p>
 					{% endfor %}
 				{% else %}
-				<div class="text_bubble ui-body ui-body-c">
-					<p>You currently have no sponsored client accounts.</p>
-				</div>
+				<br/><br/>You currently have no sponsored client accounts.</p>
 				{% endif %}
 			</div>
 
 			<!--- MAP --->
-			<div id="res_content_map">
-				<div class="text_bubble ui-body ui-body-c ui-hide-label">
-					<p><b>CONNECTIONS MAP</b>
-					<br/><br/>The map below shows icons of your connections with
+			<div id="res_content_map" class="text_bubble ui-body ui-body-c ui-hide-label">
+					<h3>CONNECTIONS MAP</h3>
+					<p>The map below shows icons of your connections with
 					lines drawn between you and each of them.</p>
-				</div>
 				{% if blok.account.has_connections %}
-					<div class="text_bubble ui-body ui-body-c">
-						<h3>Connection Map:</h3>
-						<div id="map"></div>
-					</div>
+					<div id="map"></div>
 				{% else %}
-					<div class="text_bubble ui-body ui-body-c">
-						<p>No connections to map.</p>
-					</div>
+					<p>No connections to map.</p>
 				{% endif %}
 			</div>
 
-			<!--- res_content_clone_account --->
+			<!--- CLONE ACCOUNTS --->
 			<div id="res_content_clone_account">
 				<div class="text_bubble ui-body ui-body-c">
-					<p>res_content_clone_account</p>
+					<h3>CLONE ACCOUNTS</h3>
+					<p>Clone accounts are essentially sub-accounts of your main reserve account that
+					you control.  You can think of it as a saving or alternate checking account.  You
+					can have more than one clone account per network, but you are limited to a total
+					of 20 non-reserve accounts for the entire system, which includes joint and client
+					accounts sponsored by other users.  You are allowed to have one reserve account in
+					each network, for as many networks as exist.  To open a new clone account click the
+					OPEN CLONE ACCOUNT button below.  Your current clone accounts are listed below and
+					are also listed on the <a href="/network?vn={{ blok.account.network_name }}">network
+					summary page.</a>
+					<form action="#" method="post" data-ajax="false">
+					<button type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="add">OPEN CLONE ACCOUNT</button>
+					</form>
+					<hr/>
+					<b>Clone Accounts</b>
+					{% if blok.account.has_clone_accounts %}
+						{% for account in blok.account.clone_accounts %}
+						<div class="text_bubble ui-body ui-body-c">
+							<table><tr><td style="padding:0px;">
+							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+							</td>
+							<td>
+							<p style="margin:0px;">CLONE ACCOUNT
+							<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+							<br/>Net. Balance: {{ account.network_balance }}
+							</td>
+							</table>
+						</div>
+						{% endfor %}
+					{% else %}
+					<br/><br/>Currently no clone accounts associated with this reserve account.
+					{% endif %}
+					</p>
 				</div>
 			</div>
 
@@ -1408,23 +1686,75 @@
 			</div>
 			<!--- res_content_settings --->
 			<div id="res_content_settings">
-				<div class="text_bubble ui-body ui-body-c">
-					<p>res_content_settings</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<h3>{{ blok.account.type }} ACCOUNT SETTINGS</h3>
+					<p><b>Decimal Places</b>
+					<br/><br/>When a network is created, it is created with a default number of
+					decimal places.  You can override that value for your specific account on that
+					network and change it at any time.  You are allowed to view between 0 and 10
+					decimal places, however, depending on conversion rate for the network, too
+					many decimals might not show anything but extra zeros.</p>
+					<form action="#" method="post" data-ajax="false">
+					<label for="basic">Text Input:</label>
+    				<input type="number" name="name" id="basic" value="" placeholder="DECIMAL PLACES" />
+    				<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE DECIMALS</button>
+					</form>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Account Alias</b>
+					<br/><br/>You can use a different name than your username for this account.  If this
+					account isn't your only account on this network, it may already have an "alias".  Here,
+					you can change the alias for this account.  Or, if it's not already in use, you can
+					change it to be referenced using your username.</p>
+					<form action="#" method="post" data-ajax="false">
+					<label for="basic">Text Input:</label>
+    				<input type="text" name="name" id="basic" value="" placeholder="NEW NAME" />
+    				<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
+					</form>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Default Account</b>
+					{% if blok.account.is_my_default %}
+					<br/><br/>Currently this account <u>IS</u> your default account for this network. When
+					making payments to other accounts, it is this one that will be assumed to be the one you
+					wish to pay from.  To make another account default, go to that accounts settings and
+					click the "MAKE DEFAULT" button.  If you only have one account on a network, it is always
+					the default.  Only one account on a network can be the default account.
+					{% else %}
+					<br/><br/>Currently this account is <u>NOT</u> your default account for this network. When
+					making payments to other accounts, the default account is this one that will be assumed to be the one you
+					wish to pay from.  To make this account default, click the "MAKE DEFAULT" button.  If you
+					only have one account on a network, it is always the default.  Only one account on a network
+					can be the default account.
+					{% endif %}
+					</p>
+					<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<form action="#" method="post" data-ajax="false">
+					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
+					</form>
+					</div>
+					</div>
+					<hr/>
+					<p><b>Account Closing</b>
+					<br/><br/>Reserve account can only be closed if the reserve and network balance is zero
+					and it has no connections. You can disconnect from all your connections and then you can
+					either spend the remaining balance, or take any reserves out of	the system.</p>
+					<div class="ui-grid-a">
+					<div class="ui-block-a">
+					<form action="#" method="post" data-ajax="false">
+					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
+					</form>
+					</div>
+					</div>
 				</div>
 			</div>
-
-			{% if blok.account.has_parent %}
-			<div data-role="collapsible" data-theme="e">
-				<h2>Parent Account</h2>
-				<ul data-inset="true" data-role="listview" data-divider-theme="a"><li>
-					<img src="{{ account.gravatar_url }}" />
-					<p>Parent Reserve Account:
-					<br/><a href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">
-					{{ blok.account.parent_entity.username_alias }}</a>
-					<br/>Res: {{ blok.account.parent_entity.reserve_balance }} Net: {{ blok.account.parent_entity.network_balance }}</p>
-				</li></ul>
-			</div>
-			{% endif %}
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
 				<table><tr><td style="padding:0px;">
@@ -1469,9 +1799,15 @@
 			<div class="ui-grid-a" style="margin-top: 7px;">
 				<div class="ui-block-a"><a id="res_menu_1_summary" href="#" data-role="button" data-mini="true" data-theme="b">Summary</a></div>
 				<div class="ui-block-b"><a href="/tickets?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Tickets</a></div>
+				{% if blok.account.is_my_account %}
 				<div class="ui-block-a"><a href="/ledger?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" data-role="button" data-mini="true" data-theme="b">Ledger</a></div>
 				<div class="ui-block-b"><a id="#" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
 				<div class="ui-block-a"><a id="res_menu_1_settings" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a></div>
+				{% else %}
+				<div class="ui-block-a"><a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Ledger</a></div>
+				<div class="ui-block-b"><a id="#" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts(0)</a></div>
+				<div class="ui-block-a"><a href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Settings</a></div>
+				{% endif %}
 			</div>
 			<!--- ACCOUNT SUMMARY --->
 			<div id="res_content_summary" class="text_bubble ui-body ui-body-c">
@@ -1502,8 +1838,8 @@
 					<td>
 					<p style="margin:0px;">RESERVE ACCOUNT
 					<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ blok.account.parent_entity.username_alias }}">{{ blok.account.parent_entity.username_alias }}</a>
-					<br/>Network Balance: {{ blok.account.parent_entity.network_balance }}
-					<br/>Reserve Balance: {{ blok.account.parent_entity.reserve_balance }}</p>
+					<br/>Net. Balance: {{ blok.account.parent_entity.network_balance }}
+					<br/>Res. Balance: {{ blok.account.parent_entity.reserve_balance }}</p>
 					</td>
 					</table>
 				</div>
