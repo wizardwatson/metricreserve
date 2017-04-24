@@ -2827,7 +2827,7 @@ class metric(object):
 			reserve_complete["child_joint_account_count"] = 0
 			reserve_complete["clone_account_count"] = 0
 			
-			# request counters
+			# transfer request variables
 			reserve_complete["total_out_requests"] = reserve_complete["outgoing_connection_requests_count"]
 			reserve_complete["total_in_requests"] = reserve_complete["incoming_connection_requests_count"]
 			reserve_complete["ut_out_requests_count"] = 0
@@ -2835,6 +2835,22 @@ class metric(object):
 			reserve_complete["st_out_requests_count"] = 0
 			reserve_complete["st_in_requests_count"] = 0
 			
+			reserve_complete["has_ut_out_requests"] = False
+			reserve_complete["has_ut_in_requests"] = False
+			reserve_complete["has_ast_out_requests"] = False
+			reserve_complete["has_ast_in_requests"] = False
+			reserve_complete["has_ist_out_requests"] = False
+			reserve_complete["has_ist_in_requests"] = False
+			
+			reserve_complete["ut_out_requests"] = []
+			reserve_complete["ut_in_requests"] = []
+			reserve_complete["ast_out_requests"] = []
+			reserve_complete["ast_in_requests"] = []
+			reserve_complete["ist_out_requests"] = []
+			reserve_complete["ist_in_requests"] = []
+			
+			reserve_complete["has_ut_available_requests"] = False
+			reserve_complete["ut_available_requests"] = []
 			
 			
 			
@@ -2946,6 +2962,7 @@ class metric(object):
 					d = list_of_associated_accounts[i].account_type
 					next_entity["username_alias"] = get_label_for_account(a,b,c,d)
 					next_entity["gravatar_url_map"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type,"30")
+					next_entity["gravatar_url"] = self.PARENT.user._get_gravatar_url(a.gravatar_url,a.gravatar_type)
 					a = network
 					b = metric_account_entity
 					c = list_of_associated_accounts[i].current_network_balance
@@ -2967,47 +2984,55 @@ class metric(object):
 						if c > 0:
 							next_entity["transfer_request"] = "in + %s" % get_formatted_amount(a,b,c)
 							reserve_complete["ut_in_requests_count"] += 1
+							reserve_complete["has_ut_in_requests"] = True
+							reserve_complete["ut_in_requests"].append(next_entity)
 					if this_id in metric_account_entity.outgoing_reserve_transfer_requests:
 						c = metric_account_entity.outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["transfer_request"] = "out - %s" % get_formatted_amount(a,b,c)
 							reserve_complete["ut_out_requests_count"] += 1
+							reserve_complete["has_ut_out_requests"] = True
+							reserve_complete["ut_out_requests"].append(next_entity)
+					# Only one transfer allowed per connection, so if a connection is not in either in or 
+					# out user transfer lists, then put it in "available" for user created transfer requests
+					if not next_entity in reserve_complete["ut_in_requests"]:
+						if not next_entity in reserve_complete["ut_out_requests"]:
+							reserve_complete["ut_available_requests"].append(next_entity)
+							reserve_complete["has_ut_available_requests"] = False
 					if this_id in metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_incoming_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_inactive"] = "in + %s" % get_formatted_amount(a,b,c)
 							reserve_complete["st_in_requests_count"] += 1
+							reserve_complete["has_ist_in_requests"] = True
+							reserve_complete["ist_in_requests"].append(next_entity)
 					if this_id in metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_inactive_outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_inactive"] = "out - %s" % get_formatted_amount(a,b,c)
 							reserve_complete["st_out_requests_count"] += 1
+							reserve_complete["has_ist_out_requests"] = True
+							reserve_complete["ist_out_requests"].append(next_entity)
 					if this_id in metric_account_entity.suggested_active_incoming_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_incoming_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_active"] = "in + %s" % get_formatted_amount(a,b,c)
 							reserve_complete["st_in_requests_count"] += 1
+							reserve_complete["has_ast_in_requests"] = True
+							reserve_complete["ast_in_requests"].append(next_entity)
 					if this_id in metric_account_entity.suggested_active_outgoing_reserve_transfer_requests:
 						c = metric_account_entity.suggested_active_outgoing_reserve_transfer_requests[this_id]
 						if c > 0:
 							next_entity["suggested_transfer_active"] = "out - %s" % get_formatted_amount(a,b,c)
 							reserve_complete["st_out_requests_count"] += 1
+							reserve_complete["has_ast_out_requests"] = True
+							reserve_complete["ast_out_requests"].append(next_entity)
 					
 					reserve_complete["total_out_requests"] += reserve_complete["st_out_requests_count"]
 					reserve_complete["total_out_requests"] += reserve_complete["ut_out_requests_count"]
 					reserve_complete["total_in_requests"] += reserve_complete["st_in_requests_count"]
 					reserve_complete["total_in_requests"] += reserve_complete["ut_in_requests_count"]
 					
-					"""	
-					# request counters
-					reserve_complete["total_out_requests"] = reserve_complete["outgoing_connection_requests_count"]
-					reserve_complete["total_in_requests"] = reserve_complete["incoming_connection_requests_count"]
-					reserve_complete["ut_out_requests_count"] += 1
-					reserve_complete["ut_in_requests_count"] += 1
-					reserve_complete["st_out_requests_count"] += 1
-					reserve_complete["st_in_requests_count"] += 1
-					"""
-				
 					reserve_complete["connections"].append(next_entity)
 					next_marker["link"] = ""
 					next_marker["latitude"] = float(next_entity["latitude"]) / 100000000
