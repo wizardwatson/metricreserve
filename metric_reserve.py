@@ -9869,11 +9869,11 @@ class ph_command(webapp2.RequestHandler):
 					# redirect home
 					r.redirect(self.url_path(new_path="/"))
 					
-				bloks.append(self.get_menu_blok())
 				blok1 = {}
 				blok1["type"] = "documentation_menu"
 				bloks.append(blok1)
 				bloks.append(blok2)
+				bloks.append(self.get_menu_blok())
 				break
 				
 			if pqc[0] == 120:
