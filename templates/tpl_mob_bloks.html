@@ -1674,8 +1674,8 @@
 				<br/><br/>Below the list of current requests, is the rest of your connections
 				that have no current transfer request.  Simply fill in the amount field and click
 				"request" to initiate a transfer request to that connection.
-				<br/><br/><b>List of Outgoing User
-				<br/>Transfer Requests</b></p>
+				<br/><br/><b>LIST OF OUTGOING USER
+				<br/>TRANSFER REQUESTS</b></p>
 				{% if blok.account.has_ut_out_requests %}
 				{% for account in blok.account.ut_out_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1698,12 +1698,14 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>You currently have no outgoing user transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no outgoing user transfer requests.</p>
+				</div>
 				{% endif %}
 				<hr/>
-				<p><b>List of Available Connections
-				<br/>for Outgoing User Transfer
-				<br/>Requests</b></p>
+				<p><b>LIST OF AVAILABLE CONNECTIONS
+				<br/>FOR OUTGOING USER TRANSFER
+				<br/>REQUESTS</b></p>
 				{% if blok.account.has_ut_available_requests %}
 				{% for account in blok.account.ut_available_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1729,7 +1731,9 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>No connections available for new outgoing transfer request.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>No connections available for new outgoing transfer request.</p>
+				</div>
 				{% endif %}
 			</div>
 
@@ -1741,8 +1745,8 @@
 				"authorize" the transfer request, indicating that the reserve transfer has taken place
 				or "deny" the transfer request indicating the reserve transfer did not, or will not
 				take place.
-				<br/><br/><b>List of Incoming User
-				<br/>Transfer Requests</b></p>
+				<br/><br/><b>LIST OF INCOMING USER
+				<br/>TRANSFER REQUESTS</b></p>
 			{% if blok.account.has_ut_in_requests %}
 				{% for account in blok.account.ut_in_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1767,7 +1771,9 @@
 				{% endfor %}
 			</div>
 			{% else %}
-				<p>You currently have no incoming user transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no incoming user transfer requests.</p>
+				</div>
 			</div>
 			{% endif %}
 
@@ -1779,9 +1785,9 @@
 				connection that you wish them to authorize.  "inactive" are transfers the system
 				has suggested you initiate, but as of yet have not.  For the active outgoing, you
 				can cancel your request at any time before the connection has acted on it.
-				<br/><br/><b>List of Active Outgoing
-				<br/>System Suggested Transfer
-				<br/>Requests</b></p>
+				<br/><br/><b>LIST OF ACTIVE OUTGOING
+				<br/>SYSTEM SUGGESTED TRANSFER
+				<br/>REQUESTS</b></p>
 				{% if blok.account.has_ast_out_requests %}
 				{% for account in blok.account.ast_out_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1804,12 +1810,14 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>You currently have no active outgoing system suggested transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no active outgoing system suggested transfer requests.</p>
+				</div>
 				{% endif %}
 				<hr/>
-				<p><b>List of Inactive Outgoing
-				<br/>System Suggested Transfer
-				<br/>Requests</b></p>
+				<p><b>LIST OF INACTIVE OUTGOING
+				<br/>SYSTEM SUGGESTED TRANSFER
+				<br/>REQUESTS</b></p>
 				{% if blok.account.has_ist_out_requests %}
 				{% for account in blok.account.ist_out_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1835,7 +1843,9 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>You currently have no inactive outgoing system suggested transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no inactive outgoing system suggested transfer requests.</p>
+				</div>
 				{% endif %}
 			</div>
 
@@ -1848,9 +1858,9 @@
 				request, but as of yet have not.  For the inactive incoming, all you can do is
 				communicate with the connection if you wish for them to proceed by requesting that
 				specific transfer.  For the active, you can either deny or authorize it.
-				<br/><br/><b>List of Active Incoming
-				<br/>System Suggested Transfer
-				<br/>Requests</b></p>
+				<br/><br/><b>LIST OF ACTIVE INCOMING
+				<br/>SYSTEM SUGGESTED TRANSFER
+				<br/>REQUESTS</b></p>
 				{% if blok.account.has_ast_in_requests %}
 				{% for account in blok.account.ast_in_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1874,11 +1884,14 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>You currently have no active incoming system suggested transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no active incoming system suggested transfer requests.</p>
+				</div>
 				{% endif %}
 				<hr/>
-				<p><b>List of Inactive System
-				<br/>Suggested Transfer Requests</b></p>
+				<p><b>LIST OF INACTIVE INCOMING
+				<br/>SYSTEM SUGGESTED TRANSFER
+				<br/>REQUESTS</b></p>
 				{% if blok.account.has_ist_in_requests %}
 				{% for account in blok.account.ist_in_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
@@ -1898,7 +1911,9 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<p>You currently have no inactive incoming system suggested transfer requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no inactive incoming system suggested transfer requests.</p>
+				</div>
 				{% endif %}
 			</div>
 
