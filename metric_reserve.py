@@ -9483,6 +9483,9 @@ class ph_command(webapp2.RequestHandler):
 		
 		result = []		
 
+		if self.master.PATH_CONTEXT == "root/dashboard":
+			# view documentation
+			result.append(160)
 		if self.master.PATH_CONTEXT == "root/search":
 			# view documentation
 			result.append(150)
@@ -9725,7 +9728,7 @@ class ph_command(webapp2.RequestHandler):
 		page = lobj_master.page
 		if lobj_master.user.IS_LOGGED_IN:
 			page["username"] = lobj_master.user.entity.username
-			page["context"] = "Signed In as: <b>%s</b>" % (page["username"])
+			page["context"] = "Signed in as: <b>%s</b>" % (page["username"])
 		else:
 			# if running locally in development show a made-up IP
 			if lobj_master.request.host[:9] == "localhost":
@@ -9797,6 +9800,17 @@ class ph_command(webapp2.RequestHandler):
 			###################################
 
 			# make bloks from context
+			if pqc[0] == 160:			
+				# search
+				if not lobj_master.user.IS_LOGGED_IN:
+					r.redirect(self.url_path(new_path="/",error_code="1003"))
+				page["title"] = "DASHBOARD"
+				blok = {}
+				blok["type"] = "dashboard"
+				bloks.append(blok)	
+				bloks.append(self.get_menu_blok())	
+				break
+			
 			if pqc[0] == 150:			
 				# search
 				if not lobj_master.user.IS_LOGGED_IN:
@@ -11274,6 +11288,7 @@ application = webapp2.WSGIApplication([
 	('/ledger', ph_command),
 	('/transfer', ph_command),
 	('/pay', ph_command),
+	('/dashboard', ph_command),	
 	('/tickets', ph_command),
 	('/.well-known/acme-challenge/ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk',ph_le),
 	('/graph_process', ph_gp),
