@@ -296,8 +296,8 @@
 			<p style="margin:0px;"><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a></p>
 			</td>
 			</table>
-			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Show Public Messages</a>
-			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">My Metric Accounts</a>
+			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Public Messages</a>
+			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Metric Accounts</a>
 		</div>
 		{% if blok.has_client_offer %}
 		<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -365,8 +365,8 @@
 			<p style="margin:0px;"><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a></p>
 			</td>
 			</table>
-			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Show Public Messages</a>
-			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">User's Metric Accounts</a>
+			<a href="/messages?channel={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Public Messages</a>
+			<a href="/search?term={{ blok.username }}" data-icon="grid" data-role="button" data-theme="b">Metric Accounts</a>
 		</div>
 		<div class="text_bubble ui-body ui-body-c">
 		<p><b>USER INFORMATION</b>
@@ -1058,6 +1058,211 @@
 					</ul>
 				{% endif %}
 			{% endif %}
+	{% endif %}
+
+
+
+
+	{% if blok.type == "dashboard" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<table><tr><td style="padding:0px;">
+			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+			</td>
+			<td>
+			<p style="margin:0px;">METRIC RESERVE
+			<br/>DASHBOARD
+			<br/><a class="noul" href="/profile?va={{ blok.account.username_alias }}">STUB</a>
+			<br/>#NET(s): 1 #ACC(s): 1</p>
+			</td>
+			</table>
+		</div>
+		<div id="dash_menu_1" style="margin-top: 7px;">
+			<div class="ui-grid-b">
+				<div class="ui-block-a">
+					<a id="dash_menu_1_send_active" data-role="button" data-mini="true" data-theme="e">Send</a>
+					<a id="dash_menu_1_send_inactive" data-role="button" data-mini="true" data-theme="a">Send</a>
+				</div>
+				<div class="ui-block-b">
+					<a id="dash_menu_1_receive_active" data-role="button" data-mini="true" data-theme="e">Receive</a>
+					<a id="dash_menu_1_receive_inactive" data-role="button" data-mini="true" data-theme="a">Receive</a>
+				</div>
+				<div class="ui-block-c">
+					<a id="dash_menu_1_view_active" data-role="button" data-mini="true" data-theme="e">View</a>
+					<a id="dash_menu_1_view_inactive" data-role="button" data-mini="true" data-theme="a">View</a>
+				</div>
+			</div>
+			<div class="ui-grid-a">
+				<div class="ui-block-a">
+					<a id="dash_menu_1_activity_active" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
+					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
+				</div>
+				<div class="ui-block-b">
+					<a id="dash_menu_1_messages_active" href="#" data-role="button" data-mini="true" data-theme="b">Messages</a>
+					<a id="dash_menu_1_messages_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Messages</a>
+				</div>
+				<div class="ui-block-a">
+					<a id="dash_menu_1_settings_active" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a>
+					<a id="dash_menu_1_settings_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a>
+				</div>
+				<div class="ui-block-b">
+					<a id="dash_menu_1_alerts_active" href="#" data-role="button" data-mini="true" data-theme="b">Alerts</a>
+					<a id="dash_menu_1_alerts_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Alerts</a>
+				</div>
+			</div>
+		</div>
+
+		<div id="dash_content_send" class="text_bubble ui-body ui-body-c">
+			<p>Send content STUB</p>
+		</div>
+		<div id="dash_content_receive" class="text_bubble ui-body ui-body-c">
+			<p>Receive content STUB</p>
+		</div>
+		<div id="dash_content_view" class="text_bubble ui-body ui-body-c">
+			<p>View content STUB</p>
+		</div>
+		<div id="dash_content_activity" class="text_bubble ui-body ui-body-c">
+			<p>Activity content STUB</p>
+		</div>
+		<div id="dash_content_messages" class="text_bubble ui-body ui-body-c">
+			<p>Messages content STUB</p>
+		</div>
+		<div id="dash_content_settings" class="text_bubble ui-body ui-body-c">
+			<p>Settings content STUB</p>
+		</div>
+		<div id="dash_content_alerts" class="text_bubble ui-body ui-body-c">
+			<p>Alerts content STUB</p>
+		</div>
+
+		<script>
+		$(document).ready(function(){
+			dash_reset_all_menu();
+			$("#dash_menu_1_view_active").show();
+			dash_hide_all_content();
+			$("#dash_content_view").show();
+
+			$("#dash_menu_1_send_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_send_active").show();
+				$("#dash_content_send").show();
+			});
+			$("#dash_menu_1_send_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_send_active").show();
+				$("#dash_content_send").show();
+			});
+
+			$("#dash_menu_1_receive_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_receive_active").show();
+				$("#dash_content_receive").show();
+			});
+			$("#dash_menu_1_receive_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_receive_active").show();
+				$("#dash_content_receive").show();
+			});
+
+			$("#dash_menu_1_view_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_view_active").show();
+				$("#dash_content_view").show();
+			});
+			$("#dash_menu_1_view_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_view_active").show();
+				$("#dash_content_view").show();
+			});
+
+			$("#dash_menu_1_activity_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_activity_active").show();
+				$("#dash_content_activity").show();
+			});
+			$("#dash_menu_1_activity_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_activity_active").show();
+				$("#dash_content_activity").show();
+			});
+
+			$("#dash_menu_1_messages_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_messages_active").show();
+				$("#dash_content_messages").show();
+			});
+			$("#dash_menu_1_messages_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_messages_active").show();
+				$("#dash_content_messages").show();
+			});
+
+			$("#dash_menu_1_settings_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_settings_active").show();
+				$("#dash_content_settings").show();
+			});
+			$("#dash_menu_1_settings_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_settings_active").show();
+				$("#dash_content_settings").show();
+			});
+
+			$("#dash_menu_1_alerts_active").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_alerts_active").show();
+				$("#dash_content_alerts").show();
+			});
+			$("#dash_menu_1_alerts_inactive").click(function(){
+				dash_reset_all_menu()
+				dash_hide_all_content();
+				$("#dash_menu_1_alerts_active").show();
+				$("#dash_content_alerts").show();
+			});
+
+		});
+
+		function dash_reset_all_menu() {
+			$("#dash_menu_1_send_active").hide();
+			$("#dash_menu_1_send_inactive").show();
+			$("#dash_menu_1_receive_active").hide();
+			$("#dash_menu_1_receive_inactive").show();
+			$("#dash_menu_1_view_active").hide();
+			$("#dash_menu_1_view_inactive").show();
+			$("#dash_menu_1_activity_active").hide();
+			$("#dash_menu_1_activity_inactive").show();
+			$("#dash_menu_1_messages_active").hide();
+			$("#dash_menu_1_messages_inactive").show();
+			$("#dash_menu_1_settings_active").hide();
+			$("#dash_menu_1_settings_inactive").show();
+			$("#dash_menu_1_alerts_active").hide();
+			$("#dash_menu_1_alerts_inactive").show();
+		}
+
+		function dash_hide_all_content() {
+			$("#dash_content_send").hide();
+			$("#dash_content_receive").hide();
+			$("#dash_content_view").hide();
+			$("#dash_content_activity").hide();
+			$("#dash_content_messages").hide();
+			$("#dash_content_settings").hide();
+			$("#dash_content_alerts").hide();
+		}
+
+		</script>
+
+
 	{% endif %}
 
 	{% if blok.type == "one account" %}
