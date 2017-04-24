@@ -1093,19 +1093,19 @@
 			</div>
 			<div class="ui-grid-a">
 				<div class="ui-block-a">
-					<a id="dash_menu_1_activity_active" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
+					<a id="dash_menu_1_activity_active" href="#" data-role="button" data-mini="true" data-theme="e">Activity</a>
 					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
 				</div>
 				<div class="ui-block-b">
-					<a id="dash_menu_1_messages_active" href="#" data-role="button" data-mini="true" data-theme="b">Messages</a>
+					<a id="dash_menu_1_messages_active" href="#" data-role="button" data-mini="true" data-theme="e">Messages</a>
 					<a id="dash_menu_1_messages_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Messages</a>
 				</div>
 				<div class="ui-block-a">
-					<a id="dash_menu_1_settings_active" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a>
+					<a id="dash_menu_1_settings_active" href="#" data-role="button" data-mini="true" data-theme="e">Settings</a>
 					<a id="dash_menu_1_settings_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a>
 				</div>
 				<div class="ui-block-b">
-					<a id="dash_menu_1_alerts_active" href="#" data-role="button" data-mini="true" data-theme="b">Alerts</a>
+					<a id="dash_menu_1_alerts_active" href="#" data-role="button" data-mini="true" data-theme="e">Alerts</a>
 					<a id="dash_menu_1_alerts_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Alerts</a>
 				</div>
 			</div>
@@ -1143,12 +1143,14 @@
 			$("#dash_menu_1_send_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_send_inactive").hide();
 				$("#dash_menu_1_send_active").show();
 				$("#dash_content_send").show();
 			});
 			$("#dash_menu_1_send_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_send_inactive").hide();
 				$("#dash_menu_1_send_active").show();
 				$("#dash_content_send").show();
 			});
@@ -1156,12 +1158,14 @@
 			$("#dash_menu_1_receive_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_receive_inactive").hide();
 				$("#dash_menu_1_receive_active").show();
 				$("#dash_content_receive").show();
 			});
 			$("#dash_menu_1_receive_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_receive_inactive").hide();
 				$("#dash_menu_1_receive_active").show();
 				$("#dash_content_receive").show();
 			});
@@ -1169,12 +1173,14 @@
 			$("#dash_menu_1_view_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_view_inactive").hide();
 				$("#dash_menu_1_view_active").show();
 				$("#dash_content_view").show();
 			});
 			$("#dash_menu_1_view_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_view_inactive").hide();
 				$("#dash_menu_1_view_active").show();
 				$("#dash_content_view").show();
 			});
@@ -1182,12 +1188,14 @@
 			$("#dash_menu_1_activity_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_activity_inactive").hide();
 				$("#dash_menu_1_activity_active").show();
 				$("#dash_content_activity").show();
 			});
 			$("#dash_menu_1_activity_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_activity_inactive").hide();
 				$("#dash_menu_1_activity_active").show();
 				$("#dash_content_activity").show();
 			});
@@ -1195,12 +1203,14 @@
 			$("#dash_menu_1_messages_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_messages_inactive").hide();
 				$("#dash_menu_1_messages_active").show();
 				$("#dash_content_messages").show();
 			});
 			$("#dash_menu_1_messages_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_messages_inactive").hide();
 				$("#dash_menu_1_messages_active").show();
 				$("#dash_content_messages").show();
 			});
@@ -1208,12 +1218,14 @@
 			$("#dash_menu_1_settings_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_settings_inactive").hide();
 				$("#dash_menu_1_settings_active").show();
 				$("#dash_content_settings").show();
 			});
 			$("#dash_menu_1_settings_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_settings_inactive").hide();
 				$("#dash_menu_1_settings_active").show();
 				$("#dash_content_settings").show();
 			});
@@ -1221,12 +1233,14 @@
 			$("#dash_menu_1_alerts_active").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_alerts_inactive").hide();
 				$("#dash_menu_1_alerts_active").show();
 				$("#dash_content_alerts").show();
 			});
 			$("#dash_menu_1_alerts_inactive").click(function(){
 				dash_reset_all_menu()
 				dash_hide_all_content();
+				$("#dash_menu_1_alerts_inactive").hide();
 				$("#dash_menu_1_alerts_active").show();
 				$("#dash_content_alerts").show();
 			});
