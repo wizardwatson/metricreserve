@@ -1665,7 +1665,7 @@
 				</div>
 			</div>
 
-			<!--- USER TRANSFER REQUESTS OUTGOING --->
+			<!--- OUTGOING USER TRANSFER REQUESTS --->
 			<div id="res_content_utr_req_out" class="text_bubble ui-body ui-body-c">
 				<p><b>USER CREATED OUTGOING TRANSFER REQUESTS</b>
 				<br/><br/>Below is a list of transfer requests initiated by you to your specific
@@ -1733,7 +1733,7 @@
 				{% endif %}
 			</div>
 
-			<!--- USER TRANSFER REQUESTS INCOMING --->
+			<!--- INCOMING USER TRANSFER REQUESTS --->
 			<div id="res_content_utr_req_in" class="text_bubble ui-body ui-body-c ui-hide-label">
 				<p><b>USER CREATED INCOMING TRANSFER REQUESTS</b>
 				<br/><br/>Below is a list of transfer requests initiated by your connections.  These
@@ -1771,29 +1771,86 @@
 			</div>
 			{% endif %}
 
-
-
-
-
-
-			<!--- res_content_str_req_out --->
+			<!--- OUTGOING SYSTEM SUGGESTED TRANSFER REQUESTS --->
 			<div id="res_content_str_req_out">
-				<div class="text_bubble ui-body ui-body-c">
-					<p>res_content_str_req_out</p>
+				<p><b>OUTGOING SYSTEM SUGGESTED TRANSFER REQUESTS</b>
+				<br/><br/>Below are two lists.  Active and Inactive.  For outgoing system transfer
+				suggestions, "active" are ones that you have activated and are indicating to your
+				connection that you wish them to authorize.  "inactive" are transfers the system
+				has suggested you initiate, but as of yet have not.  For the active outgoing, you
+				can cancel your request at any time before the connection has acted on it.
+				<br/><br/><b>List of Active Outgoing
+				<br/>System Suggested Transfer
+				<br/>Requests</b></p>
+				{% if blok.account.has_ast_out_requests %}
+				{% for account in blok.account.ast_out_requests %}
+				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
+					<table><tr><td rowspan="8" style="padding:0px;">
+					<a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
+					<img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+					</td>
+					<td>Acc. Nam:</td><td colspan="3">{{ account.username_alias }}</td></tr><tr>
+					<td>Net. Bal:</td><td colspan="3">{{ account.network_balance }}</td></tr><tr>
+					<td>Res. Bal:</td><td colspan="3">{{ account.reserve_balance }}</td></tr><tr>
+					<td>Res. +/-:</td><td colspan="3">&nbsp;</td></tr><tr>
+					<td>Con. Cnt:</td><td colspan="3">{{ account.connection_count }}</td></tr><tr>
+					<td>Usr. ATR:</td><td>{{ account.transfer_request }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					<td>Sug. ATR:</td><td>{{ account.suggested_transfer_active }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					<td>Sug. ITR:</td><td>{{ account.suggested_transfer_inactive }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					</table>
+					<div class="ui-grid-a">
+						<div class="ui-block-a"><button type="submit" data-theme="a" data-mini="true" data-icon="delete">CANCEL</button></div>
+					</div>
 				</div>
+				{% endfor %}
+				{% else %}
+				<p>You currently have no active outgoing system suggested transfer requests.</p>
+				{% endif %}
+				<hr/>
+				<p><b>List of Inactive Outgoing
+				<br/>System Suggested Transfer
+				<br/>Requests</b></p>
+				{% if blok.account.has_ist_out_requests %}
+				{% for account in blok.account.ist_out_requests %}
+				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
+					<table><tr><td rowspan="8" style="padding:0px;">
+					<a href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">
+					<img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+					</td>
+					<td>Acc. Nam:</td><td colspan="3">{{ account.username_alias }}</td></tr><tr>
+					<td>Net. Bal:</td><td colspan="3">{{ account.network_balance }}</td></tr><tr>
+					<td>Res. Bal:</td><td colspan="3">{{ account.reserve_balance }}</td></tr><tr>
+					<td>Res. +/-:</td><td colspan="3">&nbsp;</td></tr><tr>
+					<td>Con. Cnt:</td><td colspan="3">{{ account.connection_count }}</td></tr><tr>
+					<td>Usr. ATR:</td><td>{{ account.transfer_request }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					<td>Sug. ATR:</td><td>{{ account.suggested_transfer_active }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					<td>Sug. ITR:</td><td>{{ account.suggested_transfer_inactive }}</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr>
+					</table>
+					<form action="#" method="post" data-ajax="false">
+					<label for="basic">Text Input:</label>
+    				<input type="text" name="name" id="basic" value="" placeholder="TRANSFER AMOUNT" />
+					<div class="ui-grid-a">
+						<div class="ui-block-a"><button type="submit" data-theme="a" data-mini="true" data-icon="plus">REQUEST</button></div>
+					</div>
+				</div>
+				{% endfor %}
+				{% else %}
+				<p>You currently have no inactive outgoing system suggested transfer requests.</p>
+				{% endif %}
 			</div>
 
-			<!--- SYSTEM SUGGESTED TRANSFER REQUESTS INCOMING --->
+			<!--- INCOMING SYSTEM SUGGESTED TRANSFER REQUESTS --->
 			<div id="res_content_str_req_in" class="text_bubble ui-body ui-body-c">
-				<p><b>SYSTEM SUGGESTED INCOMING TRANSFER REQUESTS</b>
+				<p><b>INCOMING SYSTEM SUGGESTED TRANSFER REQUESTS</b>
 				<br/><br/>Below are two lists.  Active and Inactive.  For incoming system transfer
 				suggestions, "active" are ones that your connection has activated and is indicating
 				they wish you to authorize.  "inactive" are transfers the system has suggested they
 				request, but as of yet have not.  For the inactive incoming, all you can do is
 				communicate with the connection if you wish for them to proceed by requesting that
 				specific transfer.  For the active, you can either deny or authorize it.
-				<br/><br/><b>List of Active System
-				<br/>Suggested Transfer Requests</b></p>
+				<br/><br/><b>List of Active Incoming
+				<br/>System Suggested Transfer
+				<br/>Requests</b></p>
 				{% if blok.account.has_ast_in_requests %}
 				{% for account in blok.account.ast_in_requests %}
 				<div  class="text_bubble ui-body ui-body-c ui-hide-label">
