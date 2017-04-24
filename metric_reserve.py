@@ -9725,6 +9725,7 @@ class ph_command(webapp2.RequestHandler):
 		page = lobj_master.page
 		if lobj_master.user.IS_LOGGED_IN:
 			page["username"] = lobj_master.user.entity.username
+			page["context"] = "Signed In as: <b>%s</b>" % (page["username"])
 		else:
 			# if running locally in development show a made-up IP
 			if lobj_master.request.host[:9] == "localhost":
@@ -9732,7 +9733,7 @@ class ph_command(webapp2.RequestHandler):
 			else:
 				page["username"] = lobj_master.request.remote_addr
 				
-		page["context"] = "Signed In as: <b>%s</b>" % (page["username"])
+			page["context"] = "Currently Signed Out"
 
 		# use while loop as case statement
 		# break out when we select a case
