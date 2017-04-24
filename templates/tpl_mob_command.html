@@ -35,7 +35,11 @@
 		<div id="com_display2"  class="context_line ui-body ui-body-a"><font color="yellow">{{master.page.context|safe }}</font><a style="float:right;"id="show1" class="noul" href="#">COM:SHOW</a></div>
 		{% endif %}
 		<div class="ui-grid-b">
+		{% if master.user.IS_LOGGED_IN %}
 		<div class="ui-block-a"><a href="/dashboard" data-role="button" data-theme="a">Dash</a></div>
+		{% else %}
+		<div class="ui-block-a"><a href="/" data-role="button" data-theme="a">Home</a></div>
+		{% endif %}
 		<div class="ui-block-b"><a href="/search" data-role="button" data-theme="a">Search</a></div>
 		<div class="ui-block-c"><a href="#" data-role="button" data-theme="a">Stats</a></div>
 		</div>
