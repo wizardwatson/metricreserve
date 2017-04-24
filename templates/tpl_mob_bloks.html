@@ -1368,7 +1368,7 @@
 				</div>
 				</form>
 				<hr/>
-				<b>Account Connections Requested</b>
+				<b>ACCOUNT CONNECTIONS REQUESTED</b>
 				{% if blok.account.has_outgoing_connection_requests %}
 				{% for account in blok.account.outgoing_connection_requests %}
 				<div class="text_bubble ui-body ui-body-c">
@@ -1392,7 +1392,9 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<br/><br/>You currently have no outgoing connection requests.
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no outgoing connection requests.</p>
+				</div>
 				{% endif %}
 				</p>
 			</div>
@@ -1410,7 +1412,7 @@
 				wish to disconnect in the future you can do so from their
 				account page, or from the "connections" link on menu1.
 				<hr/>
-				<b>Accounts Requesting Connection</b>
+				<b>ACCOUNTS REQUESTING CONNECTION</b>
 				{% if blok.account.has_incoming_connection_requests %}
 				{% for account in blok.account.incoming_connection_requests %}
 				<div class="text_bubble ui-body ui-body-c">
@@ -1431,7 +1433,9 @@
 				</div>
 				{% endfor %}
 				{% else %}
-				<br/><br/>You currently have no incoming connection requests.</p>
+				<div class="text_bubble ui-body ui-body-c ui-hide-label">
+					<p>You currently have no incoming connection requests.</p>
+				</div>
 				{% endif %}
 			</div>
 
@@ -1778,7 +1782,7 @@
 			{% endif %}
 
 			<!--- OUTGOING SYSTEM SUGGESTED TRANSFER REQUESTS --->
-			<div id="res_content_str_req_out">
+			<div id="res_content_str_req_out" class="text_bubble ui-body ui-body-c ui-hide-label">
 				<p><b>OUTGOING SYSTEM SUGGESTED TRANSFER REQUESTS</b>
 				<br/><br/>Below are two lists.  Active and Inactive.  For outgoing system transfer
 				suggestions, "active" are ones that you have activated and are indicating to your
