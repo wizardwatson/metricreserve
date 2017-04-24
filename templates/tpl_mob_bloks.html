@@ -500,6 +500,8 @@
 
 
 	{% if blok.type == "all networks" %}
+		<div class="text_bubble ui-body ui-body-c">
+			<p><b>Browse All Networks</b></p>
 		{% if blok.groups %}
 			{% if blok.groups.has_my_live_networks %}
 				<ul class="myclass" data-inset="true" data-role="listview" data-divider-theme="a">
@@ -612,6 +614,7 @@
 			<p>Currently no metric reserve networks exist.</p>
 			</div>
 		{% endif %}
+		</div>
 	{% endif %}
 
 
