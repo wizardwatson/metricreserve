@@ -531,6 +531,22 @@ class ds_mrgp_big_pickle(ndb.Model):
 
 ##############################################################################
 ###
+###  BEGIN: Global Functions
+###
+##############################################################################
+
+
+
+##############################################################################
+###
+###  END: Global Functions
+###
+##############################################################################
+
+
+
+##############################################################################
+###
 ###  BEGIN: Application Classes
 ###
 ##############################################################################
@@ -11226,7 +11242,7 @@ class ph_command(webapp2.RequestHandler):
 		###################################
 		r.redirect(self.url_path(error_code="1278"))
 		return
-			
+
 ################################################################
 ###
 ###  END: Page Handler Classes
@@ -11243,24 +11259,6 @@ class ph_gp(webapp2.RequestHandler):
 		lobj_master = master(self,"get","unsecured",True)
 		lobj_master.metric._multi_graph_process()
 
-################################################################
-###
-###  Let's Encrypt Verification handler
-###
-################################################################
-
-class ph_le(webapp2.RequestHandler):
-
-	def get(self):
-		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.write('ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk.lSd644Dfv363_CjJ6OR4ugBW_SonvdfZDh6He4MYyBQ')
-		
-		# STUB check cron request header
-		# X-Appengine-Cron: true
-		#pass
-		lobj_master = master(self,"get","unsecured",True)
-		lobj_master.metric._multi_graph_process()
-		
 ##########################################################################
 # BEGIN: Python Entry point.  This function should be permanent.
 ##########################################################################
@@ -11279,20 +11277,19 @@ class ph_le(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
 	('/', ph_command),
-	('/documentation', ph_command),
-	('/network', ph_command),
-	('/profile', ph_command),
 	('/all_users', ph_command),
-	('/search', ph_command),
-	('/messages', ph_command),
-	('/ledger', ph_command),
-	('/transfer', ph_command),
-	('/pay', ph_command),
 	('/dashboard', ph_command),	
-	('/tickets', ph_command),
-	('/.well-known/acme-challenge/ah7JtYDkQBHoh0KR6LokPwAaTbMivdTCChxGmz70JFk',ph_le),
+	('/documentation', ph_command),
+	('/graph', ph_command),
 	('/graph_process', ph_gp),
-	('/graph', ph_command)
+	('/ledger', ph_command),
+	('/messages', ph_command),
+	('/network', ph_command),
+	('/pay', ph_command),
+	('/profile', ph_command),
+	('/search', ph_command),
+	('/tickets', ph_command),
+	('/transfer', ph_command)
 	],debug=True)
 
 ##########################################################################
