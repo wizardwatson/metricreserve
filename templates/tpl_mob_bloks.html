@@ -1073,12 +1073,12 @@
 	{% if blok.type == "dashboard" %}
 		<div class="text_bubble ui-body ui-body-c">
 			<table><tr><td style="padding:0px;">
-			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="/static/metric_logo_60.png" /></a>
+			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.gravatar_url }}" /></a>
 			</td>
 			<td>
 			<p style="margin:0px;">METRIC RESERVE
 			<br/>DASHBOARD
-			<br/><a class="noul" href="/profile?va=STUB">STUB</a>
+			<br/><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a>
 			<br/>#NET(s): 1 #ACC(s): 1</p>
 			</td>
 			</table>
@@ -1104,16 +1104,16 @@
 					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
 				</div>
 				<div class="ui-block-b">
-					<a id="dash_menu_1_messages_active" href="#" data-role="button" data-mini="true" data-theme="e">Messages</a>
-					<a id="dash_menu_1_messages_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Messages</a>
+					<a id="dash_menu_1_messages_active" href="/messages?channel={{ blok.username }}" data-role="button" data-mini="true" data-theme="e">Messages</a>
+					<a id="dash_menu_1_messages_inactive" href="/messages?channel={{ blok.username }}" data-role="button" data-mini="true" data-theme="b">Messages</a>
 				</div>
 				<div class="ui-block-a">
 					<a id="dash_menu_1_settings_active" href="#" data-role="button" data-mini="true" data-theme="e">Settings</a>
 					<a id="dash_menu_1_settings_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Settings</a>
 				</div>
 				<div class="ui-block-b">
-					<a id="dash_menu_1_alerts_active" href="#" data-role="button" data-mini="true" data-theme="e">Alerts</a>
-					<a id="dash_menu_1_alerts_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Alerts</a>
+					<a id="dash_menu_1_alerts_active" href="#" data-role="button" data-mini="true" data-theme="e" class="ui-disabled">Alerts</a>
+					<a id="dash_menu_1_alerts_inactive" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Alerts</a>
 				</div>
 			</div>
 		</div>
