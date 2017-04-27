@@ -9823,6 +9823,20 @@ class ph_command(webapp2.RequestHandler):
 				page["title"] = "DASHBOARD"
 				blok = {}
 				blok["type"] = "dashboard"
+				t_user = lobj_master.user.entity
+				blok["username"] = tuser.username
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(tuser.gravatar_url,tuser.gravatar_type)
+				
+				"""
+				network count
+				account count
+				username
+				list of all accounts
+				
+				
+				
+				"""
+				
 				bloks.append(blok)	
 				bloks.append(self.get_menu_blok())	
 				break
