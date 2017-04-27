@@ -9824,8 +9824,8 @@ class ph_command(webapp2.RequestHandler):
 				blok = {}
 				blok["type"] = "dashboard"
 				t_user = lobj_master.user.entity
-				blok["username"] = tuser.username
-				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(tuser.gravatar_url,tuser.gravatar_type)
+				blok["username"] = t_user.username
+				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(t_user.gravatar_url,t_user.gravatar_type)
 				
 				"""
 				network count
