@@ -2826,7 +2826,8 @@ class metric(object):
 			else:
 				# metric account entities
 				all_accounts_list.append(all_entities_list[i])
-	
+		dash["networks"] = networks["list"]
+		
 		# separate user accounts from child accounts
 		user_accounts = []
 		child_accounts = []
