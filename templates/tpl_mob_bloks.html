@@ -1073,13 +1073,13 @@
 	{% if blok.type == "dashboard" %}
 		<div class="text_bubble ui-body ui-body-c">
 			<table><tr><td style="padding:0px;">
-			<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.gravatar_url }}" /></a>
+			<a href="/profile?va={{ blok.dash.username }}"><img style="float:left;margin-right:10px;padding:0px;" src="{{ blok.dash.gravatar_url }}" /></a>
 			</td>
 			<td>
 			<p style="margin:0px;">METRIC RESERVE
 			<br/>DASHBOARD
-			<br/><a class="noul" href="/profile?va={{ blok.username }}">{{ blok.username }}</a>
-			<br/>#NET(s): 1 #ACC(s): 1</p>
+			<br/><a class="noul" href="/profile?va={{ blok.dash.username }}">{{ blok.dash.username }}</a>
+			<br/>#NET(s): {{ blok.dash.total_networks }} #ACC(s): {{ blok.dash.total_accounts }}</p>
 			</td>
 			</table>
 		</div>
@@ -1104,8 +1104,8 @@
 					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
 				</div>
 				<div class="ui-block-b">
-					<a id="dash_menu_1_messages_active" href="/messages?channel={{ blok.username }}" data-role="button" data-mini="true" data-theme="e">Messages</a>
-					<a id="dash_menu_1_messages_inactive" href="/messages?channel={{ blok.username }}" data-role="button" data-mini="true" data-theme="b">Messages</a>
+					<a id="dash_menu_1_messages_active" href="/messages?channel={{ blok.dash.username }}" data-role="button" data-mini="true" data-theme="e">Messages</a>
+					<a id="dash_menu_1_messages_inactive" href="/messages?channel={{ blok.dash.username }}" data-role="button" data-mini="true" data-theme="b">Messages</a>
 				</div>
 				<div class="ui-block-a">
 					<a id="dash_menu_1_settings_active" href="#" data-role="button" data-mini="true" data-theme="e">Settings</a>
@@ -1124,9 +1124,64 @@
 		<div id="dash_content_receive" class="text_bubble ui-body ui-body-c">
 			<p>Receive content STUB</p>
 		</div>
+
+
+		<!--- DASHBOARD: VIEW --->
 		<div id="dash_content_view" class="text_bubble ui-body ui-body-c">
-			<p>View content STUB</p>
+			<p><b>YOUR ACCOUNTS</b></p>
+			{% if blok.dash.has_user_accounts %}
+			{% for account in blok.dash.user_accounts %}
+			<div class="text_bubble ui-body ui-body-c">
+				<table><tr><td style="padding:0px;">
+				<a href="/network?vn={{ account.network_name }}&va={{ account.username_alias }}">
+				<img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+				</td>
+				<td>
+				<p style="margin:0px;">{{ account.type }} ACCOUNT
+				<br/><a class="noul" href="/network?vn={{ account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+				{% if account.type == "RESERVE" %}
+				<br/>Res: {{ account.reserve_balance }} Net: {{ account.network_balance }}
+				{% else %}
+				<br/>Balance: {{ account.network_balance }}
+				{% endif %}
+				<br/>Network: <a class="noul" href="/network?vn={{ account.network_name }}">{{ account.network_name }}</a></p>
+				</td>
+				</table>
+			</div>
+			{% endfor %}
+			{% else %}
+			<div class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p>You currently have no user accounts.</p>
+			</div>
+			{% endif %}
+			<hr/>
+			<p><b>SPONSORED ACCOUNTS</b></p>
+			{% if blok.dash.has_child_accounts %}
+			{% for account in blok.dash.child_accounts %}
+			<div class="text_bubble ui-body ui-body-c">
+				<table><tr><td style="padding:0px;">
+				<a href="/network?vn={{ account.network_name }}&va={{ account.username_alias }}">
+				<img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
+				</td>
+				<td>
+				<p style="margin:0px;">{{ account.type }} ACCOUNT
+				<br/><a class="noul" href="/network?vn={{ account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
+				<br/>Balance: {{ account.network_balance }}
+				<br/>Network: <a class="noul" href="/network?vn={{ account.network_name }}">{{ account.network_name }}</a></p>
+				</td>
+				</table>
+			</div></p>
+			{% endfor %}
+
+			{% else %}
+			<div class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p>You currently have no sponsored accounts.</p>
+			</div>
+			{% endif %}
 		</div>
+
+
+
 		<div id="dash_content_activity" class="text_bubble ui-body ui-body-c">
 			<p>Activity content STUB</p>
 		</div>
@@ -1776,7 +1831,7 @@
 							<a href="#"><img style="float:left;margin-right:10px;padding:0px;" src="{{ account.gravatar_url }}" /></a>
 							</td>
 							<td>
-							<p style="margin:0px;">CLONE ACCOUNT
+							<p style="margin:0px;">JOINT ACCOUNT
 							<br/><a class="noul" href="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}">{{ account.username_alias }}</a>
 							<br/>Net. Balance: {{ account.network_balance }}
 							</td>
