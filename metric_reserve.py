@@ -2691,7 +2691,147 @@ class metric(object):
 			
 		self.PARENT.RETURN_CODE = "1283"
 		return False # error Account type not recognized
-					
+
+
+	def _view_dashboard(self,fuser):
+	
+		
+		dash = {}
+		
+		# counters
+		dash["total_networks"] = 0
+		dash["total_accounts"] = 0
+		
+		# booleans
+		
+		# sequences
+		all_network_ids_list = []
+		all_account_ids_list = []
+		all_parent_ids_list = []
+		all_labels_list = []
+				
+		distinct_network_ids = []
+		
+		for i in range(len(fuser.reserve_network_ids)):
+			dash["total_accounts"] += 1
+			all_network_ids_list.append(fuser.reserve_network_ids[i])
+			all_account_ids_list.append(fuser.reserve_account_ids[i])
+			all_parent_ids_list.append(None)
+			all_labels_list.append(fuser.reserve_labels[i])
+			if not fuser.reserve_network_ids[i] in distinct_network_ids:
+				dash["total_networks"] += 1
+				distinct_network_ids.append(fuser.reserve_network_ids[i])
+
+		for i in range(len(fuser.client_network_ids)):
+			dash["total_accounts"] += 1
+			all_network_ids_list.append(fuser.client_network_ids[i])
+			all_account_ids_list.append(fuser.client_account_ids[i])
+			all_parent_ids_list.append(fuser.client_parent_ids[i])
+			all_labels_list.append(fuser.client_labels[i])
+			if not fuser.client_network_ids[i] in distinct_network_ids:
+				dash["total_networks"] += 1
+				distinct_network_ids.append(fuser.client_network_ids[i])
+
+		for i in range(len(fuser.joint_network_ids)):
+			dash["total_accounts"] += 1
+			all_network_ids_list.append(fuser.joint_network_ids[i])
+			all_account_ids_list.append(fuser.joint_account_ids[i])
+			all_parent_ids_list.append(fuser.joint_parent_ids[i])
+			all_labels_list.append(fuser.joint_labels[i])
+			if not fuser.joint_network_ids[i] in distinct_network_ids:
+				dash["total_networks"] += 1
+				distinct_network_ids.append(fuser.joint_network_ids[i])
+
+		for i in range(len(fuser.clone_network_ids)):
+			dash["total_accounts"] += 1
+			all_network_ids_list.append(fuser.clone_network_ids[i])
+			all_account_ids_list.append(fuser.clone_account_ids[i])
+			all_parent_ids_list.append(fuser.clone_parent_ids[i])
+			all_labels_list.append(fuser.clone_labels[i])
+			if not fuser.clone_network_ids[i] in distinct_network_ids:
+				dash["total_networks"] += 1
+				distinct_network_ids.append(fuser.clone_network_ids[i])
+
+		for i in range(len(fuser.child_client_network_ids)):
+			all_network_ids_list.append(fuser.child_client_network_ids[i])
+			all_account_ids_list.append(fuser.child_client_account_ids[i])
+			all_parent_ids_list.append(fuser.child_client_parent_ids[i])
+			all_labels_list.append(None)
+			if not fuser.child_client_network_ids[i] in distinct_network_ids:
+				distinct_network_ids.append(fuser.child_client_network_ids[i])
+				
+		for i in range(len(fuser.child_joint_network_ids)):
+			all_network_ids_list.append(fuser.child_joint_network_ids[i])
+			all_account_ids_list.append(fuser.child_joint_account_ids[i])
+			all_parent_ids_list.append(fuser.child_joint_parent_ids[i])
+			all_labels_list.append(None)
+			if not fuser.child_joint_network_ids[i] in distinct_network_ids:
+				distinct_network_ids.append(fuser.child_joint_network_ids[i])
+				
+		all_keys_list = []
+		
+		last_a_idx = 0
+		last_b_idx = 0
+		for i in range(len(distinct_network_ids)):
+			network_key = ndb.Key("ds_mr_network_profile","%s" % str(distinct_network_ids[i]).zfill(8))
+			all_keys_list.append(network_key)
+			last_a_idx = i
+		for i in range(len(all_network_ids_list)):
+			a = all_network_ids_list[i]
+			b = all_account_ids_list[i]
+			metric_account_key = ndb.Key("ds_mr_metric_account","%s%s" % (str(a).zfill(8),str(b).zfill(12)))
+			all_keys_list.append(metric_account_key)
+			last_b_idx = i
+				
+		all_entities_list = ndb.get_multi(all_keys_list)
+		networks = {}
+		networks["list"] = []
+		all_accounts_list = []
+		for i in range(len(all_entities_list)):
+		
+			if i < last_b_idx:
+				# network entity list and id/name pointer dict
+				networks[all_entities_list[i].network_id] = all_entities_list[i]
+				networks[all_entities_list[i].network_name] = all_entities_list[i]
+				networks["list"].append(all_entities_list[i])
+			else:
+				# metric account entities
+				all_accounts_list.append(all_entities_list[i])
+	
+		# separate user accounts from child accounts
+		user_accounts = []
+		child_accounts = []
+		child_user_keys = []
+		for i in range(len(all_accounts_list)):
+			if not i > (dash["total_accounts"] - 1):
+				# user account
+				user_accounts.append(all_accounts_list[i])
+			else:
+				# child account
+				child_accounts.append(all_accounts_list[i])
+				user_key = ndb.Key("ds_mr_user", "%s" % str(all_accounts_list[i].user_id))
+				child_user_keys.append(user_key)
+
+		# if we have child accounts get the child accounts user
+		if len(child_accounts) > 0:
+			child_users = ndb.get_multi(child_user_keys)
+			
+		# now create the formatted content
+		
+		# view
+		#
+		# dashboard "view" is shortcuts to all accounts for this user
+		# including children
+		dash["user_accounts"] = []
+		for i in range(len(user_accounts)):
+			user_account = {}
+			user_account["type"] = user_accounts[i].account_type
+			user_account["username_alias"] = all_labels_list[i]
+			user_account["network_name"] = networks[user_accounts[i].network_id].network_name
+			user_account["reserve_balance"] = user_accounts[i].current_reserve_balance
+			user_account["network_balance"] = user_accounts[i].current_network_balance
+			
+		
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
 		def get_formatted_amount(network,account,raw_amount):
