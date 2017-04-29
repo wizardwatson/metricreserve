@@ -2695,8 +2695,37 @@ class metric(object):
 
 	def _view_dashboard(self,fuser):
 	
-		
+		def get_formatted_amount(network,account,raw_amount):
+			
+			format_string = "{:28,.%sf}" % account.decimal_places
+			return format_string.format(round(Decimal(raw_amount) / Decimal(network.skintillionths), account.decimal_places))
+
+		def get_label_for_account(user_obj,network_id,account_id,fstr_type):		
+			if fstr_type == "RESERVE":
+				for i in range(len(user_obj.reserve_network_ids)):
+					if user_obj.reserve_network_ids[i] == network_id:
+						if user_obj.reserve_account_ids[i] == account_id:
+							return user_obj.reserve_labels[i]
+			if fstr_type == "CLIENT":
+				for i in range(len(user_obj.client_network_ids)):
+					if user_obj.client_network_ids[i] == network_id:
+						if user_obj.client_account_ids[i] == account_id:
+							return user_obj.client_labels[i]
+			if fstr_type == "JOINT":
+				for i in range(len(user_obj.joint_network_ids)):
+					if user_obj.joint_network_ids[i] == network_id:
+						if user_obj.joint_account_ids[i] == account_id:
+							return user_obj.joint_labels[i]
+			if fstr_type == "CLONE":
+				for i in range(len(user_obj.clone_network_ids)):
+					if user_obj.clone_network_ids[i] == network_id:
+						if user_obj.clone_account_ids[i] == account_id:
+							return user_obj.clone_labels[i]
+							
 		dash = {}
+		
+		dash["username"] = fuser.username
+		dash["gravatar_url"] = self.PARENT.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type)
 		
 		# counters
 		dash["total_networks"] = 0
@@ -2789,7 +2818,7 @@ class metric(object):
 		all_accounts_list = []
 		for i in range(len(all_entities_list)):
 		
-			if i < last_b_idx:
+			if i < (last_a_idx + 1):
 				# network entity list and id/name pointer dict
 				networks[all_entities_list[i].network_id] = all_entities_list[i]
 				networks[all_entities_list[i].network_name] = all_entities_list[i]
@@ -2812,10 +2841,6 @@ class metric(object):
 				user_key = ndb.Key("ds_mr_user", "%s" % str(all_accounts_list[i].user_id))
 				child_user_keys.append(user_key)
 
-		# if we have child accounts get the child accounts user
-		if len(child_accounts) > 0:
-			child_users = ndb.get_multi(child_user_keys)
-			
 		# now create the formatted content
 		
 		# view
@@ -2823,14 +2848,49 @@ class metric(object):
 		# dashboard "view" is shortcuts to all accounts for this user
 		# including children
 		dash["user_accounts"] = []
+		dash["has_user_accounts"] = False
 		for i in range(len(user_accounts)):
+			dash["has_user_accounts"] = True
 			user_account = {}
 			user_account["type"] = user_accounts[i].account_type
 			user_account["username_alias"] = all_labels_list[i]
-			user_account["network_name"] = networks[user_accounts[i].network_id].network_name
-			user_account["reserve_balance"] = user_accounts[i].current_reserve_balance
-			user_account["network_balance"] = user_accounts[i].current_network_balance
+			# network reference
+			a = networks[user_accounts[i].network_id]
+			user_account["network_name"] = a.network_name
+			b = user_accounts[i]
+			c = b.current_reserve_balance
+			user_account["reserve_balance"] = get_formatted_amount(a,b,c)
+			c = b.current_network_balance
+			user_account["network_balance"] = get_formatted_amount(a,b,c)
+			user_account["gravatar_url"] = self.PARENT.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type)
+			dash["user_accounts"].append(user_account)
 			
+		# if we have child accounts get the child accounts user before
+		# formatting
+		dash["child_accounts"] = []
+		dash["has_child_accounts"] = False
+		if len(child_accounts) > 0:
+			dash["has_child_accounts"] = True
+			child_users = ndb.get_multi(child_user_keys)
+			for i in range(len(child_accounts)):
+				child_account = {}
+				child_user = child_users[i]
+				b = child_accounts[i].network_id
+				c = child_accounts[i].account_id
+				d = child_accounts[i].account_type
+				child_account["username_alias"] = get_label_for_account(child_user,b,c,d)
+				child_account["type"] = d
+				a = networks[child_accounts[i].network_id]
+				child_account["network_name"] = a.network_name
+				b = child_accounts[i]
+				c = b.current_reserve_balance
+				child_account["reserve_balance"] = get_formatted_amount(a,b,c)
+				c = b.current_network_balance
+				child_account["network_balance"] = get_formatted_amount(a,b,c)
+				child_account["gravatar_url"] = self.PARENT.user._get_gravatar_url(child_user.gravatar_url,child_user.gravatar_type)
+				dash["child_accounts"].append(child_account)
+		
+		return dash
 		
 	def _view_network_account(self,fstr_network_name,fstr_account_name):
 	
@@ -9963,20 +10023,7 @@ class ph_command(webapp2.RequestHandler):
 				page["title"] = "DASHBOARD"
 				blok = {}
 				blok["type"] = "dashboard"
-				t_user = lobj_master.user.entity
-				blok["username"] = t_user.username
-				blok["gravatar_url"] = lobj_master.user._get_gravatar_url(t_user.gravatar_url,t_user.gravatar_type)
-				
-				"""
-				network count
-				account count
-				username
-				list of all accounts
-				
-				
-				
-				"""
-				
+				blok["dash"] = lobj_master.metric._view_dashboard(lobj_master.user.entity)
 				bloks.append(blok)	
 				bloks.append(self.get_menu_blok())	
 				break
