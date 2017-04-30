@@ -1123,7 +1123,20 @@
 			{% if blok.dash.has_user_accounts %}
 			{% if blok.dash.total_networks == 1 %}
 			{% for network in blok.dash.networks %}
-			<p>stuff</p>
+			<div class="text_bubble ui-body ui-body-c ui-hide-label">
+				<h3>NETWORK: {{ network.network_name }}</h3>
+				<p><b>TO</b>:<br/>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<label for="username">Username:</label>
+				<input type="text" name="username" id="username" value="" placeholder="Username" />
+				<label for="amount">Amount:</label>
+				<input type="text" name="amount" id="amount" value="" placeholder="Amount" />
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="reset" data-theme="a">SEND</button></div>
+				</fieldset>
+				</form>
+				</p>
+			</div>
 			{% endfor %}
 			{% else %}
 			{% for network in blok.dash.networks %}
@@ -1152,8 +1165,57 @@
 
 
 
-		<div id="dash_content_receive" class="text_bubble ui-body ui-body-c">
-			<p>Receive content STUB</p>
+		<div id="dash_content_receive" class="text_bubble ui-body ui-body-c ui-hide-label">
+			<p><b>SEND TICKET FROM...</b></p>
+			{% if blok.dash.has_user_accounts %}
+			{% if blok.dash.total_networks == 1 %}
+			{% for network in blok.dash.networks %}
+			<div class="text_bubble ui-body ui-body-c ui-hide-label">
+				<h3>NETWORK: {{ network.network_name }}</h3>
+				<p><b>TO</b>:<br/>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<label for="username">Username:</label>
+				<input type="text" name="username" id="username" value="" placeholder="Username" />
+				<label for="amount">Amount:</label>
+				<input type="text" name="amount" id="amount" value="" placeholder="Amount" />
+				<label for="ticket_name">Ticket Name:</label>
+				<input type="text" name="ticket_name" id="ticket_name" value="" placeholder="Ticket Name" />
+				<label for="memo">Memo:</label>
+				<textarea name="memo" id="memo" value="" placeholder="Memo [Optional]"/></textarea>
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="reset" data-theme="a">SEND</button></div>
+				</fieldset>
+				</form>
+				</p>
+			</div>
+			{% endfor %}
+			{% else %}
+			{% for network in blok.dash.networks %}
+			<div data-role="collapsible">
+				<h2>NETWORK: {{ network.network_name }}</h2>
+				<p><b>TO</b>:<br/>
+				<form action="#" method="post" data-ajax="false" class="ui-corner-all">
+				<label for="username">Username:</label>
+				<input type="text" name="username" id="username" value="" placeholder="Username" />
+				<label for="amount">Amount:</label>
+				<input type="text" name="amount" id="amount" value="" placeholder="Amount" />
+				<label for="ticket_name">Ticket Name:</label>
+				<input type="text" name="ticket_name" id="ticket_name" value="" placeholder="Ticket Name" />
+				<label for="memo">Memo:</label>
+				<textarea name="memo" id="memo" value="" placeholder="Memo [Optional]"/></textarea>
+				<fieldset class="ui-grid-a">
+					<div class="ui-block-a"><button type="reset" data-theme="a">SEND</button></div>
+				</fieldset>
+				</form>
+				</p>
+			</div>
+			{% endfor %}
+			{% endif %}
+			{% else %}
+			<div class="text_bubble ui-body ui-body-c ui-hide-label">
+				<p>Cannot send money until connected to others on a network.</p>
+			</div>
+			{% endif %}
 		</div>
 
 
