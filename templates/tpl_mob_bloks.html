@@ -1282,9 +1282,94 @@
 		<div id="dash_content_messages" class="text_bubble ui-body ui-body-c">
 			<p>Messages content STUB</p>
 		</div>
-		<div id="dash_content_settings" class="text_bubble ui-body ui-body-c">
-			<p>Settings content STUB</p>
+
+
+
+		<div id="dash_content_settings" class="text_bubble ui-body ui-body-c ui-hide-label">
+			<h3>USER SETTINGS</h3>
+			<p><b>Username</b>
+			<br/><br/>When you initially log in you're assigned a random username.  You can
+			change your username at any time.  It must be unique, contain only lowercase
+			letters, digits 0 thru 9, and underscores.  If the name is 10 characters or less
+			it must contain at least one number.</p>
+			<form action="#" method="post" data-ajax="false">
+			<label for="username">Text Input:</label>
+			<input type="text" name="username" id="username" value="" placeholder="USERNAME" />
+			<div class="ui-grid-a">
+			<div class="ui-block-a">
+			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE</button>
+			</form>
+			</div>
+			</div>
+			<hr/>
+			<p><b>Gravatar Type</b>
+			<br/><br/>This website implements the gravatar avatar system.  You can use
+			your standard registered gravatar by setting gravatar type to "gravatar" and
+			setting the Gravatar URL to the one you have registered.  You can also set
+			gravatar type to one of the random hash-generated types and the randomness
+			will be based on the Gravatar URL you set.</p>
+			<form action="#" method="post" data-ajax="false">
+			<input type="radio" name="radio-choice" id="radio-choice-1" value="choice-1" />
+			<label for="radio-choice-1">Gravatar</label>
+
+			<input type="radio" name="radio-choice" id="radio-choice-2" value="choice-2"  />
+			<label for="radio-choice-2">Identicon</label>
+
+			<input type="radio" name="radio-choice" id="radio-choice-3" value="choice-3" checked="checked"  />
+			<label for="radio-choice-3">Monster ID</label>
+
+			<input type="radio" name="radio-choice" id="radio-choice-4" value="choice-4"  />
+			<label for="radio-choice-4">Wavatar</label>
+
+			<input type="radio" name="radio-choice" id="radio-choice-5" value="choice-5"  />
+			<label for="radio-choice-5">Retro</label>
+
+			<input type="radio" name="radio-choice" id="radio-choice-6" value="choice-6"  />
+			<label for="radio-choice-6">MM</label>
+
+			<label for="gravatar_url">Text Input:</label>
+			<input type="text" name="gravatar_url" id="gravatar_url" value="{{ blok.dash.gravatar_url_value }}" placeholder="GRAVATAR URL" />
+			<div class="ui-grid-a">
+			<div class="ui-block-a">
+			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">SAVE</button>
+			</form>
+			</div>
+			</div>
+			<hr/>
+			<p><b>Bio</b>
+			<br/><br/>The "Bio" information is whatever you want displayed on your public profile.</p>
+			<div class="ui-grid-a">
+			<div class="ui-block-a">
+			<form action="#" method="post" data-ajax="false">
+			<label for="bio">Text Input:</label>
+			<input type="text" name="bio" id="bio" value="" placeholder="BIO" />
+			<textarea name="bio" id="bio" placeholder="BIO"/>{{ blok.dash.bio }}</textarea>
+			<div class="ui-grid-a">
+			<div class="ui-block-a">
+			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_bio" data-mini="true">SAVE</button>
+			</form>
+			</div>
+			</div>
+			<hr/>
+			<p><b>Location</b>
+			<br/><br/>This website does not track your location.  You can set it manually if
+			you wish to inform other users of your general location.  The default location is
+			centered on Topeka, KS when you first register.</p>
+			<form action="#" method="post" data-ajax="false">
+			<label for="latitude">Text Input:</label>
+			<input type="text" name="latitude" id="latitude" value="{{ blok.dash.latitude }}" placeholder="LATITUDE" />
+			<label for="longitude">Text Input:</label>
+			<input type="text" name="longitude" id="longitude" value="{{ blok.dash.longitude }}" placeholder="LONGITUDE" />
+			<div class="ui-grid-a">
+			<div class="ui-block-a">
+			<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">SET LOCATION</button>
+			</form>
+			</div>
+			</div>
 		</div>
+
+
+
 		<div id="dash_content_alerts" class="text_bubble ui-body ui-body-c">
 			<p>Alerts content STUB</p>
 		</div>
