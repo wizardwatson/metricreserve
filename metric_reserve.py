@@ -2726,10 +2726,9 @@ class metric(object):
 		
 		dash["username"] = fuser.username
 		dash["gravatar_url"] = self.PARENT.user._get_gravatar_url(fuser.gravatar_url,fuser.gravatar_type)
-		dash["gravatar_url_value"] = fuser.gravatar_type
-		dash["latitude"] = fuser.location_latitude
-		dash["longitude"] = fuser.location_longitude
-		
+		dash["gravatar_url_value"] = fuser.gravatar_url
+		dash["latitude"] = str(float(fuser.location_latitude) / 100000000)
+		dash["longitude"] = str(float(fuser.location_longitude) / 100000000)
 		
 		# counters
 		dash["total_networks"] = 0
