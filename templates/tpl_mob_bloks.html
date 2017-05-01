@@ -1294,10 +1294,10 @@
 			it must contain at least one number.</p>
 			<form action="#" method="post" data-ajax="false">
 			<label for="username">Text Input:</label>
-			<input type="text" name="username" id="username" value="" placeholder="USERNAME" />
+			<input type="text" name="username" id="username" value="" placeholder="{{ blok.dash.username }}" />
 			<div class="ui-grid-a">
 			<div class="ui-block-a">
-			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE</button>
+			<button data-icon="check" type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE</button>
 			</form>
 			</div>
 			</div>
@@ -1331,7 +1331,7 @@
 			<input type="text" name="gravatar_url" id="gravatar_url" value="{{ blok.dash.gravatar_url_value }}" placeholder="GRAVATAR URL" />
 			<div class="ui-grid-a">
 			<div class="ui-block-a">
-			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">SAVE</button>
+			<button data-icon="check" type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">SAVE</button>
 			</form>
 			</div>
 			</div>
@@ -1340,11 +1340,10 @@
 			<br/><br/>The "Bio" information is whatever you want displayed on your public profile.</p>
 			<form action="#" method="post" data-ajax="false">
 			<label for="bio">Text Input:</label>
-			<input type="text" name="bio" id="bio" value="" placeholder="BIO" />
 			<textarea name="bio" id="bio" placeholder="BIO"/>{{ blok.dash.bio }}</textarea>
 			<div class="ui-grid-a">
 			<div class="ui-block-a">
-			<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_bio" data-mini="true">SAVE</button>
+			<button data-icon="check" type="submit" data-theme="b" name="submit" value="submit_bio" data-mini="true">SAVE</button>
 			</form>
 			</div>
 			</div>
@@ -1360,7 +1359,7 @@
 			<input type="text" name="longitude" id="longitude" value="{{ blok.dash.longitude }}" placeholder="LONGITUDE" />
 			<div class="ui-grid-a">
 			<div class="ui-block-a">
-			<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">SET LOCATION</button>
+			<button type="submit" data-role="button" data-theme="b" data-mini="true" data-icon="check">SET LOCATION</button>
 			</form>
 			</div>
 			</div>
