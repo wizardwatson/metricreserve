@@ -3585,7 +3585,11 @@
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed clone account.</p>
 		{% endif %}
 		{% if blok.success_code == "7041" %}
-			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed reserve account.</p>
+			<div class="text_bubble ui-body ui-body-b">
+				<p><font color="green"><font color="green"><strong>SUCCESS:</strong></font> Successfully closed reserve account.</p>
+				on network: <b>{{ master.request.GET.vn }}</b>.</p>
+				<a href="/network?vn={{ master.request.GET.vn }}" data-role="button" data-icon="grid" data-theme="a" data-mini="true">BACK TO NETWORK SUMMARY</a>
+			</div>
 		{% endif %}
 		{% if blok.success_code == "7042" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> Joint account retrieval successful.</p>
