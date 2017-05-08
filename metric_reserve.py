@@ -7070,7 +7070,6 @@ class metric(object):
 						source_user.total_reserve_accounts -= 1
 						del source_user.reserve_network_ids[i]
 						del source_user.reserve_account_ids[i]
-						del source_user.reserve_parent_ids[i]
 						delete_if_not_username(source_user.reserve_labels[i])
 						del source_user.reserve_labels[i]
 						del source_user.reserve_default[i]
