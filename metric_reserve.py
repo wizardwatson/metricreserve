@@ -10588,7 +10588,7 @@ class ph_command(webapp2.RequestHandler):
 
 		if 'form_decimals_account' in lobj_master.request.POST:
 			lstr_places = lobj_master.request.POST['places']
-			ct = ['decimals',lstr_amount]
+			ct = ['decimals',lstr_places]
 			lstr_command_text = "decimals %s" % lstr_places
 			ctraw = lstr_command_text.split()
 			ctraw.append(lstr_command_text)
