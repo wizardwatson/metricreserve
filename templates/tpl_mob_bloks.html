@@ -2445,8 +2445,9 @@
 					either spend the remaining balance, or take any reserves out of	the system.</p>
 					<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<form action="#" method="post" data-ajax="false">
-					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_reserve_close" value="reserve close"  />
+					<button class="ui-btn-inline" name="submit_reserve_close" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
 					</form>
 					</div>
 					</div>
