@@ -7055,7 +7055,7 @@ class metric(object):
 				return False # error Account still has connections.
 		
 			# error if account still has child accounts
-			if lds_source_metric.total_child_accounts > 0:
+			if source_user.total_child_accounts > 0:
 				self.PARENT.RETURN_CODE = "1214"
 				return False # error Account still has child accounts.
 			
@@ -10573,8 +10573,18 @@ class ph_command(webapp2.RequestHandler):
 			ct = ['reserve','open']
 			lstr_command_text = "reserve open"
 			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
 			is_confirmed = False
 			if 'form_reserve_open_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+				
+		if 'form_reserve_close' in lobj_master.request.POST:
+			ct = ['reserve','close']
+			lstr_command_text = "reserve close"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_reserve_close_confirm' in lobj_master.request.POST:
 				is_confirmed = True
 
 		# get the context
