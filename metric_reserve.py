@@ -3987,6 +3987,8 @@ class metric(object):
 		
 		groups = {}
 		
+		groups["network_name"] = fstr_network_name
+		
 		groups["reserve_account"] = None
 		groups["client_accounts"] = []
 		groups["joint_accounts"] = []
@@ -10572,6 +10574,8 @@ class ph_command(webapp2.RequestHandler):
 			lstr_command_text = "reserve open"
 			ctraw = lstr_command_text.split()
 			is_confirmed = False
+			if 'form_reserve_open_confirm' in lobj_master.request.POST:
+				is_confirmed = True
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
