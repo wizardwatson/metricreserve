@@ -10569,6 +10569,9 @@ class ph_command(webapp2.RequestHandler):
 						
 		if 'form_reserve_open' in lobj_master.request.POST:
 			ct = ['reserve','open']
+			lstr_command_text = "reserve open"
+			ctraw = lstr_command_text.split()
+			is_confirmed = False
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
