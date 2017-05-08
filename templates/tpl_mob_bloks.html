@@ -2391,12 +2391,13 @@
 					network and change it at any time.  You are allowed to view between 0 and 10
 					decimal places, however, depending on conversion rate for the network, too
 					many decimals might not show anything but extra zeros.</p>
-					<form action="#" method="post" data-ajax="false">
-					<label for="basic">Text Input:</label>
-    				<input type="number" name="name" id="basic" value="" placeholder="DECIMAL PLACES" />
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_decimals_account" value="decimals amount"  />
+					<label for="places">Text Input:</label>
+    				<input type="number" name="places" id="places" value="" placeholder="DECIMAL PLACES" />
     				<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE DECIMALS</button>
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit_decimals_account" value="submit_decimals_account" data-mini="true">CHANGE DECIMALS</button>
 					</form>
 					</div>
 					</div>
