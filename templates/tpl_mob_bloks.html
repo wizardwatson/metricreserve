@@ -757,7 +757,7 @@
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
 				<p>You currently have no account on this network.</p>
-				<form action="/networks?vn={{ blok.groups.network_name }}" method="post" data-ajax="false">
+				<form action="/network?vn={{ blok.groups.network_name }}" method="post" data-ajax="false">
 					<fieldset>
 						<input type="hidden" name="form_reserve_open" value="reserve open"  />
 						<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_reserve_open">OPEN ACCOUNT</button>
@@ -3426,7 +3426,7 @@
 			<div class="text_bubble ui-body ui-body-e">
 			<p><font color="red"><strong>CONFIRM:</strong></font> Please verify that you wish to open a reserve account
 			on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
-			<form action="/networks?vn={{ master.request.GET.xnetwork_name }}" method="post" data-ajax="false">
+			<form action="/network?vn={{ master.request.GET.xnetwork_name }}" method="post" data-ajax="false">
 			<input type="hidden" name="form_reserve_open" value="reserve open"  />
 			<input type="hidden" name="form_reserve_open_confirm" value="reserve open"  />
 			<div class="ui-grid-a">
