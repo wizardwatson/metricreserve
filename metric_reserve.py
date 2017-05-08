@@ -10586,6 +10586,17 @@ class ph_command(webapp2.RequestHandler):
 			if 'form_reserve_close_confirm' in lobj_master.request.POST:
 				is_confirmed = True
 
+		if 'form_decimals_account' in lobj_master.request.POST:
+			lstr_places = lobj_master.request.POST['places']
+			ct = ['decimals',lstr_amount]
+			lstr_command_text = "decimals %s" % lstr_places
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_decimals_account_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+
+
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 
