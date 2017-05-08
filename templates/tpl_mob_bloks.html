@@ -757,7 +757,7 @@
 		{% else %}
 			<div class="text_bubble ui-body ui-body-c">
 				<p>You currently have no account on this network.</p>
-				<form action="/network?vn={{ blok.groups.network_name }}" method="post" data-ajax="false">
+				<form action="/network?vn={{ master.request.GET.vn }}" method="post" data-ajax="false">
 					<fieldset>
 						<input type="hidden" name="form_reserve_open" value="reserve open"  />
 						<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_reserve_open">OPEN ACCOUNT</button>
