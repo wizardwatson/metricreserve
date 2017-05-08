@@ -3484,8 +3484,11 @@
 			reserve network.</p>
 		{% endif %}
 		{% if blok.success_code == "7011" %}
-			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have successfully
-			opened a reserve account on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+			<div class="text_bubble ui-body ui-body-b">
+				<p><font color="green"><strong>SUCCESS:</strong></font> You have successfully
+				opened a reserve account on network: <b>{{ master.request.GET.xnetwork_name }}</b>.</p>
+				<a href="/network?vn={{ master.request.GET.xnetwork_name }}" data-role="button" data-icon="grid" data-theme="a" data-mini="true">BACK TO NETWORK SUMMARY</a>
+			</div>
 		{% endif %}
 		{% if blok.success_code == "7012" %}
 			<p class="success ui-body ui-body-b"><font color="green"><strong>SUCCESS:</strong></font> You have denied the connection
