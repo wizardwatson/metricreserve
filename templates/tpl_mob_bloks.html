@@ -759,7 +759,8 @@
 				<p>You currently have no account on this network.</p>
 				<form action="#" method="post" data-ajax="false">
 					<fieldset>
-						<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_command">OPEN ACCOUNT</button>
+						<input type="hidden" name="form_reserve_open" value="reserve open"  />
+						<button tabindex=2 type="submit" data-theme="b" name="submit" value="submit_reserve_open">OPEN ACCOUNT</button>
 					</fieldset>
 				</form>
 			</div>
@@ -1100,8 +1101,8 @@
 			</div>
 			<div class="ui-grid-a">
 				<div class="ui-block-a">
-					<a id="dash_menu_1_activity_active" href="#" data-role="button" data-mini="true" data-theme="e">Activity</a>
-					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b">Activity</a>
+					<a id="dash_menu_1_activity_active" href="#" data-role="button" data-mini="true" data-theme="e" class="ui-disabled">Activity</a>
+					<a id="dash_menu_1_activity_inactive" href="#" data-role="button" data-mini="true" data-theme="b" class="ui-disabled">Activity</a>
 				</div>
 				<div class="ui-block-b">
 					<a id="dash_menu_1_messages_active" href="/messages?channel={{ blok.dash.username }}" data-role="button" data-mini="true" data-theme="e">Messages</a>
