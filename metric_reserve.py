@@ -10523,7 +10523,7 @@ class ph_command(webapp2.RequestHandler):
 		# create a shorter reference to the request handler
 		r = lobj_master.request_handler
 		
-		if 'form_command_text' in lobj_master.request.POST:
+ 		if 'form_command_text' in lobj_master.request.POST:
 			# get the command text
 			lstr_command_text = lobj_master.request.POST['form_command_text']
 			if lstr_command_text.isspace() or not lstr_command_text or lstr_command_text is None:
@@ -10565,7 +10565,10 @@ class ph_command(webapp2.RequestHandler):
 						ct = lstr_command_text.lower().split()
 						ctraw = lstr_command_text.split()
 						ctraw.append(lstr_command_text)
-						is_confirmed = True			
+						is_confirmed = True	
+						
+		if 'form_reserve_open' in lobj_master.request.POST:
+			ct = ['reserve','open']
 
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
