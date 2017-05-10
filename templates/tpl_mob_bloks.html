@@ -2408,12 +2408,13 @@
 					account isn't your only account on this network, it may already have an "alias".  Here,
 					you can change the alias for this account.  Or, if it's not already in use, you can
 					change it to be referenced using your username.</p>
-					<form action="#" method="post" data-ajax="false">
-					<label for="basic">Text Input:</label>
-    				<input type="text" name="name" id="basic" value="" placeholder="NEW NAME" />
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_alias_modify" value="default"  />
+					<label for="new_name">Alias Modify:</label>
+    				<input type="text" name="new_name" id="new_name" value="" placeholder="NEW NAME" />
     				<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit_alias_modify" value="submit_alias_modify" data-mini="true">CHANGE ACCOUNT NAME</button>
 					</form>
 					</div>
 					</div>
@@ -2435,8 +2436,9 @@
 					</p>
 					<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<form action="#" method="post" data-ajax="false">
-					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_default" value="default"  />
+					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" name="submit_default" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
 					</form>
 					</div>
 					</div>
@@ -2556,12 +2558,13 @@
 					network and change it at any time.  You are allowed to view between 0 and 10
 					decimal places, however, depending on conversion rate for the network, too
 					many decimals might not show anything but extra zeros.</p>
-					<form action="#" method="post" data-ajax="false">
-					<label for="basic">Text Input:</label>
-    				<input type="number" name="name" id="basic" value="" placeholder="DECIMAL PLACES" />
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_decimals_account" value="decimals amount"  />
+					<label for="places">Decimal Places:</label>
+    				<input type="number" name="places" id="places" value="" placeholder="DECIMAL PLACES" />
     				<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE DECIMALS</button>
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit_decimals_account" value="submit_decimals_account" data-mini="true">CHANGE DECIMALS</button>
 					</form>
 					</div>
 					</div>
@@ -2571,12 +2574,13 @@
 					account isn't your only account on this network, it may already have an "alias".  Here,
 					you can change the alias for this account.  Or, if it's not already in use, you can
 					change it to be referenced using your username.</p>
-					<form action="#" method="post" data-ajax="false">
-					<label for="basic">Text Input:</label>
-    				<input type="text" name="name" id="basic" value="" placeholder="NEW NAME" />
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_alias_modify" value="default"  />
+					<label for="new_name">Alias Modify:</label>
+    				<input type="text" name="new_name" id="new_name" value="" placeholder="NEW NAME" />
     				<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit" value="submit_search" data-mini="true">CHANGE ACCOUNT NAME</button>
+					<button data-icon="check" data-inline="true" tabindex=2 type="submit" data-theme="b" name="submit_alias_modify" value="submit_alias_modify" data-mini="true">CHANGE ACCOUNT NAME</button>
 					</form>
 					</div>
 					</div>
@@ -2598,8 +2602,9 @@
 					</p>
 					<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<form action="#" method="post" data-ajax="false">
-					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_default" value="default"  />
+					<button {% if blok.account.is_my_default %}disabled {% else %}{% endif %}type="submit" name="submit_default" data-theme="a" data-icon="check" data-mini="true">MAKE DEFAULT</button>
 					</form>
 					</div>
 					</div>
@@ -2610,8 +2615,9 @@
 					for them to allow you to withdraw the reserves from the system.</p>
 					<div class="ui-grid-a">
 					<div class="ui-block-a">
-					<form action="#" method="post" data-ajax="false">
-					<button class="ui-btn-inline" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_{{ blok.account.type|lower }}_close" value="{{ blok.account.type|lower }} close"  />
+					<button class="ui-btn-inline" name="submit_{{ blok.account.type|lower }}_close" type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="delete" data-inline="true">CLOSE ACCOUNT</button>
 					</form>
 					</div>
 					</div>
