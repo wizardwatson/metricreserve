@@ -10595,6 +10595,33 @@ class ph_command(webapp2.RequestHandler):
 			if 'form_reserve_close_confirm' in lobj_master.request.POST:
 				is_confirmed = True
 
+		if 'form_clone_close' in lobj_master.request.POST:
+			ct = ['clone','close']
+			lstr_command_text = "clone close"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_clone_close_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+				
+		if 'form_client_close' in lobj_master.request.POST:
+			ct = ['client','close']
+			lstr_command_text = "client close"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_client_close_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+
+		if 'form_joint_close' in lobj_master.request.POST:
+			ct = ['joint','close']
+			lstr_command_text = "joint close"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_joint_close_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+
 		if 'form_decimals_account' in lobj_master.request.POST:
 			lstr_places = lobj_master.request.POST['places']
 			ct = ['decimals',lstr_places]
@@ -10605,7 +10632,29 @@ class ph_command(webapp2.RequestHandler):
 			if 'form_decimals_account_confirm' in lobj_master.request.POST:
 				is_confirmed = True
 
+		if 'form_default' in lobj_master.request.POST:
+			ct = ['default']
+			lstr_command_text = "default"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_default_confirm' in lobj_master.request.POST:
+				is_confirmed = True
 
+		if 'form_alias_modify' in lobj_master.request.POST:
+			lstr_new_name = lobj_master.request.POST['new_name'].lower()
+			if lobj_master.user.entity.username == lstr_new_name:
+				ct = ['alias','delete']
+				lstr_command_text = "alias delete"
+			else:
+				ct = ['alias','change',lstr_new_name]
+				lstr_command_text = "alias change %s" % lstr_new_name
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_alias_modify_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+				
 		# get the context
 		lobj_master.PATH_CONTEXT = ("root/" + lobj_master.request.path.strip("/")).strip("/")
 
