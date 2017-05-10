@@ -2102,8 +2102,9 @@
 					OPEN CLONE ACCOUNT button below.  Your current clone accounts are listed below and
 					are also listed on the <a href="/network?vn={{ blok.account.network_name }}">network
 					summary page.</a>
-					<form action="#" method="post" data-ajax="false">
-					<button type="submit" data-role="button" data-theme="a" data-mini="true" data-icon="add">OPEN CLONE ACCOUNT</button>
+					<form action="/network?vn={{ blok.account.network_name }}&va={{ blok.account.username_alias }}" method="post" data-ajax="false">
+					<input type="hidden" name="form_clone_open" value="clone open"  />
+					<button type="submit" name="submit_clone_open" data-role="button" data-theme="a" data-mini="true" data-icon="add">OPEN CLONE ACCOUNT</button>
 					</form>
 					<hr/>
 					<b>Clone Accounts</b>
