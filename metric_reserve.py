@@ -10577,6 +10577,15 @@ class ph_command(webapp2.RequestHandler):
 			if 'form_reserve_open_confirm' in lobj_master.request.POST:
 				is_confirmed = True
 				
+		if 'form_clone_open' in lobj_master.request.POST:
+			ct = ['clone','open']
+			lstr_command_text = "clone open"
+			ctraw = lstr_command_text.split()
+			ctraw.append(lstr_command_text)
+			is_confirmed = False
+			if 'form_clone_open_confirm' in lobj_master.request.POST:
+				is_confirmed = True
+				
 		if 'form_reserve_close' in lobj_master.request.POST:
 			ct = ['reserve','close']
 			lstr_command_text = "reserve close"
